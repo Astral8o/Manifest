@@ -230,7 +230,6 @@ export default function App() {
       description: s.bio,
       tags: s.tags,
       metaLabel: 'Min ' + s.minGroup + ' · ' + s.lead + ' day lead · ' + s.rating,
-      responseLabel: s.response,
       open: () => patch({ screen: 'supplier', supId: s.id }),
     })),
 
@@ -1027,7 +1026,6 @@ export default function App() {
                 <div style={{ flex: '0 0 220px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
                     <div>{s.metaLabel}</div>
-                    <div>{s.responseLabel}</div>
                   </div>
                   <button
                     onClick={s.open}
