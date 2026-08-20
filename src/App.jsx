@@ -82,6 +82,7 @@ export default function App() {
           unit: p[4],
           minQty: p[5],
           lead: p[6],
+          priceOnRequest: !!s.priceOnRequest,
         })
       )
     );
@@ -93,7 +94,8 @@ export default function App() {
     const c = CATS.find((c) => c[0] === code);
     return c ? c[1] : '';
   };
-  const priceLabel = (p) => money(p.min) + '–' + money(p.max) + (p.unit === 'flat' ? '' : ' ' + p.unit);
+  const priceLabel = (p) =>
+    p.priceOnRequest ? 'Inquire for pricing' : money(p.min) + '–' + money(p.max) + (p.unit === 'flat' ? '' : ' ' + p.unit);
 
   const add = (pid) => {
     patch((s) => {
