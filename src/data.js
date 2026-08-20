@@ -6,12 +6,14 @@ export const CATS = [
   ["CAT.05", "Photo and video", "Event coverage, headshot booths, same-day edits."],
   ["CAT.06", "Print and signage", "Banners, wayfinding, badges, table cards, floor decals."],
   ["CAT.07", "Branded merch", "Shirts, bags, bottles, lanyards and giveaway items."],
-  ["CAT.08", "Transportation", "Shuttles, parking staff, load-in trucks."],
+  ["CAT.08", "Logistics & Delivery", "Equipment delivery and pickup, transportation, courier services, moving event materials, setup logistics, storage and distribution."],
   ["CAT.09", "Staffing", "Registration, ushers, setup crew, bartenders, security."],
-  ["CAT.10", "Entertainment", "DJs, bands, hosts, activities and photo experiences."],
+  ["CAT.10", "Entertainment & Talent", "DJs, bands, live performers, MCs, hosts, speakers, presenters, instructors and other event talent."],
   ["CAT.11", "Tents and structures", "Tents, flooring, fans, generators, fencing."],
-  ["CAT.12", "Permits and safety", "Road closure permits, insurance, first aid, traffic control."],
+  ["CAT.12", "Awards and Recognition", "Medals, trophies, plaques, certificates, custom recognition and engraving."],
 ];
+
+export const PLANNING_REQUIREMENTS = ["Permits", "Safety", "Insurance", "Registration", "Approvals", "Timelines"];
 
 export const EVENTS = [
   ["Corporate offsite", ["CAT.01", "CAT.02", "CAT.03", "CAT.04", "CAT.05", "CAT.08", "CAT.10"], "Staff and internal", 1],
@@ -24,7 +26,7 @@ export const EVENTS = [
   ["Product launch", ["CAT.01", "CAT.02", "CAT.03", "CAT.05", "CAT.06", "CAT.07", "CAT.10"], "Customer facing", 1],
   ["Networking mixer", ["CAT.01", "CAT.02", "CAT.04", "CAT.05", "CAT.09"], "Customer facing", 1],
   ["Trade show booth", ["CAT.03", "CAT.04", "CAT.06", "CAT.07", "CAT.09"], "Customer facing", 1],
-  ["Conference", ["CAT.01", "CAT.02", "CAT.03", "CAT.05", "CAT.06", "CAT.09", "CAT.12"], "Customer facing", 0],
+  ["Conference", ["CAT.01", "CAT.02", "CAT.03", "CAT.05", "CAT.06", "CAT.09"], "Customer facing", 0],
   ["Open house", ["CAT.01", "CAT.04", "CAT.06", "CAT.10"], "Customer facing", 0],
   ["Client appreciation dinner", ["CAT.01", "CAT.02", "CAT.04", "CAT.05"], "Customer facing", 0],
   ["Church harvest or fundraiser", ["CAT.01", "CAT.04", "CAT.06", "CAT.09", "CAT.11"], "Community and fundraising", 1],
