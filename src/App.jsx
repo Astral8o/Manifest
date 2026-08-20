@@ -312,7 +312,7 @@ export default function App() {
         .map((x) => ({ name: x.e[0], ...chip(x.i === st.eventIdx), pick: () => patch({ eventIdx: x.i }) })),
     })).filter((g) => g.items.length),
     selectedEventName: evt[0],
-    checkedLabel: evt[1].length + ' of 12 categories',
+    checkedLabel: evt[1].length + ' of ' + CATS.length + ' categories',
     checklist: CATS.map((c) => {
       const on = inSet(c[0]);
       return {
@@ -819,51 +819,95 @@ export default function App() {
                 </p>
               </div>
               <div>
-                <input
-                  type="search"
-                  value={V.eventQuery}
-                  onChange={V.setEventQuery}
-                  placeholder="Search event types"
-                  style={{
-                    width: '100%',
-                    border: '1px solid #E4E4DF',
-                    borderRadius: 999,
-                    background: '#F7F7F5',
-                    padding: '12px 18px',
-                    fontFamily: SANS,
-                    fontSize: 14,
-                    color: '#171717',
-                  }}
-                />
-                <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {V.eventGroups.map((g) => (
-                    <div key={g.label}>
-                      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                        {g.label}
-                      </div>
-                      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {g.items.map((et) => (
-                          <button
-                            key={et.name}
-                            onClick={et.pick}
-                            style={{
-                              border: `1px solid ${et.border}`,
-                              borderRadius: 999,
-                              background: et.bg,
-                              color: et.fg,
-                              padding: '10px 16px',
-                              cursor: 'pointer',
-                              fontSize: 14,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {et.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <input
+                    type="search"
+                    value={V.eventQuery}
+                    onChange={V.setEventQuery}
+                    placeholder="Search event types"
+                    style={{
+                      flex: '1 1 200px',
+                      border: '1px solid #E4E4DF',
+                      borderRadius: 999,
+                      background: '#F7F7F5',
+                      padding: '12px 18px',
+                      fontFamily: SANS,
+                      fontSize: 14,
+                      color: '#171717',
+                    }}
+                  />
+                  {isMobile && (
+                    <button
+                      onClick={V.toggleAllEvents}
+                      style={{
+                        border: 0,
+                        background: 'transparent',
+                        padding: 0,
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: '#171717',
+                        textDecoration: 'underline',
+                        textUnderlineOffset: '3px',
+                      }}
+                    >
+                      {V.toggleAllLabel}
+                    </button>
+                  )}
                 </div>
+                {isMobile && V.showPopular && (
+                  <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {V.eventTypes.map((et) => (
+                      <button
+                        key={et.name}
+                        onClick={et.pick}
+                        style={{
+                          border: `1px solid ${et.border}`,
+                          borderRadius: 999,
+                          background: et.bg,
+                          color: et.fg,
+                          padding: '11px 18px',
+                          cursor: 'pointer',
+                          fontSize: 14,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {et.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {(!isMobile || V.showEventGroups) && (
+                  <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {V.eventGroups.map((g) => (
+                      <div key={g.label}>
+                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          {g.label}
+                        </div>
+                        <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          {g.items.map((et) => (
+                            <button
+                              key={et.name}
+                              onClick={et.pick}
+                              style={{
+                                border: `1px solid ${et.border}`,
+                                borderRadius: 999,
+                                background: et.bg,
+                                color: et.fg,
+                                padding: '10px 16px',
+                                cursor: 'pointer',
+                                fontSize: 14,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {et.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div style={{ marginTop: 26, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                   <button
                     onClick={V.startPlanning}

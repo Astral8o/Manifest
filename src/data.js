@@ -11,6 +11,7 @@ export const CATS = [
   ["CAT.10", "Entertainment & Talent", "DJs, bands, live performers, MCs, hosts, speakers, presenters, instructors and other event talent."],
   ["CAT.11", "Tents and structures", "Tents, flooring, fans, generators, fencing."],
   ["CAT.12", "Awards and Recognition", "Medals, trophies, plaques, certificates, custom recognition and engraving."],
+  ["CAT.13", "Event Management", "Full-service event planners and coordinators who can run all or part of your event for you."],
 ];
 
 export const PLANNING_REQUIREMENTS = ["Permits", "Safety", "Insurance", "Registration", "Approvals", "Timelines"];
