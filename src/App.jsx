@@ -710,7 +710,7 @@ export default function App() {
                   onClick={V.goHome}
                   style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
                 >
-                  Browse categories
+                  Find Suppliers
                 </button>
                 <button
                   onClick={V.goJoin}
@@ -742,7 +742,7 @@ export default function App() {
                 onClick={V.goHome}
                 style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
               >
-                Browse categories
+                Find Suppliers
               </button>
               <button
                 onClick={V.goJoin}
@@ -1737,7 +1737,7 @@ export default function App() {
                   fontWeight: 700,
                 }}
               >
-                Browse categories
+                Find Suppliers
               </button>
             </div>
           )}
