@@ -12,12 +12,14 @@ import {
   PLANNING_REQUIREMENTS,
   money,
 } from './data';
+import heroPhoto from './assets/hero-photo.jpg';
 
 const MONO = "'IBM Plex Mono', monospace";
 const SANS = 'Manrope, sans-serif';
+const DISPLAY = 'Archivo, Helvetica, sans-serif';
+const DISPLAY_BLACK = "'Archivo Black', Archivo, sans-serif";
 const ACCOUNT_KEY = 'manifestAccount';
 const PROMO_ACCENT = '#FF5A36';
-const HERO_IMAGE_URL = 'https://i.ibb.co/3Y7XpM0b/5e23cb27406353ee91bb0e93556cd303.jpg';
 
 const avatarUrl = (seed) =>
   'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(seed) + '&backgroundColor=171717&textColor=ffffff&fontWeight=700';
@@ -818,51 +820,69 @@ export default function App() {
 
       {V.isHome && (
         <div>
+          <div style={{ marginTop: isMobile ? 8 : 4, fontFamily: MONO, fontSize: isMobile ? 10.5 : 11.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#7a7a7a' }}>
+            Discovery and sourcing for events
+          </div>
+
           <div
             style={{
               position: 'relative',
-              marginTop: isMobile ? 8 : 0,
+              isolation: 'isolate',
+              marginTop: 18,
               borderRadius: 28,
               overflow: 'hidden',
-              height: isMobile ? 360 : 500,
+              background: '#141414',
             }}
           >
             <img
-              src={HERO_IMAGE_URL}
-              alt="Guests laughing and celebrating at an event"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }}
+              src={heroPhoto}
+              alt="Guests laughing and celebrating at an outdoor event"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 42%' }}
             />
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background: 'linear-gradient(180deg, rgba(0,0,0,0) 35%, rgba(0,0,0,0.8) 100%)',
-              }}
-            />
-            <div style={{ position: 'absolute', left: isMobile ? 20 : 40, right: isMobile ? 20 : 40, bottom: isMobile ? 22 : 40 }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#DDF247' }}>
-                Discovery and sourcing for events
-              </div>
-              <h1 style={{ margin: '14px 0 0', fontSize: isMobile ? 40 : 76, lineHeight: isMobile ? 1.02 : 0.94, letterSpacing: '-0.03em', fontWeight: 800, color: '#FFFFFF', textWrap: 'pretty' }}>
-                Plan Your{' '}
-                <span
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.32)' }} />
+            <div style={{ position: 'relative', mixBlendMode: 'lighten', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ background: '#FFFFFF', padding: isMobile ? '18px 16px 20px' : '26px 28px 30px' }}>
+                <div
                   style={{
-                    background: '#DDF247',
-                    color: '#171717',
-                    padding: '0 12px',
-                    borderRadius: 12,
-                    boxDecorationBreak: 'clone',
-                    WebkitBoxDecorationBreak: 'clone',
+                    fontFamily: DISPLAY_BLACK,
+                    fontSize: isMobile ? 'clamp(40px, 15vw, 90px)' : 'clamp(64px, 15.5vw, 300px)',
+                    lineHeight: 0.82,
+                    letterSpacing: '-0.045em',
+                    textTransform: 'uppercase',
+                    color: '#000000',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  Event
-                </span>
-              </h1>
+                  Eventory
+                </div>
+              </div>
+              <div style={{ height: isMobile ? 190 : 300 }} />
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.15fr 1fr', gap: 20, alignItems: 'stretch', padding: isMobile ? '24px 0 0' : '32px 0 0' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 32, minWidth: isMobile ? 0 : 320 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 26 }}>
+            <button
+              onClick={V.startPlanning}
+              style={{
+                border: 0,
+                borderRadius: 999,
+                background: '#DDF247',
+                color: '#171717',
+                padding: '15px 32px',
+                cursor: 'pointer',
+                fontFamily: DISPLAY,
+                fontSize: 15,
+                fontWeight: 600,
+              }}
+            >
+              Plan Your Event
+            </button>
+          </div>
+
+          {!isMobile && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 20, alignItems: 'stretch', padding: '40px 0 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 32, minWidth: 320 }}>
               <div>
                 {!isMobile && (
                   <>
@@ -915,23 +935,6 @@ export default function App() {
                     </div>
                   </>
                 )}
-                <div style={{ marginTop: 26, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                  <button
-                    onClick={V.startPlanning}
-                    style={{
-                      border: 0,
-                      borderRadius: 999,
-                      background: '#171717',
-                      color: '#FFFFFF',
-                      padding: '16px 28px',
-                      cursor: 'pointer',
-                      fontSize: 15,
-                      fontWeight: 700,
-                    }}
-                  >
-                    Start Planning
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -1018,6 +1021,7 @@ export default function App() {
               </div>
             )}
           </div>
+          )}
 
           <div id="all-categories" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
