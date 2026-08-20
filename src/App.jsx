@@ -228,6 +228,12 @@ export default function App() {
     patch({ screen, sent: screen === 'manifest' ? st.sent : null, ...(extra || {}) });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
   const openPromoCat = (code) => () => patch({ screen: 'promoCategory', catCode: code });
+  const pickEvent = (i) => () => {
+    patch({ eventIdx: i });
+    if (isMobile) {
+      document.getElementById('event-checklist-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const cat = CATS.find((c) => c[0] === st.catCode) || CATS[0];
   const catSuppliers = SUPPLIERS.filter((s) => s.code === st.catCode);
@@ -297,7 +303,7 @@ export default function App() {
     eventTypes: EVENTS.map((e, i) => ({
       name: e[0],
       ...chip(i === st.eventIdx),
-      pick: () => patch({ eventIdx: i }),
+      pick: pickEvent(i),
     })).filter((e, i) => EVENTS[i][3] === 1 || i === st.eventIdx),
     eventQuery: st.q || '',
     setEventQuery: (e) => patch({ q: e.target.value, showAll: !!e.target.value }),
@@ -309,7 +315,7 @@ export default function App() {
       label: gname,
       items: EVENTS.map((e, i) => ({ e, i }))
         .filter((x) => x.e[2] === gname && (!st.q || x.e[0].toLowerCase().indexOf(st.q.toLowerCase()) >= 0))
-        .map((x) => ({ name: x.e[0], ...chip(x.i === st.eventIdx), pick: () => patch({ eventIdx: x.i }) })),
+        .map((x) => ({ name: x.e[0], ...chip(x.i === st.eventIdx), pick: pickEvent(x.i) })),
     })).filter((g) => g.items.length),
     selectedEventName: evt[0],
     checkedLabel: evt[1].length + ' of ' + CATS.length + ' categories',
@@ -928,7 +934,17 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ background: '#171717', borderRadius: 28, padding: isMobile ? '24px 22px 20px' : '30px 30px 26px', color: '#FFFFFF', minWidth: isMobile ? 0 : 300 }}>
+            <div
+              id="event-checklist-panel"
+              style={{
+                background: '#171717',
+                borderRadius: 28,
+                padding: isMobile ? '24px 22px 20px' : '30px 30px 26px',
+                color: '#FFFFFF',
+                minWidth: isMobile ? 0 : 300,
+                scrollMarginTop: 140,
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16 }}>
                 <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>{V.selectedEventName}</div>
                 <div style={{ fontFamily: MONO, fontSize: 12, color: '#DDF247' }}>{V.checkedLabel}</div>
