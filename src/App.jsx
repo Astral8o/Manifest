@@ -300,6 +300,9 @@ export default function App() {
     startPlanning: () => {
       document.getElementById('all-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     },
+    scrollToJoinForm: () => {
+      document.getElementById('join-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
     backToCategory: () =>
       st.supplierOrigin === 'promo'
         ? patch({ screen: 'promoCategory', catCode: sup.code })
@@ -629,12 +632,6 @@ export default function App() {
         }),
     })),
     joinOther: (st.joinCats || []).indexOf('OTHER') >= 0,
-    joinTerms: [
-      { key: 'listing', label: 'Listing', value: 'Free' },
-      { key: 'inquiries', label: 'Inquiries', value: 'Free, unlimited' },
-      { key: 'commission', label: 'Commission on your work', value: 'None' },
-      { key: 'payment', label: 'Payment handling', value: 'Direct with buyer' },
-    ],
 
     email: st.email || '',
     setEmail: (e) => patch({ email: e.target.value }),
@@ -770,7 +767,7 @@ export default function App() {
                   onClick={V.goJoin}
                   style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
                 >
-                  List your business
+                  Get Promoted
                 </button>
               </div>
             )}
@@ -818,7 +815,7 @@ export default function App() {
                 onClick={V.goJoin}
                 style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
               >
-                List your business
+                Get Promoted
               </button>
             </div>
           )}
@@ -2562,14 +2559,13 @@ export default function App() {
           </button>
           <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.5fr 1fr', gap: 20, alignItems: 'start' }}>
             <div style={{ minWidth: 0 }}>
-              <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>List your business on Manifest</h1>
+              <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Join Manifest</h1>
               <p style={{ margin: '16px 0 0', maxWidth: 600, fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
-                Free to list, free to receive inquiries. Buyers see your categories, price ranges and lead times,
-                then send you a request with their event details. You quote and invoice them directly, exactly as you
-                do now.
+                Get discovered by buyers looking for the suppliers, products, and services they need for their
+                events.
               </p>
 
-              <div style={{ marginTop: 28, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 18 : 26 }}>
+              <div id="join-form" style={{ marginTop: 28, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 18 : 26, scrollMarginTop: 100 }}>
                 {V.joinSubmitted ? (
                   <>
                     <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Thanks — you're in the queue</div>
@@ -2757,52 +2753,44 @@ export default function App() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, position: isMobile ? 'static' : 'sticky', top: 92, minWidth: 0 }}>
               <div style={{ borderRadius: 24, background: '#DDF247', padding: 26 }}>
-                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>What it costs you</div>
-                <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {V.joinTerms.map((t) => (
-                    <div
-                      key={t.key}
-                      style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 14, borderTop: '1px solid #C6D93C', padding: '11px 0' }}
-                    >
-                      <span style={{ fontSize: 14, fontWeight: 600, color: '#3B4200' }}>{t.label}</span>
-                      <span style={{ fontFamily: MONO, fontSize: 13 }}>{t.value}</span>
-                    </div>
-                  ))}
+                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Get Listed</div>
+                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#3B4200' }}>
+                  Tell us about your business. We'll build your profile and get you in front of buyers looking for
+                  what you offer.
+                </p>
+                <div style={{ marginTop: 14, fontSize: 13, fontWeight: 600, color: '#3B4200' }}>
+                  Free to list. Free to receive inquiries.
                 </div>
-              </div>
-              <div style={{ borderRadius: 24, background: '#171717', color: '#FFFFFF', padding: 26 }}>
-                <div style={{ fontSize: 18, fontWeight: 700 }}>How inquiries reach you</div>
-                <div style={{ marginTop: 10, fontSize: 14, lineHeight: 1.6, color: '#A8A8A8' }}>
-                  A buyer adds your items to their manifest and sends. You get one email with their event date, guest
-                  count, venue, the items they picked and a note. You see only your own items, never the rest of
-                  their list. Reply to the buyer directly.
-                </div>
+                <button
+                  onClick={V.scrollToJoinForm}
+                  style={{
+                    marginTop: 18,
+                    width: '100%',
+                    border: 0,
+                    borderRadius: 999,
+                    background: '#171717',
+                    color: '#FFFFFF',
+                    padding: '14px 20px',
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  Join Manifest
+                </button>
               </div>
               <div style={{ borderRadius: 24, border: `1px solid ${PROMO_ACCENT}`, background: `${PROMO_ACCENT}0D`, padding: 26 }}>
-                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROMO_ACCENT }}>
-                  Promotions
-                </div>
-                <div style={{ marginTop: 8, fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Get More Visibility</div>
+                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Get Promoted</div>
+                <div style={{ marginTop: 8, fontSize: 14, fontWeight: 700, color: '#171717' }}>Want more visibility?</div>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
-                  Put your business and offers in front of buyers actively looking for event suppliers.
+                  For TTD $500/month, get your business and offers in front of more buyers through:
                 </p>
-                <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${PROMO_ACCENT}33` }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#171717' }}>Promotion Plan</div>
-                  <div style={{ marginTop: 4, fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em' }}>
-                    TTD $500<span style={{ fontSize: 14, fontWeight: 600, color: '#6E6E6E' }}>/month</span>
-                  </div>
-                </div>
-                <div style={{ marginTop: 16, fontSize: 13, fontWeight: 700, color: '#171717' }}>Your promotion includes:</div>
                 <ul style={{ margin: '10px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <li style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>Targeted email marketing to relevant buyers</li>
+                  <li style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>Targeted email marketing</li>
                   <li style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>Featured placement on the Promotions page</li>
                   <li style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>Featured placement in relevant event categories</li>
                   <li style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>Social media promotion</li>
                 </ul>
-                <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>
-                  One monthly fee. Four ways to get your business in front of more buyers.
-                </div>
-                <div style={{ marginTop: 6, fontSize: 12, color: '#9A9A9A' }}>Cancel anytime.</div>
                 <button
                   onClick={V.openPromoPlan}
                   style={{
