@@ -1,0 +1,1880 @@
+import { useState } from 'react';
+import {
+  CATS,
+  EVENTS,
+  EVENT_GROUPS,
+  SUPPLIERS,
+  LOCATIONS,
+  GROUPS,
+  FIELDS,
+  TIERS,
+  FIELDS_DEFAULT,
+  money,
+} from './data';
+import { heroImage } from './heroImage';
+
+const MONO = "'IBM Plex Mono', monospace";
+const SANS = 'Manrope, sans-serif';
+
+const initialState = {
+  screen: 'home',
+  eventIdx: 0,
+  catCode: 'CAT.01',
+  supId: 's1',
+  items: [],
+  sent: null,
+  loc: 0,
+  grp: 0,
+  srcTag: null,
+  tier: null,
+  fulfil: 'Delivery',
+  spec: {},
+  openSpec: {},
+  email: '',
+  signedIn: false,
+  q: '',
+  showAll: false,
+  joinCats: [],
+};
+
+export default function App() {
+  const [st, setSt] = useState(initialState);
+  const patch = (updater) =>
+    setSt((prev) => ({ ...prev, ...(typeof updater === 'function' ? updater(prev) : updater) }));
+
+  const allProducts = () => {
+    const out = [];
+    SUPPLIERS.forEach((s) =>
+      s.products.forEach((p, i) =>
+        out.push({
+          id: s.id + '-' + (i + 1),
+          supId: s.id,
+          name: p[0],
+          description: p[1],
+          min: p[2],
+          max: p[3],
+          unit: p[4],
+          minQty: p[5],
+          lead: p[6],
+        })
+      )
+    );
+    return out;
+  };
+  const product = (id) => allProducts().find((p) => p.id === id);
+  const supplier = (id) => SUPPLIERS.find((s) => s.id === id);
+  const catName = (code) => {
+    const c = CATS.find((c) => c[0] === code);
+    return c ? c[1] : '';
+  };
+  const priceLabel = (p) => money(p.min) + '–' + money(p.max) + ' ' + p.unit;
+
+  const add = (pid) => {
+    patch((s) => {
+      const hit = s.items.find((i) => i.pid === pid);
+      const items = hit
+        ? s.items.map((i) => (i.pid === pid ? { ...i, qty: i.qty + 1 } : i))
+        : s.items.concat([{ pid, qty: 1 }]);
+      return { items, sent: null };
+    });
+  };
+  const bump = (pid, d) => {
+    patch((s) => ({ items: s.items.map((i) => (i.pid === pid ? { ...i, qty: Math.max(1, i.qty + d) } : i)) }));
+  };
+  const remove = (pid) => patch((s) => ({ items: s.items.filter((i) => i.pid !== pid) }));
+  const setSpec = (pid, key, val) => {
+    patch((s) => {
+      const spec = { ...(s.spec || {}) };
+      spec[pid] = { ...(spec[pid] || {}), [key]: val };
+      return { spec };
+    });
+  };
+
+  const groups = () => {
+    const bySup = {};
+    st.items.forEach((it) => {
+      const p = product(it.pid);
+      if (!p) return;
+      (bySup[p.supId] = bySup[p.supId] || []).push({ ...it, p });
+    });
+    return Object.keys(bySup).map((sid) => ({ sup: supplier(sid), rows: bySup[sid] }));
+  };
+
+  // ---- derived view-model ----
+  const grp = groups();
+  const itemCount = st.items.reduce((n, i) => n + i.qty, 0);
+  const evt = EVENTS[st.eventIdx];
+  const inSet = (code) => evt[1].indexOf(code) >= 0;
+  const nav = (screen, extra) => () =>
+    patch({ screen, sent: screen === 'manifest' ? st.sent : null, ...(extra || {}) });
+  const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
+
+  const cat = CATS.find((c) => c[0] === st.catCode) || CATS[0];
+  const catSuppliers = SUPPLIERS.filter((s) => s.code === st.catCode);
+  const grpMax = GROUPS[st.grp][1];
+  const filtered = catSuppliers.filter(
+    (s) =>
+      (st.loc === 0 || s.region === LOCATIONS[st.loc]) &&
+      (grpMax === 0 || (grpMax === 1000 ? s.minGroup >= 100 : s.minGroup <= grpMax))
+  );
+
+  const sup = supplier(st.supId) || SUPPLIERS[0];
+  const supProducts = allProducts().filter((p) => p.supId === sup.id);
+  const has = (pid) => st.items.some((i) => i.pid === pid);
+
+  const chip = (on) =>
+    on ? { bg: '#171717', fg: '#FFFFFF', border: '#171717' } : { bg: '#FFFFFF', fg: '#171717', border: '#D7D7D2' };
+
+  const V = {
+    itemCount,
+    counterBg: itemCount ? '#DDF247' : '#FFFFFF',
+    isHome: st.screen === 'home',
+    isCategory: st.screen === 'category',
+    isSupplier: st.screen === 'supplier',
+    isManifest: st.screen === 'manifest',
+    isSourcing: st.screen === 'sourcing',
+    isJoin: st.screen === 'join',
+    goHome: nav('home'),
+    goManifest: nav('manifest'),
+    goSourcing: nav('sourcing'),
+    goJoin: nav('join'),
+    backToCategory: () => patch({ screen: 'category', catCode: sup.code }),
+
+    eventTypes: EVENTS.map((e, i) => ({
+      name: e[0],
+      ...chip(i === st.eventIdx),
+      pick: () => patch({ eventIdx: i }),
+    })).filter((e, i) => EVENTS[i][3] === 1 || i === st.eventIdx),
+    eventQuery: st.q || '',
+    setEventQuery: (e) => patch({ q: e.target.value, showAll: !!e.target.value }),
+    showEventGroups: !!(st.showAll || st.q),
+    showPopular: !(st.showAll || st.q),
+    toggleAllEvents: () => patch((s) => ({ showAll: !s.showAll, q: '' })),
+    toggleAllLabel: st.showAll || st.q ? 'Show fewer' : 'Show all ' + EVENTS.length + ' event types',
+    eventGroups: EVENT_GROUPS.map((gname) => ({
+      label: gname,
+      items: EVENTS.map((e, i) => ({ e, i }))
+        .filter((x) => x.e[2] === gname && (!st.q || x.e[0].toLowerCase().indexOf(st.q.toLowerCase()) >= 0))
+        .map((x) => ({ name: x.e[0], ...chip(x.i === st.eventIdx), pick: () => patch({ eventIdx: x.i }) })),
+    })).filter((g) => g.items.length),
+    selectedEventName: evt[0],
+    checkedLabel: evt[1].length + ' of 12 categories',
+    checklist: CATS.map((c) => {
+      const on = inSet(c[0]);
+      return {
+        code: c[0],
+        name: c[1],
+        mark: on ? '✓' : '',
+        color: on ? '#FFFFFF' : '#6E6E6E',
+        codeColor: on ? '#DDF247' : '#5B5B5B',
+        boxBg: on ? '#DDF247' : 'transparent',
+        boxBorder: on ? '#DDF247' : '#3B3B3B',
+        open: openCat(c[0]),
+      };
+    }),
+    categoryTiles: CATS.map((c) => {
+      const on = inSet(c[0]);
+      const n = SUPPLIERS.filter((s) => s.code === c[0]).length;
+      return {
+        code: c[0],
+        name: c[1],
+        mark: on ? '✓' : '',
+        supplierLabel: n ? n + (n === 1 ? ' supplier' : ' suppliers') : 'Coming soon',
+        bg: on ? '#DDF247' : '#F7F7F5',
+        border: on ? '#DDF247' : '#ECECEC',
+        boxBg: on ? '#171717' : 'transparent',
+        boxBorder: on ? '#171717' : '#C8C8C2',
+        open: openCat(c[0]),
+      };
+    }),
+
+    cat: { code: cat[0], name: cat[1], description: cat[2] },
+    resultLabel: filtered.length + ' of ' + catSuppliers.length + ' suppliers',
+    locationFilters: LOCATIONS.map((l, i) => ({ label: l, ...chip(i === st.loc), pick: () => patch({ loc: i }) })),
+    groupFilters: GROUPS.map((g, i) => ({ label: g[0], ...chip(i === st.grp), pick: () => patch({ grp: i }) })),
+    supplierRows: filtered.map((s) => {
+      const ps = allProducts().filter((p) => p.supId === s.id);
+      const lo = Math.min.apply(null, ps.map((p) => p.min));
+      const hi = Math.max.apply(null, ps.map((p) => p.max));
+      const headline = ps[0];
+      const added = has(headline.id);
+      return {
+        key: s.id,
+        name: s.name,
+        location: s.city,
+        description: s.desc,
+        tags: s.tags,
+        priceLabel: money(lo) + '–' + money(hi),
+        metaLabel: 'Min ' + s.minGroup + ' · ' + s.lead + ' day lead · ' + s.rating,
+        responseLabel: s.response,
+        addLabel: added ? 'On manifest' : 'Add to manifest',
+        addBg: added ? '#DDF247' : '#171717',
+        addFg: added ? '#171717' : '#FFFFFF',
+        add: () => add(headline.id),
+        open: () => patch({ screen: 'supplier', supId: s.id }),
+      };
+    }),
+
+    sup: {
+      name: sup.name,
+      code: sup.code,
+      description: sup.desc,
+      categoryName: catName(sup.code),
+      facts: [
+        { label: 'Based in', value: sup.city },
+        { label: 'Service radius', value: sup.radius ? sup.radius + ' km' : 'On site only' },
+        { label: 'Min group', value: sup.minGroup + ' guests' },
+        { label: 'Lead time', value: sup.lead + ' days' },
+      ],
+    },
+    supplierProducts: supProducts.map((p) => ({
+      key: p.id,
+      name: p.name,
+      description: p.description,
+      termsLabel: 'Min ' + p.minQty + ' ' + (p.unit === 'flat' ? 'booking' : 'units') + ' · ' + p.lead + ' day lead',
+      priceLabel: priceLabel(p),
+      btnLabel: has(p.id) ? 'Added' : '+ Add',
+      btnBg: has(p.id) ? '#DDF247' : '#FFFFFF',
+      btnFg: '#171717',
+      add: () => add(p.id),
+    })),
+    summaryLine:
+      itemCount +
+      (itemCount === 1 ? ' product · ' : ' products · ') +
+      grp.length +
+      (grp.length === 1 ? ' supplier' : ' suppliers'),
+    manifestBrief: grp.map((g) => ({
+      key: g.sup.id,
+      supplierName: g.sup.name,
+      itemLabel: g.rows.length + (g.rows.length === 1 ? ' item' : ' items'),
+    })),
+
+    manifestHeading: st.sent ? 'Inquiries are out' : 'Your manifest',
+    manifestSub: st.sent
+      ? 'Sent ' + st.sent.length + (st.sent.length === 1 ? ' inquiry' : ' separate inquiries')
+      : itemCount + ' products across ' + grp.length + (grp.length === 1 ? ' supplier' : ' suppliers'),
+    isEmpty: st.items.length === 0,
+    notSent: !st.sent,
+    sent: !!st.sent,
+    manifestGroups: grp.map((g) => ({
+      key: g.sup.id,
+      supplierName: g.sup.name,
+      code: g.sup.code,
+      location: g.sup.city,
+      inquiryLabel: '1 inquiry · ' + g.rows.length + (g.rows.length === 1 ? ' line item' : ' line items'),
+      notePlaceholder:
+        g.sup.code === 'CAT.01'
+          ? 'Two guests need vegetarian plates. Can you hold the pepper on the side?'
+          : 'Anything this supplier should know about your setup or timing.',
+      items: g.rows.map((r) => {
+        const defs = FIELDS[g.sup.code] || FIELDS_DEFAULT;
+        const spec = (st.spec || {})[r.pid] || {};
+        const setCount = defs.filter((d) => spec[d.k]).length;
+        return {
+          key: r.pid,
+          name: r.p.name,
+          qty: r.qty,
+          termsLabel: g.sup.code + ' · min ' + r.p.minQty + ' · ' + r.p.lead + ' day lead',
+          priceLabel: priceLabel(r.p),
+          inc: () => bump(r.pid, 1),
+          dec: () => bump(r.pid, -1),
+          remove: () => remove(r.pid),
+          expanded: !!(st.openSpec || {})[r.pid],
+          detailLabel: setCount ? setCount + ' of ' + defs.length + ' set' : 'Add details',
+          detailColor: setCount ? '#171717' : '#8A8A8A',
+          toggle: () =>
+            patch((s) => ({ openSpec: { ...(s.openSpec || {}), [r.pid]: !(s.openSpec || {})[r.pid] } })),
+          fields: defs.map((d) => ({
+            key: d.k,
+            label: d.label,
+            isChoice: d.type === 'choice',
+            isText: d.type !== 'choice',
+            ph: d.ph || '',
+            value: spec[d.k] || '',
+            set: (e) => setSpec(r.pid, d.k, e.target.value),
+            options: (d.options || []).map((o) => ({
+              key: o,
+              label: o,
+              ...chip(spec[d.k] === o),
+              pick: () => setSpec(r.pid, d.k, spec[d.k] === o ? '' : o),
+            })),
+          })),
+        };
+      }),
+    })),
+    sendStats: [
+      { key: 'suppliers', label: 'Suppliers', value: grp.length },
+      { key: 'products', label: 'Products', value: itemCount },
+      { key: 'inquiries', label: 'Inquiries to send', value: grp.length },
+    ],
+    fulfilmentOptions: ['Delivery', 'Pickup by us', 'On site at venue'].map((l) => ({
+      key: l,
+      label: l,
+      ...chip(st.fulfil === l),
+      pick: () => patch({ fulfil: l }),
+    })),
+    addressLabel: st.fulfil === 'Pickup by us' ? 'Pickup area' : 'Delivery or venue address',
+    sendOpacity: st.items.length ? 1 : 0.4,
+    send: () =>
+      patch({ sent: groups().map((g) => g.sup.name), signedIn: !!(st.email && st.email.indexOf('@') > 0) }),
+    sentSummary: st.sent ? 'One inquiry per supplier, each scoped to their own items.' : '',
+    sentList: (st.sent || []).map((n) => ({ key: n, name: n, status: 'Sent' })),
+    reset: () => patch({ items: [], sent: null, screen: 'home' }),
+
+    sourcingTags: CATS.map((c) => ({
+      key: c[0],
+      name: c[1],
+      ...chip(st.srcTag === c[0]),
+      pick: () => patch({ srcTag: c[0] }),
+    })),
+
+    feeTiers: TIERS.map((t, i) => {
+      const on = st.tier === i;
+      return {
+        key: t[0],
+        range: t[0],
+        note: t[1],
+        bg: on ? '#171717' : '#FFFFFF',
+        fg: on ? '#FFFFFF' : '#171717',
+        noteColor: on ? '#A8A8A8' : '#6E6E6E',
+        border: on ? '#171717' : '#E4E4DF',
+        pick: () => patch({ tier: i }),
+      };
+    }),
+
+    joinCategories: CATS.concat([['OTHER', 'Something else']]).map((c) => ({
+      key: c[0],
+      code: c[0] === 'OTHER' ? '' : c[0],
+      name: c[1],
+      ...chip((st.joinCats || []).indexOf(c[0]) >= 0),
+      pick: () =>
+        patch((s) => {
+          const cur = s.joinCats || [];
+          return { joinCats: cur.indexOf(c[0]) >= 0 ? cur.filter((x) => x !== c[0]) : cur.concat([c[0]]) };
+        }),
+    })),
+    joinOther: (st.joinCats || []).indexOf('OTHER') >= 0,
+    joinTerms: [
+      { key: 'listing', label: 'Listing', value: 'Free' },
+      { key: 'inquiries', label: 'Inquiries', value: 'Free, unlimited' },
+      { key: 'commission', label: 'Commission on your work', value: 'None' },
+      { key: 'payment', label: 'Payment handling', value: 'Direct with buyer' },
+    ],
+
+    email: st.email || '',
+    setEmail: (e) => patch({ email: e.target.value }),
+    signedIn: !!st.signedIn,
+    needsAccount: !st.signedIn,
+    accountLabel: st.signedIn ? 'Signed in · ' + st.email : '',
+  };
+
+  return (
+    <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 28px 96px' }}>
+      <div
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 20,
+          background: '#FFFFFF',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 24,
+          padding: '18px 0 16px',
+          borderBottom: '1px solid #ECECEC',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+          <button
+            onClick={V.goHome}
+            style={{
+              border: 0,
+              background: 'transparent',
+              padding: 0,
+              cursor: 'pointer',
+              fontSize: 19,
+              fontWeight: 800,
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Manifest
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
+            <button
+              onClick={V.goHome}
+              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
+            >
+              Browse categories
+            </button>
+            <button
+              onClick={V.goSourcing}
+              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
+            >
+              Can't find it
+            </button>
+            <button
+              onClick={V.goJoin}
+              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
+            >
+              List your business
+            </button>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontFamily: MONO, fontSize: 11, color: '#6E6E6E' }}>{V.accountLabel}</span>
+          <button
+            onClick={V.goManifest}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              border: '1px solid #171717',
+              borderRadius: 999,
+              background: V.counterBg,
+              padding: '9px 8px 9px 18px',
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: 700,
+            }}
+          >
+            Your manifest
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 26,
+                height: 26,
+                padding: '0 8px',
+                borderRadius: 999,
+                background: '#171717',
+                color: '#FFFFFF',
+                fontFamily: MONO,
+                fontSize: 12,
+                fontWeight: 500,
+              }}
+            >
+              {V.itemCount}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {V.isHome && (
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 20, alignItems: 'stretch', padding: '44px 0 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 32, minWidth: 320 }}>
+              <div>
+                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Discovery and sourcing for events
+                </div>
+                <h1 style={{ margin: '18px 0 0', fontSize: 68, lineHeight: 0.96, letterSpacing: '-0.035em', fontWeight: 800, textWrap: 'pretty' }}>
+                  What is your event?
+                </h1>
+                <p style={{ margin: '20px 0 0', maxWidth: 460, fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
+                  Pick the kind of event you are putting together. We check off the categories you will need, then you
+                  browse suppliers and build one list. Send every inquiry in a single action.
+                </p>
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <input
+                    type="search"
+                    value={V.eventQuery}
+                    onChange={V.setEventQuery}
+                    placeholder="Search event types"
+                    style={{
+                      flex: '1 1 240px',
+                      border: '1px solid #E4E4DF',
+                      borderRadius: 999,
+                      background: '#F7F7F5',
+                      padding: '12px 18px',
+                      fontFamily: SANS,
+                      fontSize: 14,
+                      color: '#171717',
+                    }}
+                  />
+                  <button
+                    onClick={V.toggleAllEvents}
+                    style={{
+                      border: 0,
+                      background: 'transparent',
+                      padding: 0,
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: '#171717',
+                      textDecoration: 'underline',
+                      textUnderlineOffset: '3px',
+                    }}
+                  >
+                    {V.toggleAllLabel}
+                  </button>
+                </div>
+                {V.showPopular && (
+                  <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {V.eventTypes.map((et) => (
+                      <button
+                        key={et.name}
+                        onClick={et.pick}
+                        style={{
+                          border: `1px solid ${et.border}`,
+                          borderRadius: 999,
+                          background: et.bg,
+                          color: et.fg,
+                          padding: '11px 18px',
+                          cursor: 'pointer',
+                          fontSize: 14,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {et.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {V.showEventGroups && (
+                  <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {V.eventGroups.map((g) => (
+                      <div key={g.label}>
+                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          {g.label}
+                        </div>
+                        <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          {g.items.map((et) => (
+                            <button
+                              key={et.name}
+                              onClick={et.pick}
+                              style={{
+                                border: `1px solid ${et.border}`,
+                                borderRadius: 999,
+                                background: et.bg,
+                                color: et.fg,
+                                padding: '10px 16px',
+                                cursor: 'pointer',
+                                fontSize: 14,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {et.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ marginTop: 26, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                  <button
+                    onClick={V.goManifest}
+                    style={{
+                      border: 0,
+                      borderRadius: 999,
+                      background: '#171717',
+                      color: '#FFFFFF',
+                      padding: '16px 28px',
+                      cursor: 'pointer',
+                      fontSize: 15,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Review your manifest
+                  </button>
+                  <button
+                    onClick={V.goSourcing}
+                    style={{
+                      border: '1px solid #D7D7D2',
+                      borderRadius: 999,
+                      background: '#F2F2F0',
+                      color: '#171717',
+                      padding: '16px 28px',
+                      cursor: 'pointer',
+                      fontSize: 15,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Ask us to source it
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ background: '#171717', borderRadius: 28, padding: '30px 30px 26px', color: '#FFFFFF', minWidth: 300 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16 }}>
+                <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>{V.selectedEventName}</div>
+                <div style={{ fontFamily: MONO, fontSize: 12, color: '#DDF247' }}>{V.checkedLabel}</div>
+              </div>
+              <div style={{ marginTop: 4, fontSize: 13, color: '#9C9C9C' }}>Categories usually needed for this event</div>
+              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {V.checklist.map((row) => (
+                  <button
+                    key={row.code}
+                    onClick={row.open}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 14,
+                      width: '100%',
+                      textAlign: 'left',
+                      border: 0,
+                      borderTop: '1px solid #2B2B2B',
+                      background: 'transparent',
+                      padding: '11px 2px',
+                      cursor: 'pointer',
+                      color: row.color,
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 18,
+                        height: 18,
+                        border: `1px solid ${row.boxBorder}`,
+                        borderRadius: 5,
+                        background: row.boxBg,
+                        color: '#171717',
+                        fontSize: 11,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {row.mark}
+                    </span>
+                    <span style={{ fontFamily: MONO, fontSize: 12, color: row.codeColor }}>{row.code}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{row.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 20, position: 'relative', borderRadius: 28, overflow: 'hidden', height: 420 }}>
+            <img
+              src={heroImage}
+              alt="Guests at a networking mixer in a lit venue"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 40%', display: 'block' }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                left: 22,
+                bottom: 22,
+                right: 22,
+                display: 'flex',
+                alignItems: 'flex-end',
+                justifyContent: 'space-between',
+                gap: 20,
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ background: '#FFFFFF', borderRadius: 20, padding: '18px 22px', maxWidth: 420 }}>
+                <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Networking mixer · Port of Spain
+                </div>
+                <div style={{ marginTop: 8, fontSize: 17, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+                  Venue, bar service, lounge furniture and a photographer. Four suppliers, one send.
+                </div>
+              </div>
+              <button
+                onClick={V.goManifest}
+                style={{
+                  border: 0,
+                  borderRadius: 999,
+                  background: '#DDF247',
+                  color: '#171717',
+                  padding: '14px 24px',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  fontWeight: 700,
+                }}
+              >
+                See how a manifest works
+              </button>
+            </div>
+          </div>
+
+          <div style={{ padding: '84px 0 0' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>All categories</h2>
+              <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
+                Browse any category, whether or not it is checked off above. Prices come straight from each supplier.
+              </p>
+            </div>
+            <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(200px, 1fr))', gap: 12 }}>
+              {V.categoryTiles.map((c) => (
+                <button
+                  key={c.code}
+                  onClick={c.open}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: 34,
+                    textAlign: 'left',
+                    border: `1px solid ${c.border}`,
+                    borderRadius: 20,
+                    background: c.bg,
+                    padding: 18,
+                    cursor: 'pointer',
+                    minHeight: 148,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{c.code}</span>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 18,
+                        height: 18,
+                        border: `1px solid ${c.boxBorder}`,
+                        borderRadius: 5,
+                        background: c.boxBg,
+                        fontSize: 11,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {c.mark}
+                    </span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15 }}>{c.name}</div>
+                    <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 11, color: '#6E6E6E' }}>{c.supplierLabel}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ padding: '84px 0 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 28,
+                  borderRadius: 24,
+                  background: '#DDF247',
+                  padding: '28px 32px',
+                }}
+              >
+                <div style={{ maxWidth: 720 }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Discover</div>
+                  <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#3B4200' }}>
+                    Pick your event type, see the categories it needs, and browse suppliers with real price ranges,
+                    group minimums and lead times.
+                  </div>
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 34, color: '#A9BB3A' }}>01</div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 28,
+                  borderRadius: 24,
+                  background: '#171717',
+                  padding: '28px 32px',
+                  color: '#FFFFFF',
+                }}
+              >
+                <div style={{ maxWidth: 720 }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Inquire</div>
+                  <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#A8A8A8' }}>
+                    Add products to your manifest as you go. One button sends a separate inquiry to each supplier,
+                    with only their own line items. Nobody sees your full list.
+                  </div>
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 34, color: '#4A4A4A' }}>02</div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 28,
+                  borderRadius: 24,
+                  background: '#F2F2F0',
+                  padding: '28px 32px',
+                }}
+              >
+                <div style={{ maxWidth: 720 }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Source</div>
+                  <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#4A4A4A' }}>
+                    Still missing something? Describe it and we find options for you. Nothing is charged unless you
+                    approve what we bring back, and then it is one fee, set by the size of the job.
+                  </div>
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 34, color: '#C2C2BC' }}>03</div>
+              </div>
+            </div>
+            <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 14, fontSize: 14, color: '#5B5B5B' }}>
+              <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                Note
+              </span>
+              Manifest never processes payment between you and a supplier. You pay suppliers directly, on their terms.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {V.isCategory && (
+        <div style={{ padding: '34px 0 0' }}>
+          <button
+            onClick={V.goHome}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← All categories
+          </button>
+          <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.cat.code}</div>
+              <h1 style={{ margin: '8px 0 0', fontSize: 46, lineHeight: 1, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.cat.name}</h1>
+              <p style={{ margin: '12px 0 0', maxWidth: 560, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>{V.cat.description}</p>
+            </div>
+            <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.resultLabel}</div>
+          </div>
+
+          <div
+            style={{
+              marginTop: 26,
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 20,
+              borderTop: '1px solid #ECECEC',
+              borderBottom: '1px solid #ECECEC',
+              padding: '16px 0',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                Location
+              </span>
+              {V.locationFilters.map((f) => (
+                <button
+                  key={f.label}
+                  onClick={f.pick}
+                  style={{
+                    border: `1px solid ${f.border}`,
+                    borderRadius: 999,
+                    background: f.bg,
+                    color: f.fg,
+                    padding: '7px 14px',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                Group size
+              </span>
+              {V.groupFilters.map((f) => (
+                <button
+                  key={f.label}
+                  onClick={f.pick}
+                  style={{
+                    border: `1px solid ${f.border}`,
+                    borderRadius: 999,
+                    background: f.bg,
+                    color: f.fg,
+                    padding: '7px 14px',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {V.supplierRows.map((s) => (
+              <div
+                key={s.key}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: 28,
+                  flexWrap: 'wrap',
+                  border: '1px solid #ECECEC',
+                  borderRadius: 22,
+                  padding: '22px 24px',
+                }}
+              >
+                <div style={{ flex: '1 1 380px', minWidth: 280 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{s.name}</div>
+                    <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.location}</div>
+                  </div>
+                  <p style={{ margin: '8px 0 0', maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>{s.description}</p>
+                  <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {s.tags.map((t) => (
+                      <span
+                        key={t}
+                        style={{
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 999,
+                          background: '#F7F7F5',
+                          padding: '5px 12px',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: '#4A4A4A',
+                        }}
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ flex: '0 0 260px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
+                    <div style={{ fontSize: 17, color: '#171717' }}>{s.priceLabel}</div>
+                    <div>{s.metaLabel}</div>
+                    <div>{s.responseLabel}</div>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    <button
+                      onClick={s.add}
+                      style={{
+                        border: 0,
+                        borderRadius: 999,
+                        background: s.addBg,
+                        color: s.addFg,
+                        padding: '12px 20px',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {s.addLabel}
+                    </button>
+                    <button
+                      onClick={s.open}
+                      style={{
+                        border: '1px solid #D7D7D2',
+                        borderRadius: 999,
+                        background: '#FFFFFF',
+                        padding: '12px 20px',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        fontWeight: 700,
+                      }}
+                    >
+                      View products
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div
+            style={{
+              marginTop: 28,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 24,
+              flexWrap: 'wrap',
+              borderRadius: 22,
+              background: '#F2F2F0',
+              padding: '22px 26px',
+            }}
+          >
+            <div style={{ fontSize: 15, color: '#4A4A4A' }}>Nothing here fits? Tell us what you need and we will go find it.</div>
+            <button
+              onClick={V.goSourcing}
+              style={{
+                border: '1px solid #171717',
+                borderRadius: 999,
+                background: 'transparent',
+                padding: '11px 20px',
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 700,
+              }}
+            >
+              Submit a sourcing request
+            </button>
+          </div>
+        </div>
+      )}
+
+      {V.isSupplier && (
+        <div style={{ padding: '34px 0 0' }}>
+          <button
+            onClick={V.backToCategory}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← {V.sup.categoryName}
+          </button>
+          <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
+            <div>
+              <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: 28 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+                  <h1 style={{ margin: 0, fontSize: 40, lineHeight: 1, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.sup.name}</h1>
+                  <span style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.sup.code}</span>
+                </div>
+                <p style={{ margin: '14px 0 0', maxWidth: 620, fontSize: 16, lineHeight: 1.55, color: '#4A4A4A' }}>{V.sup.description}</p>
+                <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(120px, 1fr))', gap: 12 }}>
+                  {V.sup.facts.map((f) => (
+                    <div key={f.label} style={{ borderRadius: 16, background: '#F7F7F5', padding: '14px 16px' }}>
+                      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                        {f.label}
+                      </div>
+                      <div style={{ marginTop: 6, fontSize: 15, fontWeight: 700 }}>{f.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16 }}>
+                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>What they offer</h2>
+                  <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                    Adding does not send anything
+                  </span>
+                </div>
+                <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {V.supplierProducts.map((p) => (
+                    <div
+                      key={p.key}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 24,
+                        flexWrap: 'wrap',
+                        borderTop: '1px solid #ECECEC',
+                        padding: '20px 2px',
+                      }}
+                    >
+                      <div style={{ flex: '1 1 340px', minWidth: 260 }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>{p.name}</div>
+                        <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>{p.description}</div>
+                        <div style={{ marginTop: 8, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{p.termsLabel}</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                        <div style={{ fontFamily: MONO, fontSize: 15, textAlign: 'right', minWidth: 150 }}>{p.priceLabel}</div>
+                        <button
+                          onClick={p.add}
+                          style={{
+                            border: '1px solid #171717',
+                            borderRadius: 999,
+                            background: p.btnBg,
+                            color: p.btnFg,
+                            padding: '11px 20px',
+                            cursor: 'pointer',
+                            fontSize: 14,
+                            fontWeight: 700,
+                            minWidth: 108,
+                          }}
+                        >
+                          {p.btnLabel}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ position: 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ borderRadius: 24, background: '#171717', color: '#FFFFFF', padding: 26 }}>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>Your manifest</div>
+                <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#DDF247' }}>{V.summaryLine}</div>
+                <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {V.manifestBrief.map((g) => (
+                    <div key={g.key} style={{ borderTop: '1px solid #2B2B2B', paddingTop: 10 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{g.supplierName}</div>
+                      <div style={{ marginTop: 2, fontFamily: MONO, fontSize: 11, color: '#9C9C9C' }}>{g.itemLabel}</div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={V.goManifest}
+                  style={{
+                    marginTop: 22,
+                    width: '100%',
+                    border: 0,
+                    borderRadius: 999,
+                    background: '#DDF247',
+                    color: '#171717',
+                    padding: '14px 20px',
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  Review manifest and send
+                </button>
+              </div>
+              <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: '20px 22px', fontSize: 13, lineHeight: 1.55, color: '#5B5B5B' }}>
+                Manifest does not process payment. {V.sup.name} will quote you directly and invoice you on their own terms.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {V.isManifest && (
+        <div style={{ padding: '34px 0 0' }}>
+          <button
+            onClick={V.goHome}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← Keep browsing
+          </button>
+          <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+            <h1 style={{ margin: 0, fontSize: 46, lineHeight: 1, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.manifestHeading}</h1>
+            <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.manifestSub}</div>
+          </div>
+
+          <div style={{ marginTop: 26, display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: '24px 26px' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Event details</div>
+                  <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                    Sent with every inquiry
+                  </div>
+                </div>
+                <div style={{ marginTop: 4, fontSize: 14, color: '#5B5B5B' }}>
+                  Suppliers need these to quote you. Fill them once and they go out with each inquiry.
+                </div>
+                <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(150px, 1fr))', gap: 12 }}>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Event date
+                    </span>
+                    <input
+                      type="date"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Guests expected
+                    </span>
+                    <input
+                      type="number"
+                      placeholder="120"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Start and end time
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="4pm to 11pm"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                </div>
+                <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                    Fulfilment
+                  </span>
+                  {V.fulfilmentOptions.map((f) => (
+                    <button
+                      key={f.key}
+                      onClick={f.pick}
+                      style={{
+                        border: `1px solid ${f.border}`,
+                        borderRadius: 999,
+                        background: f.bg,
+                        color: f.fg,
+                        padding: '8px 16px',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+                <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                    {V.addressLabel}
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Venue name, street, town"
+                    style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                  />
+                </label>
+                <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                    Access notes, optional
+                  </span>
+                  <textarea
+                    placeholder="Load in through the back gate on Henry Street. No lift, one flight of stairs. Security needs names by the Friday before."
+                    style={{
+                      minHeight: 84,
+                      border: '1px solid #E4E4DF',
+                      borderRadius: 14,
+                      background: '#F7F7F5',
+                      padding: 14,
+                      fontFamily: SANS,
+                      fontSize: 15,
+                      lineHeight: 1.5,
+                      color: '#171717',
+                      resize: 'vertical',
+                    }}
+                  />
+                </label>
+              </div>
+              {V.isEmpty && (
+                <div style={{ border: '1px dashed #D7D7D2', borderRadius: 24, padding: '44px 28px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 20, fontWeight: 700 }}>Nothing on the manifest yet</div>
+                  <div style={{ marginTop: 8, fontSize: 15, color: '#5B5B5B' }}>
+                    Add products from any category and they will collect here, grouped by supplier.
+                  </div>
+                  <button
+                    onClick={V.goHome}
+                    style={{
+                      marginTop: 20,
+                      border: 0,
+                      borderRadius: 999,
+                      background: '#171717',
+                      color: '#FFFFFF',
+                      padding: '13px 24px',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Browse categories
+                  </button>
+                </div>
+              )}
+              {V.manifestGroups.map((g) => (
+                <div key={g.key} style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: '24px 26px' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{g.supplierName}</div>
+                      <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
+                        {g.code} · {g.location}
+                      </div>
+                    </div>
+                    <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      {g.inquiryLabel}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {g.items.map((it) => (
+                      <div key={it.key} style={{ borderTop: '1px solid #ECECEC', padding: '14px 0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+                          <div style={{ flex: '1 1 260px', minWidth: 220 }}>
+                            <div style={{ fontSize: 16, fontWeight: 600 }}>{it.name}</div>
+                            <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{it.termsLabel}</div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
+                                border: '1px solid #E4E4DF',
+                                borderRadius: 999,
+                                padding: '5px 6px',
+                              }}
+                            >
+                              <button
+                                onClick={it.dec}
+                                style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
+                              >
+                                −
+                              </button>
+                              <span style={{ fontFamily: MONO, fontSize: 13, minWidth: 22, textAlign: 'center' }}>{it.qty}</span>
+                              <button
+                                onClick={it.inc}
+                                style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
+                              >
+                                +
+                              </button>
+                            </div>
+                            <div style={{ fontFamily: MONO, fontSize: 14, minWidth: 148, textAlign: 'right' }}>{it.priceLabel}</div>
+                            <button
+                              onClick={it.toggle}
+                              style={{
+                                border: '1px solid #E4E4DF',
+                                borderRadius: 999,
+                                background: '#FFFFFF',
+                                padding: '8px 14px',
+                                cursor: 'pointer',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                color: it.detailColor,
+                              }}
+                            >
+                              {it.detailLabel}
+                            </button>
+                            <button
+                              onClick={it.remove}
+                              style={{
+                                border: 0,
+                                background: 'transparent',
+                                padding: 0,
+                                cursor: 'pointer',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                color: '#8A8A8A',
+                                textDecoration: 'underline',
+                                textUnderlineOffset: '3px',
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                        {it.expanded && (
+                          <div style={{ marginTop: 12, borderRadius: 18, background: '#F7F7F5', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            {it.fields.map((fd) => (
+                              <div key={fd.key}>
+                                <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                                  {fd.label}
+                                </div>
+                                {fd.isChoice && (
+                                  <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                    {fd.options.map((o) => (
+                                      <button
+                                        key={o.key}
+                                        onClick={o.pick}
+                                        style={{
+                                          border: `1px solid ${o.border}`,
+                                          borderRadius: 999,
+                                          background: o.bg,
+                                          color: o.fg,
+                                          padding: '7px 14px',
+                                          cursor: 'pointer',
+                                          fontSize: 13,
+                                          fontWeight: 600,
+                                        }}
+                                      >
+                                        {o.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                                {fd.isText && (
+                                  <input
+                                    type="text"
+                                    value={fd.value}
+                                    onChange={fd.set}
+                                    placeholder={fd.ph}
+                                    style={{
+                                      marginTop: 8,
+                                      width: '100%',
+                                      border: '1px solid #E4E4DF',
+                                      borderRadius: 14,
+                                      background: '#FFFFFF',
+                                      padding: '11px 14px',
+                                      fontFamily: SANS,
+                                      fontSize: 14,
+                                      color: '#171717',
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <label style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Note to {g.supplierName}, optional
+                    </span>
+                    <textarea
+                      placeholder={g.notePlaceholder}
+                      style={{
+                        minHeight: 68,
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 14,
+                        background: '#F7F7F5',
+                        padding: '13px 14px',
+                        fontFamily: SANS,
+                        fontSize: 14,
+                        lineHeight: 1.5,
+                        color: '#171717',
+                        resize: 'vertical',
+                      }}
+                    />
+                    <span style={{ fontSize: 12, color: '#9A9A9A' }}>Only {g.supplierName} sees this note.</span>
+                  </label>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ position: 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {V.notSent && (
+                <div style={{ borderRadius: 24, background: '#DDF247', padding: 26 }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>About to send</div>
+                  <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {V.sendStats.map((s) => (
+                      <div
+                        key={s.key}
+                        style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #C6D93C', padding: '11px 0' }}
+                      >
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#3B4200' }}>{s.label}</span>
+                        <span style={{ fontFamily: MONO, fontSize: 17 }}>{s.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {V.needsAccount && (
+                    <div style={{ marginTop: 18, borderTop: '1px solid #C6D93C', paddingTop: 16 }}>
+                      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B7A1F' }}>
+                        Your email
+                      </div>
+                      <input
+                        type="email"
+                        value={V.email}
+                        onChange={V.setEmail}
+                        placeholder="you@organisation.tt"
+                        style={{
+                          marginTop: 8,
+                          width: '100%',
+                          border: '1px solid #C6D93C',
+                          borderRadius: 14,
+                          background: '#FFFFFF',
+                          padding: '12px 14px',
+                          fontFamily: SANS,
+                          fontSize: 15,
+                          color: '#171717',
+                        }}
+                      />
+                      <div style={{ marginTop: 8, fontSize: 12, lineHeight: 1.5, color: '#3B4200' }}>
+                        We send suppliers your replies here and save this manifest to your account. No password, we
+                        email you a sign-in link.
+                      </div>
+                    </div>
+                  )}
+                  {V.signedIn && (
+                    <div style={{ marginTop: 18, borderTop: '1px solid #C6D93C', paddingTop: 14, fontSize: 13, color: '#3B4200' }}>
+                      Saved to {V.email}. You can come back to this manifest any time.
+                    </div>
+                  )}
+                  <button
+                    onClick={V.send}
+                    disabled={V.isEmpty}
+                    style={{
+                      marginTop: 20,
+                      width: '100%',
+                      border: 0,
+                      borderRadius: 999,
+                      background: '#171717',
+                      color: '#FFFFFF',
+                      padding: '16px 20px',
+                      cursor: 'pointer',
+                      fontSize: 15,
+                      fontWeight: 700,
+                      opacity: V.sendOpacity,
+                    }}
+                  >
+                    Send all inquiries
+                  </button>
+                  <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5, color: '#3B4200' }}>
+                    Each supplier receives one inquiry with your event details, their own line items and their own
+                    note. No supplier sees the rest of your manifest, and no payment is taken here.
+                  </div>
+                </div>
+              )}
+              {V.sent && (
+                <div style={{ borderRadius: 24, background: '#171717', color: '#FFFFFF', padding: 26 }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Inquiries sent</div>
+                  <div style={{ marginTop: 6, fontSize: 14, color: '#A8A8A8' }}>{V.sentSummary}</div>
+                  <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {V.sentList.map((s) => (
+                      <div
+                        key={s.key}
+                        style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #2B2B2B', padding: '11px 0' }}
+                      >
+                        <span style={{ fontSize: 14, fontWeight: 600 }}>{s.name}</span>
+                        <span style={{ fontFamily: MONO, fontSize: 11, color: '#DDF247' }}>{s.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 16, fontSize: 13, lineHeight: 1.55, color: '#A8A8A8' }}>
+                    Suppliers reply by email or phone, usually within their listed response time. Quotes and payment
+                    happen directly with them.
+                  </div>
+                  <button
+                    onClick={V.reset}
+                    style={{
+                      marginTop: 20,
+                      width: '100%',
+                      border: '1px solid #3B3B3B',
+                      borderRadius: 999,
+                      background: 'transparent',
+                      color: '#FFFFFF',
+                      padding: '14px 20px',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Start a new manifest
+                  </button>
+                </div>
+              )}
+              <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: '20px 22px' }}>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>Missing a category?</div>
+                <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.55, color: '#5B5B5B' }}>
+                  Describe what you could not find. There is no charge unless you approve what we bring back.
+                </div>
+                <button
+                  onClick={V.goSourcing}
+                  style={{
+                    marginTop: 14,
+                    border: '1px solid #171717',
+                    borderRadius: 999,
+                    background: 'transparent',
+                    padding: '11px 18px',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 700,
+                  }}
+                >
+                  Submit a sourcing request
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {V.isSourcing && (
+        <div style={{ padding: '34px 0 0', display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 20, alignItems: 'start' }}>
+          <div>
+            <button
+              onClick={V.goHome}
+              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+            >
+              ← Back
+            </button>
+            <h1 style={{ margin: '18px 0 0', fontSize: 46, lineHeight: 1, letterSpacing: '-0.03em', fontWeight: 800 }}>
+              Tell us what you could not find
+            </h1>
+            <p style={{ margin: '14px 0 0', fontSize: 16, lineHeight: 1.55, color: '#4A4A4A' }}>
+              Describe it in your own words. We look for options and send them back to you. Nothing is charged unless
+              you approve one, and then there is a sourcing fee based on the size of what you are sourcing, quoted
+              with the options.
+            </p>
+            <div style={{ marginTop: 26, border: '1px solid #ECECEC', borderRadius: 24, padding: 26 }}>
+              <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                Closest category
+              </div>
+              <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {V.sourcingTags.map((t) => (
+                  <button
+                    key={t.key}
+                    onClick={t.pick}
+                    style={{
+                      border: `1px solid ${t.border}`,
+                      borderRadius: 999,
+                      background: t.bg,
+                      color: t.fg,
+                      padding: '8px 14px',
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+              <div style={{ marginTop: 24, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                What you need
+              </div>
+              <textarea
+                placeholder="e.g. A 20x30 tent with sidewalls for 120 people on the church grounds in Arima, first Saturday in November"
+                style={{
+                  marginTop: 10,
+                  width: '100%',
+                  minHeight: 132,
+                  border: '1px solid #E4E4DF',
+                  borderRadius: 16,
+                  background: '#F7F7F5',
+                  padding: 16,
+                  fontFamily: SANS,
+                  fontSize: 15,
+                  lineHeight: 1.5,
+                  color: '#171717',
+                  resize: 'vertical',
+                }}
+              />
+              <button
+                onClick={V.goHome}
+                style={{
+                  marginTop: 20,
+                  border: 0,
+                  borderRadius: 999,
+                  background: '#171717',
+                  color: '#FFFFFF',
+                  padding: '15px 26px',
+                  cursor: 'pointer',
+                  fontSize: 15,
+                  fontWeight: 700,
+                }}
+              >
+                Submit request
+              </button>
+              <div style={{ marginTop: 14, fontSize: 13, color: '#5B5B5B' }}>No upfront charge. We follow up by email within one business day.</div>
+            </div>
+          </div>
+
+          <div style={{ position: 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: 24 }}>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>Roughly how big is this?</div>
+              <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.55, color: '#5B5B5B' }}>Helps us know where to look. Not binding.</div>
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {V.feeTiers.map((t) => (
+                  <button
+                    key={t.key}
+                    onClick={t.pick}
+                    style={{ textAlign: 'left', border: `1px solid ${t.border}`, borderRadius: 18, background: t.bg, color: t.fg, padding: '14px 16px', cursor: 'pointer' }}
+                  >
+                    <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{t.range}</span>
+                    <span style={{ display: 'block', marginTop: 4, fontSize: 12, lineHeight: 1.4, color: t.noteColor }}>{t.note}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ borderRadius: 24, background: '#DDF247', padding: 24 }}>
+              <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B7A1F' }}>
+                About the sourcing fee
+              </div>
+              <div style={{ marginTop: 10, fontSize: 15, lineHeight: 1.55, color: '#3B4200' }}>
+                The fee is based on the size of what you are sourcing. We quote it with the options we bring back,
+                and you only pay if you approve them. Suppliers quote and invoice you directly, and we take nothing
+                from them.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {V.isJoin && (
+        <div style={{ padding: '34px 0 0' }}>
+          <button
+            onClick={V.goHome}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← Back
+          </button>
+          <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 20, alignItems: 'start' }}>
+            <div>
+              <h1 style={{ margin: 0, fontSize: 52, lineHeight: 1, letterSpacing: '-0.035em', fontWeight: 800 }}>List your business on Manifest</h1>
+              <p style={{ margin: '16px 0 0', maxWidth: 600, fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
+                Free to list, free to receive inquiries. Buyers see your categories, price ranges and lead times,
+                then send you a request with their event details. You quote and invoice them directly, exactly as you
+                do now.
+              </p>
+
+              <div style={{ marginTop: 28, border: '1px solid #ECECEC', borderRadius: 24, padding: 26 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(180px, 1fr))', gap: 14 }}>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Business name
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Cocoa Pod Catering"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Contact person
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Full name"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Email
+                    </span>
+                    <input
+                      type="email"
+                      placeholder="bookings@yourbusiness.tt"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      WhatsApp or phone
+                    </span>
+                    <input
+                      type="tel"
+                      placeholder="868 000 0000"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                </div>
+
+                <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Categories you serve
+                </div>
+                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {V.joinCategories.map((c) => (
+                    <button
+                      key={c.key}
+                      onClick={c.pick}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        border: `1px solid ${c.border}`,
+                        borderRadius: 999,
+                        background: c.bg,
+                        color: c.fg,
+                        padding: '8px 14px',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <span style={{ fontFamily: MONO, fontSize: 11, opacity: 0.65 }}>{c.code}</span>
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+                {V.joinOther && (
+                  <label style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Tell us what you do
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="e.g. Mobile bathroom trailers, fireworks, drone coverage"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                )}
+
+                <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(140px, 1fr))', gap: 14 }}>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Based in
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Chaguanas"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Travel radius
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="60 km"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Lead time needed
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="10 days"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                </div>
+
+                <label style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                    What you offer and roughly what it costs
+                  </span>
+                  <textarea
+                    placeholder="One line per item, with a price range and unit. Example: Hot lunch buffet, TT$110 to 165 per guest, minimum 60 guests."
+                    style={{
+                      minHeight: 132,
+                      border: '1px solid #E4E4DF',
+                      borderRadius: 14,
+                      background: '#F7F7F5',
+                      padding: 14,
+                      fontFamily: SANS,
+                      fontSize: 15,
+                      lineHeight: 1.5,
+                      color: '#171717',
+                      resize: 'vertical',
+                    }}
+                  />
+                </label>
+                <div style={{ marginTop: 8, fontSize: 13, color: '#5B5B5B' }}>Ranges are fine. Buyers use them to shortlist, then you send the real quote.</div>
+
+                <button
+                  onClick={V.goHome}
+                  style={{
+                    marginTop: 22,
+                    border: 0,
+                    borderRadius: 999,
+                    background: '#171717',
+                    color: '#FFFFFF',
+                    padding: '15px 26px',
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  Submit for review
+                </button>
+                <div style={{ marginTop: 12, fontSize: 13, color: '#5B5B5B' }}>We check the listing and publish it within two business days.</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, position: 'sticky', top: 92 }}>
+              <div style={{ borderRadius: 24, background: '#DDF247', padding: 26 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>What it costs you</div>
+                <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {V.joinTerms.map((t) => (
+                    <div
+                      key={t.key}
+                      style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 14, borderTop: '1px solid #C6D93C', padding: '11px 0' }}
+                    >
+                      <span style={{ fontSize: 14, fontWeight: 600, color: '#3B4200' }}>{t.label}</span>
+                      <span style={{ fontFamily: MONO, fontSize: 13 }}>{t.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ borderRadius: 24, background: '#171717', color: '#FFFFFF', padding: 26 }}>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>How inquiries reach you</div>
+                <div style={{ marginTop: 10, fontSize: 14, lineHeight: 1.6, color: '#A8A8A8' }}>
+                  A buyer adds your items to their manifest and sends. You get one email with their event date, guest
+                  count, venue, the items they picked and a note. You see only your own items, never the rest of
+                  their list. Reply to the buyer directly.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
