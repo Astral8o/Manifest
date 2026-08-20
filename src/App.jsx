@@ -94,7 +94,9 @@ const initialState = {
   q: '',
   showAll: false,
   joinCats: [],
+  joinSubmitted: false,
   sourcingOpen: false,
+  sourcingSent: false,
   supplierOrigin: 'category',
 };
 
@@ -257,10 +259,13 @@ export default function App() {
     sourcingOpen: st.sourcingOpen,
     goHome: nav('home'),
     goManifest: nav('manifest'),
-    goSourcing: () => patch({ sourcingOpen: true }),
-    closeSourcing: () => patch({ sourcingOpen: false }),
-    submitSourcing: () => patch({ sourcingOpen: false }),
-    goJoin: nav('join'),
+    goSourcing: () => patch({ sourcingOpen: true, sourcingSent: false }),
+    closeSourcing: () => patch({ sourcingOpen: false, sourcingSent: false }),
+    submitSourcing: () => patch({ sourcingSent: true }),
+    sourcingSent: !!st.sourcingSent,
+    goJoin: nav('join', { joinSubmitted: false }),
+    submitJoin: () => patch({ joinSubmitted: true }),
+    joinSubmitted: !!st.joinSubmitted,
     goAccount: nav('account'),
     goPromo: nav('promo'),
     backToCategory: () =>
@@ -636,7 +641,7 @@ export default function App() {
           borderBottom: '1px solid #ECECEC',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 18 : 32, flexWrap: 'wrap', rowGap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', columnGap: isMobile ? 18 : 32, flexWrap: 'wrap', rowGap: 8 }}>
           <button
             onClick={V.goHome}
             style={{
@@ -651,7 +656,7 @@ export default function App() {
           >
             Manifest
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap', rowGap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', columnGap: 22, flexWrap: 'wrap', rowGap: 6 }}>
             <button
               onClick={V.goHome}
               style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
@@ -1194,7 +1199,7 @@ export default function App() {
               padding: '16px 0',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                 Location
               </span>
@@ -1217,7 +1222,7 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                 Group size
               </span>
@@ -1760,7 +1765,7 @@ export default function App() {
                           <div style={{ marginTop: 8, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{p.termsLabel}</div>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', rowGap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                         <button
                           onClick={p.toggleSave}
                           style={{
@@ -2036,7 +2041,7 @@ export default function App() {
                               <div style={{ fontSize: 16, fontWeight: 600 }}>{it.name}</div>
                               <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{it.termsLabel}</div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', rowGap: 10 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', columnGap: 16, flexWrap: 'wrap', rowGap: 10 }}>
                               <div
                                 style={{
                                   display: 'flex',
@@ -2367,6 +2372,31 @@ export default function App() {
               </p>
 
               <div style={{ marginTop: 28, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 18 : 26 }}>
+                {V.joinSubmitted ? (
+                  <>
+                    <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Thanks — you're in the queue</div>
+                    <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                      We check the listing and publish it within two business days. We'll email you once it's live.
+                    </p>
+                    <button
+                      onClick={V.goHome}
+                      style={{
+                        marginTop: 20,
+                        border: 0,
+                        borderRadius: 999,
+                        background: '#171717',
+                        color: '#FFFFFF',
+                        padding: '13px 24px',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Back to home
+                    </button>
+                  </>
+                ) : (
+                  <>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
@@ -2506,7 +2536,7 @@ export default function App() {
                 <div style={{ marginTop: 8, fontSize: 13, color: '#5B5B5B' }}>Ranges are fine. Buyers use them to shortlist, then you send the real quote.</div>
 
                 <button
-                  onClick={V.goHome}
+                  onClick={V.submitJoin}
                   style={{
                     marginTop: 22,
                     border: 0,
@@ -2522,6 +2552,8 @@ export default function App() {
                   Submit for review
                 </button>
                 <div style={{ marginTop: 12, fontSize: 13, color: '#5B5B5B' }}>We check the listing and publish it within two business days.</div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -2842,7 +2874,7 @@ export default function App() {
           >
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 22 : 28, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
-                Tell us what you could not find
+                {V.sourcingSent ? 'Request sent' : 'Tell us what you could not find'}
               </h2>
               <button
                 onClick={V.closeSourcing}
@@ -2852,97 +2884,126 @@ export default function App() {
                 ✕
               </button>
             </div>
-            <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
-              Describe it in your own words. We look for options and send them back to you. Nothing is charged
-              unless you approve one, then there is a sourcing fee based on size, quoted with the options.
-            </p>
 
-            <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-              Closest category
-            </div>
-            <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {V.sourcingTags.map((t) => (
+            {V.sourcingSent ? (
+              <>
+                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
+                  Got it. We look for options that match what you described and follow up by email within one
+                  business day. Nothing is charged unless you approve one of the options we bring back.
+                </p>
                 <button
-                  key={t.key}
-                  onClick={t.pick}
+                  onClick={V.closeSourcing}
                   style={{
-                    border: `1px solid ${t.border}`,
+                    marginTop: 20,
+                    width: '100%',
+                    border: 0,
                     borderRadius: 999,
-                    background: t.bg,
-                    color: t.fg,
-                    padding: '8px 14px',
+                    background: '#171717',
+                    color: '#FFFFFF',
+                    padding: '15px 26px',
                     cursor: 'pointer',
-                    fontSize: 13,
-                    fontWeight: 600,
+                    fontSize: 15,
+                    fontWeight: 700,
                   }}
                 >
-                  {t.name}
+                  Done
                 </button>
-              ))}
-            </div>
+              </>
+            ) : (
+              <>
+                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
+                  Describe it in your own words. We look for options and send them back to you. Nothing is charged
+                  unless you approve one, then there is a sourcing fee based on size, quoted with the options.
+                </p>
 
-            <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-              What you need
-            </div>
-            <textarea
-              placeholder="e.g. A 20x30 tent with sidewalls for 120 people on the church grounds in Arima, first Saturday in November"
-              style={{
-                marginTop: 10,
-                width: '100%',
-                minHeight: 110,
-                border: '1px solid #E4E4DF',
-                borderRadius: 16,
-                background: '#F7F7F5',
-                padding: 16,
-                fontFamily: SANS,
-                fontSize: 15,
-                lineHeight: 1.5,
-                color: '#171717',
-                resize: 'vertical',
-              }}
-            />
+                <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Closest category
+                </div>
+                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {V.sourcingTags.map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={t.pick}
+                      style={{
+                        border: `1px solid ${t.border}`,
+                        borderRadius: 999,
+                        background: t.bg,
+                        color: t.fg,
+                        padding: '8px 14px',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
 
-            <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-              Roughly how big is this?
-            </div>
-            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {V.feeTiers.map((t) => (
+                <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  What you need
+                </div>
+                <textarea
+                  placeholder="e.g. A 20x30 tent with sidewalls for 120 people on the church grounds in Arima, first Saturday in November"
+                  style={{
+                    marginTop: 10,
+                    width: '100%',
+                    minHeight: 110,
+                    border: '1px solid #E4E4DF',
+                    borderRadius: 16,
+                    background: '#F7F7F5',
+                    padding: 16,
+                    fontFamily: SANS,
+                    fontSize: 15,
+                    lineHeight: 1.5,
+                    color: '#171717',
+                    resize: 'vertical',
+                  }}
+                />
+
+                <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Roughly how big is this?
+                </div>
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {V.feeTiers.map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={t.pick}
+                      style={{ textAlign: 'left', border: `1px solid ${t.border}`, borderRadius: 18, background: t.bg, color: t.fg, padding: '14px 16px', cursor: 'pointer' }}
+                    >
+                      <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{t.range}</span>
+                      <span style={{ display: 'block', marginTop: 4, fontSize: 12, lineHeight: 1.4, color: t.noteColor }}>{t.note}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ marginTop: 18, borderRadius: 18, background: '#F7F7F5', padding: 16, fontSize: 13, lineHeight: 1.55, color: '#5B5B5B' }}>
+                  The fee is based on the size of what you are sourcing and is quoted with the options we bring back.
+                  You only pay if you approve them, and suppliers still quote and invoice you directly.
+                </div>
+
                 <button
-                  key={t.key}
-                  onClick={t.pick}
-                  style={{ textAlign: 'left', border: `1px solid ${t.border}`, borderRadius: 18, background: t.bg, color: t.fg, padding: '14px 16px', cursor: 'pointer' }}
+                  onClick={V.submitSourcing}
+                  style={{
+                    marginTop: 20,
+                    width: '100%',
+                    border: 0,
+                    borderRadius: 999,
+                    background: '#171717',
+                    color: '#FFFFFF',
+                    padding: '15px 26px',
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
                 >
-                  <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{t.range}</span>
-                  <span style={{ display: 'block', marginTop: 4, fontSize: 12, lineHeight: 1.4, color: t.noteColor }}>{t.note}</span>
+                  Submit request
                 </button>
-              ))}
-            </div>
-
-            <div style={{ marginTop: 18, borderRadius: 18, background: '#F7F7F5', padding: 16, fontSize: 13, lineHeight: 1.55, color: '#5B5B5B' }}>
-              The fee is based on the size of what you are sourcing and is quoted with the options we bring back.
-              You only pay if you approve them, and suppliers still quote and invoice you directly.
-            </div>
-
-            <button
-              onClick={V.submitSourcing}
-              style={{
-                marginTop: 20,
-                width: '100%',
-                border: 0,
-                borderRadius: 999,
-                background: '#171717',
-                color: '#FFFFFF',
-                padding: '15px 26px',
-                cursor: 'pointer',
-                fontSize: 15,
-                fontWeight: 700,
-              }}
-            >
-              Submit request
-            </button>
-            <div style={{ marginTop: 12, fontSize: 12, color: '#5B5B5B', textAlign: 'center' }}>
-              No upfront charge. We follow up by email within one business day.
-            </div>
+                <div style={{ marginTop: 12, fontSize: 12, color: '#5B5B5B', textAlign: 'center' }}>
+                  No upfront charge. We follow up by email within one business day.
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
