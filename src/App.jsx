@@ -9,6 +9,7 @@ import {
   FIELDS,
   TIERS,
   FIELDS_DEFAULT,
+  PLANNING_REQUIREMENTS,
   money,
 } from './data';
 import { heroImage } from './heroImage';
@@ -20,6 +21,21 @@ const ACCOUNT_KEY = 'manifestAccount';
 const avatarUrl = (seed) =>
   'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(seed) + '&backgroundColor=171717&textColor=ffffff&fontWeight=700';
 const photoUrl = (seed, w, h) => 'https://picsum.photos/seed/' + encodeURIComponent(seed) + '/' + w + '/' + h;
+
+const MOBILE_BREAKPOINT = 760;
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth <= MOBILE_BREAKPOINT
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return isMobile;
+}
 
 const loadAccount = () => {
   try {
@@ -56,6 +72,7 @@ const initialState = {
 };
 
 export default function App() {
+  const isMobile = useIsMobile();
   const [st, setSt] = useState(() => ({ ...initialState, ...loadAccount() }));
   const patch = (updater) =>
     setSt((prev) => ({ ...prev, ...(typeof updater === 'function' ? updater(prev) : updater) }));
@@ -204,6 +221,7 @@ export default function App() {
         open: openCat(c[0]),
       };
     }),
+    planningRequirements: PLANNING_REQUIREMENTS,
     categoryTiles: CATS.map((c) => {
       const on = inSet(c[0]);
       const n = SUPPLIERS.filter((s) => s.code === c[0]).length;
@@ -441,7 +459,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 28px 96px' }}>
+    <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0 16px 64px' : '0 28px 96px' }}>
       <div
         style={{
           position: 'sticky',
@@ -451,12 +469,14 @@ export default function App() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          rowGap: 10,
           gap: 24,
           padding: '18px 0 16px',
           borderBottom: '1px solid #ECECEC',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 18 : 32, flexWrap: 'wrap', rowGap: 8 }}>
           <button
             onClick={V.goHome}
             style={{
@@ -471,7 +491,7 @@ export default function App() {
           >
             Manifest
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap', rowGap: 6 }}>
             <button
               onClick={V.goHome}
               style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
@@ -544,13 +564,13 @@ export default function App() {
 
       {V.isHome && (
         <div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 20, alignItems: 'stretch', padding: '44px 0 0' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 32, minWidth: 320 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.15fr 1fr', gap: 20, alignItems: 'stretch', padding: isMobile ? '24px 0 0' : '44px 0 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 32, minWidth: isMobile ? 0 : 320 }}>
               <div>
                 <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                   Discovery and sourcing for events
                 </div>
-                <h1 style={{ margin: '18px 0 0', fontSize: 68, lineHeight: 0.96, letterSpacing: '-0.035em', fontWeight: 800, textWrap: 'pretty' }}>
+                <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 40 : 68, lineHeight: isMobile ? 1.02 : 0.96, letterSpacing: '-0.03em', fontWeight: 800, textWrap: 'pretty' }}>
                   What is your event?
                 </h1>
                 <p style={{ margin: '20px 0 0', maxWidth: 460, fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
@@ -681,7 +701,7 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ background: '#171717', borderRadius: 28, padding: '30px 30px 26px', color: '#FFFFFF', minWidth: 300 }}>
+            <div style={{ background: '#171717', borderRadius: 28, padding: isMobile ? '24px 22px 20px' : '30px 30px 26px', color: '#FFFFFF', minWidth: isMobile ? 0 : 300 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16 }}>
                 <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>{V.selectedEventName}</div>
                 <div style={{ fontFamily: MONO, fontSize: 12, color: '#DDF247' }}>{V.checkedLabel}</div>
@@ -728,10 +748,33 @@ export default function App() {
                   </button>
                 ))}
               </div>
+              <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid #2B2B2B' }}>
+                <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E6E' }}>
+                  Planning requirements
+                </div>
+                <div style={{ marginTop: 4, fontSize: 12, color: '#6E6E6E' }}>Handled by you, not sourced from a supplier</div>
+                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {V.planningRequirements.map((item) => (
+                    <span
+                      key={item}
+                      style={{
+                        border: '1px solid #3B3B3B',
+                        borderRadius: 999,
+                        padding: '5px 12px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: '#9C9C9C',
+                      }}
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div style={{ marginTop: 20, position: 'relative', borderRadius: 28, overflow: 'hidden', height: 420 }}>
+          <div style={{ marginTop: 20, position: 'relative', borderRadius: 28, overflow: 'hidden', height: isMobile ? 300 : 420 }}>
             <img
               src={heroImage}
               alt="Guests at a networking mixer in a lit venue"
@@ -740,17 +783,17 @@ export default function App() {
             <div
               style={{
                 position: 'absolute',
-                left: 22,
-                bottom: 22,
-                right: 22,
+                left: isMobile ? 14 : 22,
+                bottom: isMobile ? 14 : 22,
+                right: isMobile ? 14 : 22,
                 display: 'flex',
                 alignItems: 'flex-end',
                 justifyContent: 'space-between',
-                gap: 20,
+                gap: 14,
                 flexWrap: 'wrap',
               }}
             >
-              <div style={{ background: '#FFFFFF', borderRadius: 20, padding: '18px 22px', maxWidth: 420 }}>
+              <div style={{ background: '#FFFFFF', borderRadius: 20, padding: isMobile ? '14px 16px' : '18px 22px', maxWidth: 420 }}>
                 <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                   Networking mixer · Port of Spain
                 </div>
@@ -776,14 +819,14 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ padding: '84px 0 0' }}>
+          <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-              <h2 style={{ margin: 0, fontSize: 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>All categories</h2>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>All categories</h2>
               <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
                 Browse any category, whether or not it is checked off above. Prices come straight from each supplier.
               </p>
             </div>
-            <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(200px, 1fr))', gap: 12 }}>
+            <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
               {V.categoryTiles.map((c) => (
                 <button
                   key={c.code}
@@ -830,7 +873,7 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ padding: '84px 0 0' }}>
+          <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div
                 style={{
@@ -840,7 +883,8 @@ export default function App() {
                   gap: 28,
                   borderRadius: 24,
                   background: '#DDF247',
-                  padding: '28px 32px',
+                  padding: isMobile ? '20px 22px' : '28px 32px',
+                  flexWrap: 'wrap',
                 }}
               >
                 <div style={{ maxWidth: 720 }}>
@@ -860,8 +904,9 @@ export default function App() {
                   gap: 28,
                   borderRadius: 24,
                   background: '#171717',
-                  padding: '28px 32px',
+                  padding: isMobile ? '20px 22px' : '28px 32px',
                   color: '#FFFFFF',
+                  flexWrap: 'wrap',
                 }}
               >
                 <div style={{ maxWidth: 720 }}>
@@ -881,7 +926,8 @@ export default function App() {
                   gap: 28,
                   borderRadius: 24,
                   background: '#F2F2F0',
-                  padding: '28px 32px',
+                  padding: isMobile ? '20px 22px' : '28px 32px',
+                  flexWrap: 'wrap',
                 }}
               >
                 <div style={{ maxWidth: 720 }}>
@@ -915,7 +961,7 @@ export default function App() {
           <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
             <div>
               <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.cat.code}</div>
-              <h1 style={{ margin: '8px 0 0', fontSize: 46, lineHeight: 1, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.cat.name}</h1>
+              <h1 style={{ margin: '8px 0 0', fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.cat.name}</h1>
               <p style={{ margin: '12px 0 0', maxWidth: 560, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>{V.cat.description}</p>
             </div>
             <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.resultLabel}</div>
@@ -932,7 +978,7 @@ export default function App() {
               padding: '16px 0',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 8 }}>
               <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                 Location
               </span>
@@ -955,7 +1001,7 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 8 }}>
               <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                 Group size
               </span>
@@ -1027,7 +1073,15 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-                <div style={{ flex: '0 0 220px', display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'flex-end' }}>
+                <div
+                  style={{
+                    flex: isMobile ? '1 1 100%' : '0 0 220px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 14,
+                    alignItems: isMobile ? 'stretch' : 'flex-end',
+                  }}
+                >
                   <button
                     onClick={s.open}
                     style={{
@@ -1088,16 +1142,16 @@ export default function App() {
           >
             ← {V.sup.categoryName}
           </button>
-          <div style={{ marginTop: 22, borderRadius: 24, overflow: 'hidden', height: 220 }}>
+          <div style={{ marginTop: 22, borderRadius: 24, overflow: 'hidden', height: isMobile ? 140 : 220 }}>
             <img
               src={V.sup.cover}
               alt={V.sup.name + ' cover photo'}
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
           </div>
-          <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
-            <div>
-              <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: 28 }}>
+          <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 20 : 28 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
                   <img
                     src={V.sup.logo}
@@ -1105,12 +1159,12 @@ export default function App() {
                     style={{ width: 64, height: 64, borderRadius: 999, marginTop: -50, border: '4px solid #FFFFFF', background: '#171717', flexShrink: 0 }}
                   />
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
-                    <h1 style={{ margin: 0, fontSize: 40, lineHeight: 1, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.sup.name}</h1>
+                    <h1 style={{ margin: 0, fontSize: isMobile ? 26 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.sup.name}</h1>
                     <span style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.sup.code}</span>
                   </div>
                 </div>
                 <p style={{ margin: '14px 0 0', maxWidth: 620, fontSize: 16, lineHeight: 1.55, color: '#4A4A4A' }}>{V.sup.description}</p>
-                <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(120px, 1fr))', gap: 12 }}>
+                <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12 }}>
                   {V.sup.facts.map((f) => (
                     <div key={f.label} style={{ borderRadius: 16, background: '#F7F7F5', padding: '14px 16px' }}>
                       <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
@@ -1196,8 +1250,8 @@ export default function App() {
                           <div style={{ marginTop: 8, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{p.termsLabel}</div>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                        <div style={{ fontFamily: MONO, fontSize: 15, textAlign: 'right', minWidth: 150 }}>{p.priceLabel}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap', rowGap: 10 }}>
+                        <div style={{ fontFamily: MONO, fontSize: 15, textAlign: 'right', minWidth: isMobile ? 0 : 150 }}>{p.priceLabel}</div>
                         <button
                           onClick={p.add}
                           style={{
@@ -1236,7 +1290,7 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ position: 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ position: isMobile ? 'static' : 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
               <div style={{ borderRadius: 24, background: '#171717', color: '#FFFFFF', padding: 26 }}>
                 <div style={{ fontSize: 18, fontWeight: 700 }}>Your manifest</div>
                 <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#DDF247' }}>{V.summaryLine}</div>
@@ -1283,13 +1337,13 @@ export default function App() {
             ← Keep browsing
           </button>
           <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0, fontSize: 46, lineHeight: 1, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.manifestHeading}</h1>
+            <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.manifestHeading}</h1>
             <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.manifestSub}</div>
           </div>
 
-          <div style={{ marginTop: 26, display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: '24px 26px' }}>
+          <div style={{ marginTop: 26, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+              <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? '18px 18px' : '24px 26px' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                   <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Event details</div>
                   <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
@@ -1299,7 +1353,7 @@ export default function App() {
                 <div style={{ marginTop: 4, fontSize: 14, color: '#5B5B5B' }}>
                   Suppliers need these to quote you. Fill them once and they go out with each inquiry.
                 </div>
-                <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(150px, 1fr))', gap: 12 }}>
+                <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                       Event date
@@ -1429,7 +1483,7 @@ export default function App() {
                             <div style={{ fontSize: 16, fontWeight: 600 }}>{it.name}</div>
                             <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{it.termsLabel}</div>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', rowGap: 10 }}>
                             <div
                               style={{
                                 display: 'flex',
@@ -1454,7 +1508,7 @@ export default function App() {
                                 +
                               </button>
                             </div>
-                            <div style={{ fontFamily: MONO, fontSize: 14, minWidth: 148, textAlign: 'right' }}>{it.priceLabel}</div>
+                            <div style={{ fontFamily: MONO, fontSize: 14, minWidth: isMobile ? 0 : 148, textAlign: 'right' }}>{it.priceLabel}</div>
                             <button
                               onClick={it.toggle}
                               style={{
@@ -1568,7 +1622,7 @@ export default function App() {
               ))}
             </div>
 
-            <div style={{ position: 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ position: isMobile ? 'static' : 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
               {V.notSent && (
                 <div style={{ borderRadius: 24, background: '#DDF247', padding: 26 }}>
                   <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>About to send</div>
@@ -1692,17 +1746,17 @@ export default function App() {
           >
             ← Back
           </button>
-          <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 20, alignItems: 'start' }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: 52, lineHeight: 1, letterSpacing: '-0.035em', fontWeight: 800 }}>List your business on Manifest</h1>
+          <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.5fr 1fr', gap: 20, alignItems: 'start' }}>
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>List your business on Manifest</h1>
               <p style={{ margin: '16px 0 0', maxWidth: 600, fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
                 Free to list, free to receive inquiries. Buyers see your categories, price ranges and lead times,
                 then send you a request with their event details. You quote and invoice them directly, exactly as you
                 do now.
               </p>
 
-              <div style={{ marginTop: 28, border: '1px solid #ECECEC', borderRadius: 24, padding: 26 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(180px, 1fr))', gap: 14 }}>
+              <div style={{ marginTop: 28, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 18 : 26 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                       Business name
@@ -1785,7 +1839,7 @@ export default function App() {
                   </label>
                 )}
 
-                <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(140px, 1fr))', gap: 14 }}>
+                <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14 }}>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                       Based in
@@ -1860,7 +1914,7 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, position: 'sticky', top: 92 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, position: isMobile ? 'static' : 'sticky', top: 92, minWidth: 0 }}>
               <div style={{ borderRadius: 24, background: '#DDF247', padding: 26 }}>
                 <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>What it costs you</div>
                 <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1896,7 +1950,7 @@ export default function App() {
           >
             ← Back
           </button>
-          <h1 style={{ margin: '18px 0 0', fontSize: 46, lineHeight: 1, letterSpacing: '-0.03em', fontWeight: 800 }}>Your account</h1>
+          <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Your account</h1>
 
           {V.accountNeedsSignIn && (
             <div style={{ marginTop: 26, border: '1px solid #ECECEC', borderRadius: 24, padding: 26 }}>
@@ -2003,7 +2057,7 @@ export default function App() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: 24,
+            padding: isMobile ? 12 : 24,
           }}
         >
           <div
@@ -2015,11 +2069,11 @@ export default function App() {
               overflowY: 'auto',
               background: '#FFFFFF',
               borderRadius: 28,
-              padding: 32,
+              padding: isMobile ? 20 : 32,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-              <h2 style={{ margin: 0, fontSize: 28, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 22 : 28, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
                 Tell us what you could not find
               </h2>
               <button
