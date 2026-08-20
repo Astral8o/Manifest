@@ -38,6 +38,11 @@ export const EVENT_GROUPS = ["Staff and internal", "Customer facing", "Community
 export const SUPPLIERS = [
   { id: "s1", code: "CAT.01", name: "Cocoa Pod Catering", city: "Port of Spain", region: "Port of Spain", desc: "Family kitchen doing seated dinners and staffed buffets since 2009. Handles vegetarian and no-pork requests without an upcharge and brings its own service ware.",
     tags: ["Staffed service", "Vegetarian and no pork", "Own service ware"], minGroup: 25, lead: 10, radius: 60, rating: "4.8 (126)", response: "Replies in ~4 hrs",
+    reviews: [
+      { author: "Michelle A.", stars: 5, text: "Booked them for our office Christmas party, 90 people. The vegetarian plates were incredible and nobody felt like an afterthought." },
+      { author: "Kern R.", stars: 4, text: "Solid buffet, showed up on time and cleaned up well. Would have liked a few more dessert options." },
+      { author: "Priya S.", stars: 5, text: "Used Cocoa Pod for two events now. Consistent quality and they actually listen when you ask for changes." },
+    ],
     products: [
       ["Seated dinner service", "Three courses, plated, with two servers per 25 guests.", 320, 480, "per guest", 25, 14],
       ["Drop-off buffet", "Hot trays, serving utensils, disposable ware. No staff on site.", 150, 230, "per guest", 20, 7],
@@ -45,6 +50,11 @@ export const SUPPLIERS = [
     ] },
   { id: "s2", code: "CAT.01", name: "Maracas Road Kitchen", city: "Chaguanas", region: "Chaguanas", desc: "Volume caterer built for church halls and school auditoriums. Straightforward local menus, large batches, clear per-guest pricing.",
     tags: ["Large groups", "Halal options", "Weekend availability"], minGroup: 60, lead: 14, radius: 70, rating: "4.6 (84)", response: "Replies in ~1 day",
+    reviews: [
+      { author: "Father Anthony", stars: 5, text: "Fed 200 people at our harvest fundraiser without a hitch. Portions were generous and the sorrel was a hit." },
+      { author: "Denise C.", stars: 4, text: "Good value for large groups. Setup took a little longer than expected but the food made up for it." },
+      { author: "Ravi M.", stars: 5, text: "Halal option was clearly labeled and separately served. Appreciated the attention to detail." },
+    ],
     products: [
       ["Hot lunch buffet", "Two mains, two sides, provisions, sorrel or juice. Chafing dishes included.", 110, 165, "per guest", 60, 10],
       ["Dessert table", "Assorted cakes, sweetbread, fruit, plates and napkins.", 35, 55, "per guest", 40, 7],
@@ -52,6 +62,11 @@ export const SUPPLIERS = [
     ] },
   { id: "s3", code: "CAT.02", name: "The Wrightson Room", city: "Port of Spain", region: "Port of Spain", desc: "Converted warehouse near the waterfront with 4,200 square feet, roll-up door load-in and house tables. Good for dinners, all-hands and small trade shows.",
     tags: ["Capacity 220", "Load-in door", "House tables included"], minGroup: 40, lead: 21, radius: 0, rating: "4.9 (58)", response: "Replies same day",
+    reviews: [
+      { author: "Alicia F.", stars: 5, text: "Beautiful space with real character. The roll-up door made load-in for our trade show painless." },
+      { author: "Simeon P.", stars: 4, text: "Great for a dinner of 150. Parking nearby is limited so plan for that." },
+      { author: "Kayla D.", stars: 5, text: "Booked the full day rental for a product launch. Staff on site were helpful the whole time." },
+    ],
     products: [
       ["Full day rental", "8am to 11pm, house tables and chairs, two staff on site.", 16000, 22000, "flat", 1, 21],
       ["Evening rental", "5pm to midnight, includes setup hour.", 9500, 13000, "flat", 1, 14],
@@ -59,6 +74,11 @@ export const SUPPLIERS = [
     ] },
   { id: "s4", code: "CAT.02", name: "Cipero Fieldhouse", city: "San Fernando", region: "San Fernando", desc: "Indoor hard court with bleachers, plus a paved lot for start and finish lines. Used often for runs, expos and community events.",
     tags: ["Capacity 600", "Parking for 180", "Outdoor lot"], minGroup: 100, lead: 30, radius: 0, rating: "4.5 (41)", response: "Replies in ~2 days",
+    reviews: [
+      { author: "Marcus J.", stars: 5, text: "Ran our 5K start and finish from their lot. Plenty of space and the staff handled the cone layout perfectly." },
+      { author: "Tricia B.", stars: 4, text: "Court held our expo fine, just get there early to beat the bleacher line for setup." },
+      { author: "Odele K.", stars: 5, text: "Reliable and affordable for a community event this size." },
+    ],
     products: [
       ["Court and lot, full day", "Court, restrooms and lot access from 6am.", 12000, 17500, "flat", 1, 30],
       ["Half day, court only", "Four hours with bleacher seating for 300.", 5000, 7500, "flat", 1, 21],
@@ -66,6 +86,11 @@ export const SUPPLIERS = [
     ] },
   { id: "s5", code: "CAT.03", name: "Sound Base AV", city: "Port of Spain", region: "Port of Spain", desc: "Two-person crews for talks, panels and awards nights. Everything comes with an operator, so nobody on your team runs the board.",
     tags: ["Operator included", "Backup gear on site", "Hybrid streaming"], minGroup: 1, lead: 7, radius: 120, rating: "4.9 (167)", response: "Replies in ~2 hrs",
+    reviews: [
+      { author: "Nigel S.", stars: 5, text: "Their tech ran the whole show, mics never cut out once during a three hour awards night." },
+      { author: "Farah A.", stars: 5, text: "Backup gear on-site saved us when a mic pack died mid-panel. Barely missed a beat." },
+      { author: "Devon L.", stars: 4, text: "Good sound, slightly pricier than others but worth it for the peace of mind." },
+    ],
     products: [
       ["Speaker package", "Two speakers, two wireless mics, mixer, one tech for six hours.", 5800, 8200, "flat", 1, 7],
       ["Screen and projector", "12 foot screen, 7,000 lumen projector, cable run and confidence monitor.", 4000, 6400, "flat", 1, 7],
@@ -73,6 +98,11 @@ export const SUPPLIERS = [
     ] },
   { id: "s6", code: "CAT.04", name: "Ironwood Rentals", city: "Chaguanas", region: "Chaguanas", desc: "Tables, chairs, linens and lounge furniture with next-day delivery across the east-west corridor. Counts are confirmed at pickup, so you only pay for what you use.",
     tags: ["Next day delivery", "Linens laundered", "Flexible counts"], minGroup: 1, lead: 3, radius: 65, rating: "4.7 (203)", response: "Replies in ~5 hrs",
+    reviews: [
+      { author: "Sonia W.", stars: 5, text: "Delivered the day before like promised, chairs were clean and counted correctly." },
+      { author: "Andre H.", stars: 4, text: "Linens were nicely pressed. One table had a wobble but they swapped it fast." },
+      { author: "Michelle T.", stars: 5, text: "Flexible on final counts, which saved us money when a few guests dropped." },
+    ],
     products: [
       ["Round table with 8 chairs", "60 inch round, folding chairs, delivered and stacked.", 230, 290, "per set", 5, 3],
       ["Linen set", "Floor length cloth and eight napkins, pressed.", 120, 175, "per table", 5, 3],
@@ -80,6 +110,11 @@ export const SUPPLIERS = [
     ] },
   { id: "s7", code: "CAT.05", name: "Northside Film and Photo", city: "Port of Spain", region: "Port of Spain", desc: "Documentary event coverage and a fast headshot setup. Galleries land within three days, licensed for internal and marketing use.",
     tags: ["3 day turnaround", "Full usage rights", "Two shooters available"], minGroup: 1, lead: 5, radius: 140, rating: "4.8 (95)", response: "Replies in ~6 hrs",
+    reviews: [
+      { author: "Kwame O.", stars: 5, text: "Gallery landed in two days, way ahead of schedule. Photos captured the whole night well." },
+      { author: "Renee V.", stars: 5, text: "Headshot station kept the line moving fast for 40 staff. Retouching was tasteful, not overdone." },
+      { author: "Josiah B.", stars: 4, text: "Good coverage, would like a bit more candid shots next time." },
+    ],
     products: [
       ["Event coverage, 4 hours", "One photographer, edited gallery in three days.", 6000, 8800, "flat", 1, 5],
       ["Headshot station", "Backdrop, lights, retouched selects for up to 40 people.", 8000, 11000, "flat", 1, 7],
@@ -87,6 +122,11 @@ export const SUPPLIERS = [
     ] },
   { id: "s8", code: "CAT.06", name: "Ridgeway Print and Signs", city: "Arima", region: "Arima", desc: "Signage shop that handles wayfinding for runs and expos. Sends a proof within a day and will hold files for reprints next year.",
     tags: ["Next day proofs", "Weatherproof stock", "Files kept on file"], minGroup: 1, lead: 6, radius: 160, rating: "4.7 (152)", response: "Replies in ~3 hrs",
+    reviews: [
+      { author: "Camille R.", stars: 5, text: "Proof came back next morning exactly as requested. Banners held up fine outdoors in the rain." },
+      { author: "Terrence A.", stars: 4, text: "Badges were sorted alphabetically like they said, made registration painless." },
+      { author: "Nadia F.", stars: 5, text: "Kept our files on record and reprinted the same signs a year later with zero back and forth." },
+    ],
     products: [
       ["Vinyl banner, 3x8 ft", "Full colour, hemmed with grommets.", 620, 950, "each", 1, 6],
       ["Wayfinding sign set", "Ten yard signs with stakes, mixed messages.", 1400, 2000, "per set", 1, 6],
@@ -94,6 +134,11 @@ export const SUPPLIERS = [
     ] },
   { id: "s9", code: "CAT.09", name: "Crossroads Event Staffing", city: "San Fernando", region: "San Fernando", desc: "Registration, ushers and setup crews booked by the shift. Staff arrive briefed, in plain black, with a lead on site for groups over six.",
     tags: ["Booked by shift", "Lead on site", "Police certificate on file"], minGroup: 2, lead: 5, radius: 80, rating: "4.6 (78)", response: "Replies in ~8 hrs",
+    reviews: [
+      { author: "Wendy L.", stars: 5, text: "Registration staff arrived briefed and on time, badge line never backed up." },
+      { author: "Curtis N.", stars: 4, text: "Setup crew worked fast. Would book again for a bigger event." },
+      { author: "Aaliyah G.", stars: 5, text: "The event lead kept our schedule on track the entire night." },
+    ],
     products: [
       ["Registration staff", "Check-in and badge handout, four hour minimum.", 210, 270, "per hour", 2, 5],
       ["Setup and teardown crew", "Room flips, chairs, signage placement.", 250, 320, "per hour", 3, 5],
@@ -101,6 +146,11 @@ export const SUPPLIERS = [
     ] },
   { id: "s10", code: "CAT.10", name: "Sundown Sound", city: "Scarborough, Tobago", region: "Tobago", desc: "DJs and hosts who read a corporate room. Brings its own small PA, so you can skip a separate AV order for parties under 150.",
     tags: ["PA included", "Clean edits only", "Host or DJ"], minGroup: 1, lead: 12, radius: 40, rating: "4.8 (119)", response: "Replies in ~5 hrs",
+    reviews: [
+      { author: "Shania P.", stars: 5, text: "DJ read the room perfectly, kept the dance floor full all night." },
+      { author: "Learie D.", stars: 5, text: "Emcee ran our awards segment smoothly, kept the pace tight." },
+      { author: "Vashti C.", stars: 4, text: "Good energy, PA was plenty loud for our 120 guest party." },
+    ],
     products: [
       ["DJ, four hours", "Setup, PA for 150, requests taken in advance.", 5000, 7500, "flat", 1, 12],
       ["Emcee for programme", "Runs awards or auction segments, two hours.", 2700, 4000, "flat", 1, 12],
