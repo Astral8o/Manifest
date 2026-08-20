@@ -51,6 +51,11 @@ export const SUPPLIERS = [
       { author: "Kern R.", stars: 4, text: "Solid buffet, showed up on time and cleaned up well. Would have liked a few more dessert options." },
       { author: "Priya S.", stars: 5, text: "Used Cocoa Pod for two events now. Consistent quality and they actually listen when you ask for changes." },
     ],
+    faqs: [
+      { q: "Do you accommodate dietary restrictions?", a: "Yes, vegetarian and no-pork plates are available at no extra charge. Let us know your counts when you book." },
+      { q: "Is a deposit required?", a: "We ask for a 30% deposit to hold your date, with the balance due on the day of service." },
+      { q: "Do you provide serving staff?", a: "Seated dinner service includes two servers per 25 guests. Drop-off buffet is self-serve with no staff on site." },
+    ],
     products: [
       ["Seated dinner service", "Three courses, plated, with two servers per 25 guests.", 320, 480, "per guest", 25, 14],
       ["Drop-off buffet", "Hot trays, serving utensils, disposable ware. No staff on site.", 150, 230, "per guest", 20, 7],
@@ -64,6 +69,11 @@ export const SUPPLIERS = [
       { author: "Father Anthony", stars: 5, text: "Fed 200 people at our harvest fundraiser without a hitch. Portions were generous and the sorrel was a hit." },
       { author: "Denise C.", stars: 4, text: "Good value for large groups. Setup took a little longer than expected but the food made up for it." },
       { author: "Ravi M.", stars: 5, text: "Halal option was clearly labeled and separately served. Appreciated the attention to detail." },
+    ],
+    faqs: [
+      { q: "How far in advance should we book?", a: "At least 14 days for most orders, longer around the holidays." },
+      { q: "Can you serve halal meals?", a: "Yes, halal options are prepared and plated separately." },
+      { q: "Do you deliver to church halls and schools outside Chaguanas?", a: "We travel up to about 70 km from Chaguanas — check with us if you're borderline." },
     ],
     products: [
       ["Hot lunch buffet", "Two mains, two sides, provisions, sorrel or juice. Chafing dishes included.", 110, 165, "per guest", 60, 10],
@@ -79,6 +89,11 @@ export const SUPPLIERS = [
       { author: "Alicia F.", stars: 5, text: "Beautiful space with real character. The roll-up door made load-in for our trade show painless." },
       { author: "Simeon P.", stars: 4, text: "Great for a dinner of 150. Parking nearby is limited so plan for that." },
       { author: "Kayla D.", stars: 5, text: "Booked the full day rental for a product launch. Staff on site were helpful the whole time." },
+    ],
+    faqs: [
+      { q: "What's included in the rental?", a: "House tables and chairs, plus two staff on site for the full and evening rentals." },
+      { q: "Is there parking?", a: "Limited nearby parking — we recommend arranging overflow parking for events over 100 guests." },
+      { q: "Can we access the space the day before for setup?", a: "Yes, book the Load-in day product for prior-day access." },
     ],
     products: [
       ["Full day rental", "8am to 11pm, house tables and chairs, two staff on site.", 16000, 22000, "flat", 1, 21],
@@ -98,6 +113,11 @@ export const SUPPLIERS = [
       { author: "Tricia B.", stars: 4, text: "Court held our expo fine, just get there early to beat the bleacher line for setup." },
       { author: "Odele K.", stars: 5, text: "Reliable and affordable for a community event this size." },
     ],
+    faqs: [
+      { q: "Can we use the lot for a race start/finish?", a: "Yes, the Lot only product includes cone layout by our staff." },
+      { q: "What's the bleacher seating capacity?", a: "300 for the half-day court rental." },
+      { q: "Are restrooms available?", a: "Yes, restrooms are included with full-day court and lot access." },
+    ],
     products: [
       ["Court and lot, full day", "Court, restrooms and lot access from 6am.", 12000, 17500, "flat", 1, 30],
       ["Half day, court only", "Four hours with bleacher seating for 300.", 5000, 7500, "flat", 1, 21],
@@ -112,6 +132,11 @@ export const SUPPLIERS = [
       { author: "Nigel S.", stars: 5, text: "Their tech ran the whole show, mics never cut out once during a three hour awards night." },
       { author: "Farah A.", stars: 5, text: "Backup gear on-site saved us when a mic pack died mid-panel. Barely missed a beat." },
       { author: "Devon L.", stars: 4, text: "Good sound, slightly pricier than others but worth it for the peace of mind." },
+    ],
+    faqs: [
+      { q: "Do you bring backup equipment?", a: "Yes, backup gear is on site for every booking." },
+      { q: "Is an operator included?", a: "Yes, every package includes a tech running the equipment — nobody on your team needs to run the board." },
+      { q: "Can you support hybrid/streaming events?", a: "Yes, hybrid streaming is available — mention it when you inquire so we bring the right gear." },
     ],
     products: [
       ["Speaker package", "Two speakers, two wireless mics, mixer, one tech for six hours.", 5800, 8200, "flat", 1, 7],
@@ -131,10 +156,30 @@ export const SUPPLIERS = [
       { author: "Andre H.", stars: 4, text: "Linens were nicely pressed. One table had a wobble but they swapped it fast." },
       { author: "Michelle T.", stars: 5, text: "Flexible on final counts, which saved us money when a few guests dropped." },
     ],
+    faqs: [
+      { q: "How are final counts confirmed?", a: "At pickup — you're only charged for what you actually use." },
+      { q: "Do you deliver and pick up?", a: "Yes, next-day delivery across the east-west corridor, with pickup scheduled after your event." },
+      { q: "Are linens laundered?", a: "Yes, every linen order comes pressed and laundered." },
+    ],
     products: [
-      ["Round table with 8 chairs", "60 inch round, folding chairs, delivered and stacked.", 230, 290, "per set", 5, 3],
-      ["Linen set", "Floor length cloth and eight napkins, pressed.", 120, 175, "per table", 5, 3],
-      ["Lounge grouping", "Two sofas, two chairs, coffee table, rug.", 2600, 3500, "flat", 1, 5],
+      ["Round table with 8 chairs", "60 inch round, folding chairs, delivered and stacked.", 230, 290, "per set", 5, 3, "Tables & Seating"],
+      ["Rectangular banquet table", "6 foot rectangular table, seats 6 to 8.", 55, 75, "each", 4, 3, "Tables & Seating"],
+      ["Cocktail table, highboy", "30 inch round, 42 inch tall, no chairs.", 45, 60, "each", 4, 3, "Tables & Seating"],
+      ["Folding chair, white", "Stackable resin folding chair.", 8, 14, "each", 20, 3, "Tables & Seating"],
+      ["Chiavari chair", "Gold or white chiavari chair with cushion.", 18, 26, "each", 20, 5, "Tables & Seating"],
+      ["Kids table and chair set", "Child-height table with four chairs.", 90, 130, "per set", 2, 3, "Tables & Seating"],
+      ["Linen set", "Floor length cloth and eight napkins, pressed.", 120, 175, "per table", 5, 3, "Linens"],
+      ["Table runner", "Fabric runner, 12 feet, assorted colours.", 25, 40, "each", 5, 3, "Linens"],
+      ["Chair sash", "Satin sash, tied on site or self-tie.", 4, 7, "each", 20, 3, "Linens"],
+      ["Napkin, cloth", "Pressed cloth napkin, assorted colours.", 3, 5, "each", 25, 3, "Linens"],
+      ["Charger plate", "Gold or silver charger, rented per setting.", 5, 9, "each", 25, 5, "Linens"],
+      ["Lounge grouping", "Two sofas, two chairs, coffee table, rug.", 2600, 3500, "flat", 1, 5, "Lounge & Decor"],
+      ["Cocktail lounge set", "Two loveseats, one coffee table.", 1400, 1900, "flat", 1, 5, "Lounge & Decor"],
+      ["Backdrop and drape", "10 foot pipe and drape backdrop, one colour.", 600, 950, "flat", 1, 5, "Lounge & Decor"],
+      ["LED centerpiece", "Battery LED centerpiece light, per table.", 8, 14, "each", 10, 3, "Lounge & Decor"],
+      ["Dance floor panel", "3x3 foot interlocking panel, black or white gloss.", 35, 55, "each", 12, 7, "Add-ons"],
+      ["Standing heater", "Outdoor propane patio heater.", 180, 260, "each", 2, 5, "Add-ons"],
+      ["Delivery and pickup fee", "Waived on orders over TT$3,000.", 150, 400, "flat", 1, 1, "Add-ons"],
     ] },
   { id: "s7", code: "CAT.05", name: "Northside Film and Photo", city: "Port of Spain", region: "Port of Spain", desc: "Documentary event coverage and a fast headshot setup. Galleries land within three days, licensed for internal and marketing use.",
     tags: ["3 day turnaround", "Full usage rights", "Two shooters available"], minGroup: 1, lead: 5, radius: 140, rating: "4.8 (95)", response: "Replies in ~6 hrs",
@@ -147,6 +192,11 @@ export const SUPPLIERS = [
       { author: "Kwame O.", stars: 5, text: "Gallery landed in two days, way ahead of schedule. Photos captured the whole night well." },
       { author: "Renee V.", stars: 5, text: "Headshot station kept the line moving fast for 40 staff. Retouching was tasteful, not overdone." },
       { author: "Josiah B.", stars: 4, text: "Good coverage, would like a bit more candid shots next time." },
+    ],
+    faqs: [
+      { q: "How long until we get our photos?", a: "Full galleries land within three days. Same-day highlights are also available." },
+      { q: "Do we get full usage rights?", a: "Yes, every package includes full rights for internal and marketing use." },
+      { q: "Can you send two shooters?", a: "Yes, a second shooter is available on request for larger events." },
     ],
     products: [
       ["Event coverage, 4 hours", "One photographer, edited gallery in three days.", 6000, 8800, "flat", 1, 5],
@@ -161,6 +211,11 @@ export const SUPPLIERS = [
       { author: "Camille R.", stars: 5, text: "Proof came back next morning exactly as requested. Banners held up fine outdoors in the rain." },
       { author: "Terrence A.", stars: 4, text: "Badges were sorted alphabetically like they said, made registration painless." },
       { author: "Nadia F.", stars: 5, text: "Kept our files on record and reprinted the same signs a year later with zero back and forth." },
+    ],
+    faqs: [
+      { q: "How fast is the proof turnaround?", a: "Next business day for most orders." },
+      { q: "Will banners hold up outdoors?", a: "Yes, we print on weatherproof stock designed for outdoor use." },
+      { q: "Do you keep our files for reprints?", a: "Yes, files are kept on record so reprints next year don't need a new design pass." },
     ],
     products: [
       ["Vinyl banner, 3x8 ft", "Full colour, hemmed with grommets.", 620, 950, "each", 1, 6],
@@ -179,6 +234,11 @@ export const SUPPLIERS = [
       { author: "Curtis N.", stars: 4, text: "Setup crew worked fast. Would book again for a bigger event." },
       { author: "Aaliyah G.", stars: 5, text: "The event lead kept our schedule on track the entire night." },
     ],
+    faqs: [
+      { q: "How is staff dressed?", a: "Plain black by default, or a branded shirt/formal look on request." },
+      { q: "Is there a minimum shift length?", a: "Four hours for registration staff, shorter shifts are billed at the hourly rate." },
+      { q: "Do staff have background checks?", a: "Yes, every staff member has a police certificate on file." },
+    ],
     products: [
       ["Registration staff", "Check-in and badge handout, four hour minimum.", 210, 270, "per hour", 2, 5],
       ["Setup and teardown crew", "Room flips, chairs, signage placement.", 250, 320, "per hour", 3, 5],
@@ -192,6 +252,11 @@ export const SUPPLIERS = [
       { author: "Shania P.", stars: 5, text: "DJ read the room perfectly, kept the dance floor full all night." },
       { author: "Learie D.", stars: 5, text: "Emcee ran our awards segment smoothly, kept the pace tight." },
       { author: "Vashti C.", stars: 4, text: "Good energy, PA was plenty loud for our 120 guest party." },
+    ],
+    faqs: [
+      { q: "Do you provide your own sound system?", a: "Yes, a small PA is included, enough for parties under 150 without a separate AV order." },
+      { q: "Can you take song requests in advance?", a: "Yes, send your list ahead of time and we'll work it into the set." },
+      { q: "Do you do both DJ and hosting?", a: "Yes, we can cover DJ, emcee duties, or both in one booking." },
     ],
     products: [
       ["DJ, four hours", "Setup, PA for 150, requests taken in advance.", 5000, 7500, "flat", 1, 12],
