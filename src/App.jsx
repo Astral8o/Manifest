@@ -17,6 +17,7 @@ import { heroImage } from './heroImage';
 const MONO = "'IBM Plex Mono', monospace";
 const SANS = 'Manrope, sans-serif';
 const ACCOUNT_KEY = 'manifestAccount';
+const PROMO_ACCENT = '#FF5A36';
 
 const avatarUrl = (seed) =>
   'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(seed) + '&backgroundColor=171717&textColor=ffffff&fontWeight=700';
@@ -69,6 +70,7 @@ const initialState = {
   showAll: false,
   joinCats: [],
   sourcingOpen: false,
+  supplierOrigin: 'category',
 };
 
 export default function App() {
@@ -153,6 +155,7 @@ export default function App() {
   const nav = (screen, extra) => () =>
     patch({ screen, sent: screen === 'manifest' ? st.sent : null, ...(extra || {}) });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
+  const openPromoCat = (code) => () => patch({ screen: 'promoCategory', catCode: code });
 
   const cat = CATS.find((c) => c[0] === st.catCode) || CATS[0];
   const catSuppliers = SUPPLIERS.filter((s) => s.code === st.catCode);
@@ -170,6 +173,11 @@ export default function App() {
   const chip = (on) =>
     on ? { bg: '#171717', fg: '#FFFFFF', border: '#171717' } : { bg: '#FFFFFF', fg: '#171717', border: '#D7D7D2' };
 
+  const promoSuppliers = SUPPLIERS.filter((s) => s.promos && s.promos.length);
+  const promoCatCodes = CATS.map((c) => c[0]).filter((code) => promoSuppliers.some((s) => s.code === code));
+  const promoCatSuppliers = promoSuppliers.filter((s) => s.code === st.catCode);
+  const totalPromoCount = promoSuppliers.reduce((n, s) => n + s.promos.length, 0);
+
   const V = {
     itemCount,
     counterBg: itemCount ? '#DDF247' : '#FFFFFF',
@@ -179,6 +187,8 @@ export default function App() {
     isManifest: st.screen === 'manifest',
     isJoin: st.screen === 'join',
     isAccount: st.screen === 'account',
+    isPromo: st.screen === 'promo',
+    isPromoCategory: st.screen === 'promoCategory',
     sourcingOpen: st.sourcingOpen,
     goHome: nav('home'),
     goManifest: nav('manifest'),
@@ -187,7 +197,11 @@ export default function App() {
     submitSourcing: () => patch({ sourcingOpen: false }),
     goJoin: nav('join'),
     goAccount: nav('account'),
-    backToCategory: () => patch({ screen: 'category', catCode: sup.code }),
+    goPromo: nav('promo'),
+    backToCategory: () =>
+      st.supplierOrigin === 'promo'
+        ? patch({ screen: 'promoCategory', catCode: sup.code })
+        : patch({ screen: 'category', catCode: sup.code }),
 
     eventTypes: EVENTS.map((e, i) => ({
       name: e[0],
@@ -249,7 +263,41 @@ export default function App() {
       location: s.city,
       description: s.bio,
       tags: s.tags,
-      open: () => patch({ screen: 'supplier', supId: s.id }),
+      open: () => patch({ screen: 'supplier', supId: s.id, supplierOrigin: 'category' }),
+    })),
+
+    promoEyebrow:
+      totalPromoCount +
+      (totalPromoCount === 1 ? ' active promotion across ' : ' active promotions across ') +
+      promoCatCodes.length +
+      (promoCatCodes.length === 1 ? ' category' : ' categories'),
+    promoChecklist: CATS.filter((c) => promoCatCodes.indexOf(c[0]) >= 0).map((c) => {
+      const count = promoSuppliers.filter((s) => s.code === c[0]).reduce((n, s) => n + s.promos.length, 0);
+      const matches = inSet(c[0]);
+      return {
+        code: c[0],
+        name: c[1],
+        countLabel: count + (count === 1 ? ' promo' : ' promos'),
+        matches,
+        matchLabel: matches ? 'Matches your event' : '',
+        open: openPromoCat(c[0]),
+      };
+    }),
+    promoMatchNote: promoCatCodes.some((code) => inSet(code))
+      ? ''
+      : 'Nothing here matches ' + evt[0] + ' yet — here is what is live across Manifest.',
+
+    promoCat: { code: cat[0], name: cat[1] },
+    promoResultLabel:
+      promoCatSuppliers.length + (promoCatSuppliers.length === 1 ? ' supplier with a live promotion' : ' suppliers with live promotions'),
+    promoSupplierRows: promoCatSuppliers.map((s) => ({
+      key: s.id,
+      logo: avatarUrl(s.name),
+      name: s.name,
+      location: s.city,
+      description: s.bio,
+      promoBadges: s.promos.map((p) => p.discount + ' — ' + p.title),
+      open: () => patch({ screen: 'supplier', supId: s.id, supplierOrigin: 'promo' }),
     })),
 
     sup: {
@@ -273,6 +321,7 @@ export default function App() {
         sup.instagram ? { key: 'instagram', label: 'Instagram', value: sup.instagram } : null,
         sup.facebook ? { key: 'facebook', label: 'Facebook', value: sup.facebook } : null,
       ].filter(Boolean),
+      promos: (sup.promos || []).map((p) => ({ key: p.title, ...p })),
       reviews: (sup.reviews || []).map((r) => ({
         key: r.author,
         author: r.author,
@@ -497,6 +546,20 @@ export default function App() {
               style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
             >
               Browse categories
+            </button>
+            <button
+              onClick={V.goPromo}
+              style={{
+                border: 0,
+                background: 'transparent',
+                padding: 0,
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 500,
+                color: V.isPromo || V.isPromoCategory ? PROMO_ACCENT : '#5B5B5B',
+              }}
+            >
+              Promotions
             </button>
             <button
               onClick={V.goJoin}
@@ -873,6 +936,48 @@ export default function App() {
             </div>
           </div>
 
+          <div style={{ padding: isMobile ? '32px 0 0' : '40px 0 0' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 24,
+                flexWrap: 'wrap',
+                borderRadius: 24,
+                background: '#171717',
+                padding: isMobile ? '22px 22px' : '26px 32px',
+                color: '#FFFFFF',
+              }}
+            >
+              <div style={{ maxWidth: 640 }}>
+                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROMO_ACCENT }}>
+                  Promotions
+                </div>
+                <div style={{ marginTop: 8, fontSize: isMobile ? 19 : 22, fontWeight: 800, letterSpacing: '-0.02em' }}>{V.promoEyebrow}</div>
+                <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#A8A8A8' }}>
+                  Some suppliers cut their price for a limited time. See who has a live discount right now.
+                </div>
+              </div>
+              <button
+                onClick={V.goPromo}
+                style={{
+                  border: 0,
+                  borderRadius: 999,
+                  background: PROMO_ACCENT,
+                  color: '#FFFFFF',
+                  padding: '14px 24px',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                View promotions
+              </button>
+            </div>
+          </div>
+
           <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div
@@ -1134,6 +1239,261 @@ export default function App() {
         </div>
       )}
 
+      {V.isPromo && (
+        <div>
+          <div style={{ padding: isMobile ? '24px 0 0' : '44px 0 0' }}>
+            <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: PROMO_ACCENT }}>
+              Limited-time offers
+            </div>
+            <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 34 : 56, lineHeight: isMobile ? 1.05 : 0.98, letterSpacing: '-0.03em', fontWeight: 800, textWrap: 'pretty' }}>
+              What are you planning?
+            </h1>
+            <p style={{ margin: '20px 0 0', maxWidth: 520, fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
+              Pick your event type and we will surface which suppliers currently have a live discount for it.
+            </p>
+            <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <input
+                type="search"
+                value={V.eventQuery}
+                onChange={V.setEventQuery}
+                placeholder="Search event types"
+                style={{
+                  flex: '1 1 240px',
+                  border: '1px solid #E4E4DF',
+                  borderRadius: 999,
+                  background: '#F7F7F5',
+                  padding: '12px 18px',
+                  fontFamily: SANS,
+                  fontSize: 14,
+                  color: '#171717',
+                }}
+              />
+              <button
+                onClick={V.toggleAllEvents}
+                style={{
+                  border: 0,
+                  background: 'transparent',
+                  padding: 0,
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#171717',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '3px',
+                }}
+              >
+                {V.toggleAllLabel}
+              </button>
+            </div>
+            {V.showPopular && (
+              <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {V.eventTypes.map((et) => (
+                  <button
+                    key={et.name}
+                    onClick={et.pick}
+                    style={{
+                      border: `1px solid ${et.border}`,
+                      borderRadius: 999,
+                      background: et.bg,
+                      color: et.fg,
+                      padding: '11px 18px',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {et.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            {V.showEventGroups && (
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {V.eventGroups.map((g) => (
+                  <div key={g.label}>
+                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      {g.label}
+                    </div>
+                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {g.items.map((et) => (
+                        <button
+                          key={et.name}
+                          onClick={et.pick}
+                          style={{
+                            border: `1px solid ${et.border}`,
+                            borderRadius: 999,
+                            background: et.bg,
+                            color: et.fg,
+                            padding: '10px 16px',
+                            cursor: 'pointer',
+                            fontSize: 14,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {et.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginTop: 32, borderRadius: 28, background: '#171717', color: '#FFFFFF', padding: isMobile ? '24px 22px 20px' : '30px 30px 26px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Categories with active promotions</div>
+              <div style={{ fontFamily: MONO, fontSize: 12, color: PROMO_ACCENT }}>{V.promoEyebrow}</div>
+            </div>
+            {V.promoMatchNote && (
+              <div style={{ marginTop: 6, fontSize: 13, color: '#9C9C9C' }}>{V.promoMatchNote}</div>
+            )}
+            <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {V.promoChecklist.map((row) => (
+                <button
+                  key={row.code}
+                  onClick={row.open}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    columnGap: 14,
+                    rowGap: 6,
+                    width: '100%',
+                    textAlign: 'left',
+                    border: 0,
+                    borderTop: '1px solid #2B2B2B',
+                    background: 'transparent',
+                    padding: '14px 2px',
+                    cursor: 'pointer',
+                    color: '#FFFFFF',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{row.code}</span>
+                    <span style={{ fontSize: 15, fontWeight: 700 }}>{row.name}</span>
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {row.matches && (
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#DDF247' }}>
+                        {row.matchLabel}
+                      </span>
+                    )}
+                    <span
+                      style={{
+                        border: `1px solid ${PROMO_ACCENT}`,
+                        borderRadius: 999,
+                        padding: '5px 12px',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: PROMO_ACCENT,
+                      }}
+                    >
+                      {row.countLabel}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {V.isPromoCategory && (
+        <div style={{ padding: '34px 0 0' }}>
+          <button
+            onClick={V.goPromo}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← All promotions
+          </button>
+          <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.promoCat.code}</div>
+              <h1 style={{ margin: '8px 0 0', fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.promoCat.name}</h1>
+            </div>
+            <div style={{ fontFamily: MONO, fontSize: 12, color: PROMO_ACCENT }}>{V.promoResultLabel}</div>
+          </div>
+
+          <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {V.promoSupplierRows.map((s) => (
+              <div
+                key={s.key}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: 28,
+                  flexWrap: 'wrap',
+                  border: `1px solid ${PROMO_ACCENT}33`,
+                  borderRadius: 22,
+                  padding: '22px 24px',
+                }}
+              >
+                <div style={{ flex: '1 1 380px', minWidth: 280, display: 'flex', gap: 16 }}>
+                  <img
+                    src={s.logo}
+                    alt={s.name + ' logo'}
+                    style={{ width: 52, height: 52, borderRadius: 999, flexShrink: 0, background: '#171717' }}
+                  />
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{s.name}</div>
+                      <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.location}</div>
+                    </div>
+                    <p style={{ margin: '8px 0 0', maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>{s.description}</p>
+                    <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {s.promoBadges.map((b) => (
+                        <span
+                          key={b}
+                          style={{
+                            border: `1px solid ${PROMO_ACCENT}`,
+                            borderRadius: 999,
+                            background: `${PROMO_ACCENT}14`,
+                            padding: '5px 12px',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: PROMO_ACCENT,
+                          }}
+                        >
+                          {b}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    flex: isMobile ? '1 1 100%' : '0 0 220px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 14,
+                    alignItems: isMobile ? 'stretch' : 'flex-end',
+                  }}
+                >
+                  <button
+                    onClick={s.open}
+                    style={{
+                      border: 0,
+                      borderRadius: 999,
+                      background: '#171717',
+                      color: '#FFFFFF',
+                      padding: '12px 20px',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 700,
+                    }}
+                  >
+                    See Profile
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {V.isSupplier && (
         <div style={{ padding: '34px 0 0' }}>
           <button
@@ -1216,6 +1576,45 @@ export default function App() {
                   </div>
                 </div>
               </div>
+
+              {V.sup.promos.length > 0 && (
+                <div style={{ marginTop: 24 }}>
+                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800, color: PROMO_ACCENT }}>Promotions</h2>
+                  <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {V.sup.promos.map((p) => (
+                      <div
+                        key={p.key}
+                        style={{
+                          border: `1px solid ${PROMO_ACCENT}`,
+                          borderRadius: 18,
+                          background: `${PROMO_ACCENT}0F`,
+                          padding: '18px 20px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                          <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{p.title}</div>
+                          <span
+                            style={{
+                              border: `1px solid ${PROMO_ACCENT}`,
+                              borderRadius: 999,
+                              background: PROMO_ACCENT,
+                              padding: '5px 14px',
+                              fontSize: 13,
+                              fontWeight: 800,
+                              color: '#FFFFFF',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {p.discount}
+                          </span>
+                        </div>
+                        <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>{p.description}</p>
+                        <div style={{ marginTop: 8, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>Ends {p.expires}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div style={{ marginTop: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16 }}>

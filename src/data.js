@@ -42,6 +42,10 @@ export const SUPPLIERS = [
     tags: ["Staffed service", "Vegetarian and no pork", "Own service ware"], minGroup: 25, lead: 10, radius: 60, rating: "4.8 (126)", response: "Replies in ~4 hrs",
     bio: "Family-run caterer serving Port of Spain since 2009.",
     phone: "+1 868 622 0147", instagram: "@cocoapodcatering", facebook: "Cocoa Pod Catering",
+    promos: [
+      { title: "Weekday booking discount", discount: "10% off", description: "Save 10% on seated dinner or drop-off buffet service when your event falls Monday to Thursday.", expires: "Sep 30, 2026" },
+      { title: "Coffee cart add-on", discount: "20% off", description: "Add the coffee and pastry cart to any catering order and get 20% off the cart.", expires: "Oct 15, 2026" },
+    ],
     reviews: [
       { author: "Michelle A.", stars: 5, text: "Booked them for our office Christmas party, 90 people. The vegetarian plates were incredible and nobody felt like an afterthought." },
       { author: "Kern R.", stars: 4, text: "Solid buffet, showed up on time and cleaned up well. Would have liked a few more dessert options." },
@@ -86,6 +90,9 @@ export const SUPPLIERS = [
     priceOnRequest: true,
     bio: "Indoor court and outdoor lot venue in San Fernando.",
     phone: "+1 868 652 3384", instagram: "@ciperofieldhouse", facebook: "Cipero Fieldhouse",
+    promos: [
+      { title: "Community rate", discount: "15% off", description: "Community and fundraising events get 15% off the court and lot full-day rental.", expires: "Nov 1, 2026" },
+    ],
     reviews: [
       { author: "Marcus J.", stars: 5, text: "Ran our 5K start and finish from their lot. Plenty of space and the staff handled the cone layout perfectly." },
       { author: "Tricia B.", stars: 4, text: "Court held our expo fine, just get there early to beat the bleacher line for setup." },
@@ -115,6 +122,10 @@ export const SUPPLIERS = [
     tags: ["Next day delivery", "Linens laundered", "Flexible counts"], minGroup: 1, lead: 3, radius: 65, rating: "4.7 (203)", response: "Replies in ~5 hrs",
     bio: "Furniture and rental house covering the east-west corridor.",
     phone: "+1 868 665 2249", instagram: "@ironwoodrentals", facebook: "Ironwood Rentals",
+    promos: [
+      { title: "Bulk order discount", discount: "12% off", description: "Orders of 10 or more round tables get 12% off the whole rental.", expires: "Sep 15, 2026" },
+      { title: "Early booking", discount: "TT$200 off", description: "Book 3 weeks ahead and take TT$200 off any lounge grouping.", expires: "Dec 31, 2026" },
+    ],
     reviews: [
       { author: "Sonia W.", stars: 5, text: "Delivered the day before like promised, chairs were clean and counted correctly." },
       { author: "Andre H.", stars: 4, text: "Linens were nicely pressed. One table had a wobble but they swapped it fast." },
@@ -129,6 +140,9 @@ export const SUPPLIERS = [
     tags: ["3 day turnaround", "Full usage rights", "Two shooters available"], minGroup: 1, lead: 5, radius: 140, rating: "4.8 (95)", response: "Replies in ~6 hrs",
     bio: "Event photography and video studio in Port of Spain.",
     phone: "+1 868 627 4482", instagram: "@northsidefilmphoto", facebook: "Northside Film and Photo",
+    promos: [
+      { title: "Bundle savings", discount: "15% off", description: "Book event coverage and a headshot station together and save 15% on the combined total.", expires: "Oct 31, 2026" },
+    ],
     reviews: [
       { author: "Kwame O.", stars: 5, text: "Gallery landed in two days, way ahead of schedule. Photos captured the whole night well." },
       { author: "Renee V.", stars: 5, text: "Headshot station kept the line moving fast for 40 staff. Retouching was tasteful, not overdone." },
@@ -157,6 +171,9 @@ export const SUPPLIERS = [
     tags: ["Booked by shift", "Lead on site", "Police certificate on file"], minGroup: 2, lead: 5, radius: 80, rating: "4.6 (78)", response: "Replies in ~8 hrs",
     bio: "Event staffing agency based in San Fernando.",
     phone: "+1 868 653 8871", instagram: "@crossroadsstaffing", facebook: "Crossroads Event Staffing",
+    promos: [
+      { title: "First booking discount", discount: "10% off", description: "New clients get 10% off their first staffing order of any kind.", expires: "Dec 31, 2026" },
+    ],
     reviews: [
       { author: "Wendy L.", stars: 5, text: "Registration staff arrived briefed and on time, badge line never backed up." },
       { author: "Curtis N.", stars: 4, text: "Setup crew worked fast. Would book again for a bigger event." },
