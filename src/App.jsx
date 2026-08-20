@@ -97,11 +97,13 @@ const initialState = {
   sourcingOpen: false,
   sourcingSent: false,
   supplierOrigin: 'category',
-  supplierTab: 'about',
+  supplierTab: 'services',
   svcQuery: '',
   svcGroup: 'All',
   svcVisible: 8,
   navMenuOpen: false,
+  promoPlanOpen: false,
+  promoPlanSent: false,
 };
 
 export default function App() {
@@ -285,6 +287,11 @@ export default function App() {
     goJoin: nav('join', { joinSubmitted: false }),
     submitJoin: () => patch({ joinSubmitted: true }),
     joinSubmitted: !!st.joinSubmitted,
+    openPromoPlan: () => patch({ promoPlanOpen: true, promoPlanSent: false }),
+    closePromoPlan: () => patch({ promoPlanOpen: false, promoPlanSent: false }),
+    submitPromoPlan: () => patch({ promoPlanSent: true }),
+    promoPlanOpen: !!st.promoPlanOpen,
+    promoPlanSent: !!st.promoPlanSent,
     goAccount: nav('account'),
     goPromo: nav('promo'),
     navMenuOpen: !!st.navMenuOpen,
@@ -358,7 +365,7 @@ export default function App() {
       location: s.city,
       description: s.bio,
       tags: s.tags,
-      open: () => patch({ screen: 'supplier', supId: s.id, supplierOrigin: 'category', supplierTab: 'about', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
+      open: () => patch({ screen: 'supplier', supId: s.id, supplierOrigin: 'category', supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
     })),
 
     promoEyebrow:
@@ -392,7 +399,7 @@ export default function App() {
       location: s.city,
       description: s.bio,
       promoBadges: s.promos.map((p) => p.discount + ' — ' + p.title),
-      open: () => patch({ screen: 'supplier', supId: s.id, supplierOrigin: 'promo', supplierTab: 'about', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
+      open: () => patch({ screen: 'supplier', supId: s.id, supplierOrigin: 'promo', supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
     })),
 
     sup: {
@@ -425,7 +432,7 @@ export default function App() {
       })),
       faqs: (sup.faqs || []).map((f) => ({ key: f.q, q: f.q, a: f.a })),
     },
-    supplierTab: st.supplierTab || 'about',
+    supplierTab: st.supplierTab || 'services',
     supplierTabs: [
       { key: 'about', label: 'About' },
       { key: 'services', label: 'Services (' + supProducts.length + ')' },
@@ -434,7 +441,7 @@ export default function App() {
       { key: 'promos', label: 'Promos' + ((sup.promos || []).length ? ' (' + sup.promos.length + ')' : '') },
     ].map((t) => ({
       ...t,
-      active: (st.supplierTab || 'about') === t.key,
+      active: (st.supplierTab || 'services') === t.key,
       go: () => patch({ supplierTab: t.key }),
     })),
     svcQuery: st.svcQuery || '',
@@ -1061,7 +1068,8 @@ export default function App() {
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>All categories</h2>
               <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
-                Browse any category, whether or not it is checked off above. Prices come straight from each supplier.
+                Explore any category to discover suppliers, products, and services for your event. View what they
+                offer and send an inquiry to get the details you need.
               </p>
             </div>
             <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
@@ -1215,6 +1223,25 @@ export default function App() {
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#4A4A4A' }}>
                     Still missing something? Describe it and we find options for you. Nothing is charged unless you
                     approve what we bring back, and then it is one fee, set by the size of the job.
+                  </div>
+                  <button
+                    onClick={V.goSourcing}
+                    style={{
+                      marginTop: 16,
+                      border: 0,
+                      borderRadius: 999,
+                      background: '#171717',
+                      color: '#FFFFFF',
+                      padding: '13px 22px',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Tell us what you need sourced
+                  </button>
+                  <div style={{ marginTop: 10, fontFamily: MONO, fontSize: 11, letterSpacing: '0.04em', color: '#9A9A9A' }}>
+                    This is a paid service — a fee applies only if you approve what we find.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#C2C2BC' }}>03</div>
@@ -2751,6 +2778,49 @@ export default function App() {
                   their list. Reply to the buyer directly.
                 </div>
               </div>
+              <div style={{ borderRadius: 24, border: `1px solid ${PROMO_ACCENT}`, background: `${PROMO_ACCENT}0D`, padding: 26 }}>
+                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROMO_ACCENT }}>
+                  Promotions
+                </div>
+                <div style={{ marginTop: 8, fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Get More Visibility</div>
+                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
+                  Put your business and offers in front of buyers actively looking for event suppliers.
+                </p>
+                <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${PROMO_ACCENT}33` }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#171717' }}>Promotion Plan</div>
+                  <div style={{ marginTop: 4, fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em' }}>
+                    TTD $500<span style={{ fontSize: 14, fontWeight: 600, color: '#6E6E6E' }}>/month</span>
+                  </div>
+                </div>
+                <div style={{ marginTop: 16, fontSize: 13, fontWeight: 700, color: '#171717' }}>Your promotion includes:</div>
+                <ul style={{ margin: '10px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <li style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>Targeted email marketing to relevant buyers</li>
+                  <li style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>Featured placement on the Promotions page</li>
+                  <li style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>Featured placement in relevant event categories</li>
+                  <li style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>Social media promotion</li>
+                </ul>
+                <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>
+                  One monthly fee. Four ways to get your business in front of more buyers.
+                </div>
+                <div style={{ marginTop: 6, fontSize: 12, color: '#9A9A9A' }}>Cancel anytime.</div>
+                <button
+                  onClick={V.openPromoPlan}
+                  style={{
+                    marginTop: 18,
+                    width: '100%',
+                    border: 0,
+                    borderRadius: 999,
+                    background: PROMO_ACCENT,
+                    color: '#FFFFFF',
+                    padding: '14px 20px',
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  Get Started
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -3173,6 +3243,133 @@ export default function App() {
                 <div style={{ marginTop: 12, fontSize: 12, color: '#5B5B5B', textAlign: 'center' }}>
                   No upfront charge. We follow up by email within one business day.
                 </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {V.promoPlanOpen && (
+        <div
+          onClick={V.closePromoPlan}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 50,
+            background: 'rgba(23,23,23,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: isMobile ? 12 : 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 480,
+              maxHeight: '88vh',
+              overflowY: 'auto',
+              background: '#FFFFFF',
+              borderRadius: 28,
+              padding: isMobile ? 20 : 32,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 22 : 26, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
+                {V.promoPlanSent ? "You're on the list" : 'Get the Promotion Plan'}
+              </h2>
+              <button
+                onClick={V.closePromoPlan}
+                aria-label="Close"
+                style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#6E6E6E', padding: 4, lineHeight: 1, flexShrink: 0 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {V.promoPlanSent ? (
+              <>
+                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
+                  Thanks — we'll reach out within one business day to set up billing and get your placement live.
+                </p>
+                <button
+                  onClick={V.closePromoPlan}
+                  style={{
+                    marginTop: 20,
+                    width: '100%',
+                    border: 0,
+                    borderRadius: 999,
+                    background: '#171717',
+                    color: '#FFFFFF',
+                    padding: '15px 26px',
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  Done
+                </button>
+              </>
+            ) : (
+              <>
+                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
+                  TTD $500/month. Tell us about your business and we'll set up billing and your featured placement.
+                </p>
+
+                <label style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                    Business name
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Cocoa Pod Catering"
+                    style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                  />
+                </label>
+                <label style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                    Email
+                  </span>
+                  <input
+                    type="email"
+                    placeholder="bookings@yourbusiness.tt"
+                    style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                  />
+                </label>
+                <label style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                    WhatsApp or phone
+                  </span>
+                  <input
+                    type="tel"
+                    placeholder="868 000 0000"
+                    style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                  />
+                </label>
+
+                <div style={{ marginTop: 18, borderRadius: 18, background: '#F7F7F5', padding: 16, fontSize: 13, lineHeight: 1.55, color: '#5B5B5B' }}>
+                  This is a paid subscription, billed monthly. Cancel anytime — your placement ends at the close of
+                  the current billing period.
+                </div>
+
+                <button
+                  onClick={V.submitPromoPlan}
+                  style={{
+                    marginTop: 20,
+                    width: '100%',
+                    border: 0,
+                    borderRadius: 999,
+                    background: PROMO_ACCENT,
+                    color: '#FFFFFF',
+                    padding: '15px 26px',
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  Request promotion plan
+                </button>
               </>
             )}
           </div>
