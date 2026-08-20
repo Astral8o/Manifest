@@ -229,7 +229,6 @@ export default function App() {
       location: s.city,
       description: s.bio,
       tags: s.tags,
-      metaLabel: 'Min ' + s.minGroup + ' · ' + s.lead + ' day lead · ' + s.rating,
       open: () => patch({ screen: 'supplier', supId: s.id }),
     })),
 
@@ -246,6 +245,8 @@ export default function App() {
         { label: 'Service radius', value: sup.radius ? sup.radius + ' km' : 'On site only' },
         { label: 'Min group', value: sup.minGroup + ' guests' },
         { label: 'Lead time', value: sup.lead + ' days' },
+        { label: 'Rating', value: sup.rating },
+        { label: 'Response time', value: sup.response },
       ],
       phone: sup.phone,
       social: [
@@ -314,7 +315,8 @@ export default function App() {
           remove: () => remove(r.pid),
           expanded: !!(st.openSpec || {})[r.pid],
           detailLabel: setCount ? setCount + ' of ' + defs.length + ' set' : 'Add details',
-          detailColor: setCount ? '#171717' : '#8A8A8A',
+          detailBg: setCount ? '#DDF247' : '#171717',
+          detailFg: setCount ? '#171717' : '#FFFFFF',
           toggle: () =>
             patch((s) => ({ openSpec: { ...(s.openSpec || {}), [r.pid]: !(s.openSpec || {})[r.pid] } })),
           fields: defs.map((d) => ({
@@ -1023,10 +1025,7 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-                <div style={{ flex: '0 0 220px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
-                    <div>{s.metaLabel}</div>
-                  </div>
+                <div style={{ flex: '0 0 220px', display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'flex-end' }}>
                   <button
                     onClick={s.open}
                     style={{
@@ -1457,14 +1456,14 @@ export default function App() {
                             <button
                               onClick={it.toggle}
                               style={{
-                                border: '1px solid #E4E4DF',
+                                border: '1px solid #171717',
                                 borderRadius: 999,
-                                background: '#FFFFFF',
+                                background: it.detailBg,
                                 padding: '8px 14px',
                                 cursor: 'pointer',
                                 fontSize: 13,
-                                fontWeight: 600,
-                                color: it.detailColor,
+                                fontWeight: 700,
+                                color: it.detailFg,
                               }}
                             >
                               {it.detailLabel}
