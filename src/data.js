@@ -17,7 +17,7 @@ export const CATS = [
 export const PLANNING_REQUIREMENTS = ["Permits", "Safety", "Insurance", "Registration", "Approvals", "Timelines"];
 
 export const EVENTS = [
-  ["Corporate offsite", ["CAT.01", "CAT.02", "CAT.03", "CAT.04", "CAT.05", "CAT.08", "CAT.10"], "Staff and internal", 1],
+  ["Corporate offsite", ["CAT.01", "CAT.02", "CAT.03", "CAT.04", "CAT.05", "CAT.08", "CAT.10"], "Staff and internal", 0],
   ["Team building day", ["CAT.01", "CAT.02", "CAT.08", "CAT.10"], "Staff and internal", 1],
   ["Christmas party", ["CAT.01", "CAT.02", "CAT.04", "CAT.05", "CAT.10"], "Staff and internal", 1],
   ["Company fete", ["CAT.01", "CAT.02", "CAT.03", "CAT.09", "CAT.10"], "Staff and internal", 0],

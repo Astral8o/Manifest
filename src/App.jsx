@@ -66,9 +66,11 @@ const sharedProductFromUrl = () => {
   }
 };
 
+const DEFAULT_EVENT_IDX = Math.max(0, EVENTS.findIndex((e) => e[0] === 'Team building day'));
+
 const initialState = {
   screen: 'home',
-  eventIdx: 0,
+  eventIdx: DEFAULT_EVENT_IDX,
   catCode: 'CAT.01',
   supId: 's1',
   items: [],
