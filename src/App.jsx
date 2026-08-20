@@ -17,6 +17,7 @@ const MONO = "'IBM Plex Mono', monospace";
 const SANS = 'Manrope, sans-serif';
 const ACCOUNT_KEY = 'manifestAccount';
 const PROMO_ACCENT = '#FF5A36';
+const HERO_IMAGE_URL = 'https://i.ibb.co/3Y7XpM0b/5e23cb27406353ee91bb0e93556cd303.jpg';
 
 const avatarUrl = (seed) =>
   'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(seed) + '&backgroundColor=171717&textColor=ffffff&fontWeight=700';
@@ -195,7 +196,7 @@ export default function App() {
     if (!p) return;
     const s = supplier(p.supId);
     const url = window.location.origin + window.location.pathname + '?product=' + encodeURIComponent(pid);
-    const text = p.name + (s ? ' from ' + s.name : '') + ' on Manifest';
+    const text = p.name + (s ? ' from ' + s.name : '') + ' on Eventory';
     if (navigator.share) {
       navigator.share({ title: p.name, text, url }).catch(() => {});
       return;
@@ -680,7 +681,7 @@ export default function App() {
                 letterSpacing: '-0.02em',
               }}
             >
-              Manifest
+              Eventory
             </button>
             {isMobile ? (
               <button
@@ -817,27 +818,51 @@ export default function App() {
 
       {V.isHome && (
         <div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.15fr 1fr', gap: 20, alignItems: 'stretch', padding: isMobile ? '24px 0 0' : '44px 0 0' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 32, minWidth: isMobile ? 0 : 320 }}>
-              <div>
-                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                  Discovery and sourcing for events
-                </div>
-                <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 40 : 68, lineHeight: isMobile ? 1.02 : 0.96, letterSpacing: '-0.03em', fontWeight: 800, textWrap: 'pretty' }}>
-                  Plan Your{' '}
-                  <span
-                    style={{
-                      background: '#DDF247',
-                      padding: '0 12px',
-                      borderRadius: 12,
-                      boxDecorationBreak: 'clone',
-                      WebkitBoxDecorationBreak: 'clone',
-                    }}
-                  >
-                    Event
-                  </span>
-                </h1>
+          <div
+            style={{
+              position: 'relative',
+              marginTop: isMobile ? 8 : 0,
+              borderRadius: 28,
+              overflow: 'hidden',
+              height: isMobile ? 360 : 500,
+            }}
+          >
+            <img
+              src={HERO_IMAGE_URL}
+              alt="Guests laughing and celebrating at an event"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'linear-gradient(180deg, rgba(0,0,0,0) 35%, rgba(0,0,0,0.8) 100%)',
+              }}
+            />
+            <div style={{ position: 'absolute', left: isMobile ? 20 : 40, right: isMobile ? 20 : 40, bottom: isMobile ? 22 : 40 }}>
+              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#DDF247' }}>
+                Discovery and sourcing for events
               </div>
+              <h1 style={{ margin: '14px 0 0', fontSize: isMobile ? 40 : 76, lineHeight: isMobile ? 1.02 : 0.94, letterSpacing: '-0.03em', fontWeight: 800, color: '#FFFFFF', textWrap: 'pretty' }}>
+                Plan Your{' '}
+                <span
+                  style={{
+                    background: '#DDF247',
+                    color: '#171717',
+                    padding: '0 12px',
+                    borderRadius: 12,
+                    boxDecorationBreak: 'clone',
+                    WebkitBoxDecorationBreak: 'clone',
+                  }}
+                >
+                  Event
+                </span>
+              </h1>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.15fr 1fr', gap: 20, alignItems: 'stretch', padding: isMobile ? '24px 0 0' : '32px 0 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 32, minWidth: isMobile ? 0 : 320 }}>
               <div>
                 {!isMobile && (
                   <>
@@ -1139,7 +1164,7 @@ export default function App() {
               <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                 Note
               </span>
-              Manifest never processes payment between you and a supplier. You pay suppliers directly, on their terms.
+              Eventory never processes payment between you and a supplier. You pay suppliers directly, on their terms.
             </div>
           </div>
         </div>
@@ -2195,7 +2220,7 @@ export default function App() {
           </button>
           <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.5fr 1fr', gap: 20, alignItems: 'start' }}>
             <div style={{ minWidth: 0, order: isMobile ? 2 : 0 }}>
-              <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Join Manifest</h1>
+              <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Join Eventory</h1>
               <p style={{ margin: '16px 0 0', maxWidth: 600, fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
                 Get discovered by buyers looking for the suppliers, products, and services they need for their
                 events.
@@ -2477,7 +2502,7 @@ export default function App() {
                     fontWeight: 700,
                   }}
                 >
-                  Join Manifest
+                  Join Eventory
                 </button>
               </div>
               <div style={{ borderRadius: 24, border: `1px solid ${PROMO_ACCENT}`, background: `${PROMO_ACCENT}0D`, padding: 26 }}>
