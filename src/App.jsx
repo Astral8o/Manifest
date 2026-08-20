@@ -750,7 +750,19 @@ export default function App() {
                   Discovery and sourcing for events
                 </div>
                 <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 40 : 68, lineHeight: isMobile ? 1.02 : 0.96, letterSpacing: '-0.03em', fontWeight: 800, textWrap: 'pretty' }}>
-                  What is your event?
+                  What is your{' '}
+                  <span
+                    style={{
+                      background: '#DDF247',
+                      padding: '0 12px',
+                      borderRadius: 12,
+                      boxDecorationBreak: 'clone',
+                      WebkitBoxDecorationBreak: 'clone',
+                    }}
+                  >
+                    event
+                  </span>
+                  ?
                 </h1>
                 <p style={{ margin: '20px 0 0', maxWidth: 460, fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
                   Pick the kind of event you are putting together. We check off the categories you will need, then you
