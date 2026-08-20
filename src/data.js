@@ -66,6 +66,7 @@ export const SUPPLIERS = [
     ] },
   { id: "s3", code: "CAT.02", name: "The Wrightson Room", city: "Port of Spain", region: "Port of Spain", desc: "Converted warehouse near the waterfront with 4,200 square feet, roll-up door load-in and house tables. Good for dinners, all-hands and small trade shows.",
     tags: ["Capacity 220", "Load-in door", "House tables included"], minGroup: 40, lead: 21, radius: 0, rating: "4.9 (58)", response: "Replies same day",
+    priceOnRequest: true,
     bio: "Waterfront warehouse venue in Port of Spain.",
     phone: "+1 868 623 9016", instagram: "@thewrightsonroom", facebook: "The Wrightson Room",
     reviews: [
@@ -80,6 +81,7 @@ export const SUPPLIERS = [
     ] },
   { id: "s4", code: "CAT.02", name: "Cipero Fieldhouse", city: "San Fernando", region: "San Fernando", desc: "Indoor hard court with bleachers, plus a paved lot for start and finish lines. Used often for runs, expos and community events.",
     tags: ["Capacity 600", "Parking for 180", "Outdoor lot"], minGroup: 100, lead: 30, radius: 0, rating: "4.5 (41)", response: "Replies in ~2 days",
+    priceOnRequest: true,
     bio: "Indoor court and outdoor lot venue in San Fernando.",
     phone: "+1 868 652 3384", instagram: "@ciperofieldhouse", facebook: "Cipero Fieldhouse",
     reviews: [
@@ -94,6 +96,7 @@ export const SUPPLIERS = [
     ] },
   { id: "s5", code: "CAT.03", name: "Sound Base AV", city: "Port of Spain", region: "Port of Spain", desc: "Two-person crews for talks, panels and awards nights. Everything comes with an operator, so nobody on your team runs the board.",
     tags: ["Operator included", "Backup gear on site", "Hybrid streaming"], minGroup: 1, lead: 7, radius: 120, rating: "4.9 (167)", response: "Replies in ~2 hrs",
+    priceOnRequest: true,
     bio: "Operator-run AV crew based in Port of Spain.",
     phone: "+1 868 625 7710", instagram: "@soundbaseav", facebook: "Sound Base AV",
     reviews: [
