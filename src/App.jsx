@@ -19,6 +19,33 @@ const SANS = 'Manrope, sans-serif';
 const ACCOUNT_KEY = 'manifestAccount';
 const PROMO_ACCENT = '#FF5A36';
 
+const CHECKOUT_STEPS = [
+  {
+    label: 'Event details',
+    eyebrow: 'Step 1 of 4',
+    title: "Let's start with your event",
+    sub: 'These details go out with every inquiry, so suppliers can quote you accurately.',
+  },
+  {
+    label: 'What you need',
+    eyebrow: 'Step 2 of 4',
+    title: 'Confirm what you need',
+    sub: 'Check quantities for each supplier before you move on.',
+  },
+  {
+    label: 'Special requests',
+    eyebrow: 'Step 3 of 4',
+    title: 'Anything else we need to know?',
+    sub: 'Add any special requests so each supplier has the full picture from the start.',
+  },
+  {
+    label: 'Contact info',
+    eyebrow: 'Step 4 of 4',
+    title: 'Last step — how do we reach you?',
+    sub: 'Sign in to send. Each supplier gets their own inquiry with everything you just filled in.',
+  },
+];
+
 const avatarUrl = (seed) =>
   'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(seed) + '&backgroundColor=171717&textColor=ffffff&fontWeight=700';
 const photoUrl = (seed, w, h) => 'https://picsum.photos/seed/' + encodeURIComponent(seed) + '/' + w + '/' + h;
@@ -41,11 +68,27 @@ function useIsMobile() {
 const loadAccount = () => {
   try {
     const raw = localStorage.getItem(ACCOUNT_KEY);
-    if (!raw) return { email: '', signedIn: false, history: [] };
+    if (!raw) return { email: '', signedIn: false, history: [], saved: [] };
     const parsed = JSON.parse(raw);
-    return { email: parsed.email || '', signedIn: !!parsed.signedIn, history: parsed.history || [] };
+    return {
+      email: parsed.email || '',
+      signedIn: !!parsed.signedIn,
+      history: parsed.history || [],
+      saved: parsed.saved || [],
+    };
   } catch {
-    return { email: '', signedIn: false, history: [] };
+    return { email: '', signedIn: false, history: [], saved: [] };
+  }
+};
+
+const sharedProductFromUrl = () => {
+  try {
+    const pid = new URLSearchParams(window.location.search).get('product');
+    if (!pid) return null;
+    const supId = pid.split('-')[0];
+    return SUPPLIERS.some((s) => s.id === supId) ? { pid, supId } : null;
+  } catch {
+    return null;
   }
 };
 
@@ -62,10 +105,17 @@ const initialState = {
   tier: null,
   fulfil: 'Delivery',
   spec: {},
-  openSpec: {},
+  checkoutStep: 0,
+  eventDate: '',
+  guestsExpected: '',
+  eventTime: '',
+  venueAddress: '',
+  accessNotes: '',
   email: '',
   signedIn: false,
   history: [],
+  saved: [],
+  copiedPid: null,
   q: '',
   showAll: false,
   joinCats: [],
@@ -75,17 +125,24 @@ const initialState = {
 
 export default function App() {
   const isMobile = useIsMobile();
-  const [st, setSt] = useState(() => ({ ...initialState, ...loadAccount() }));
+  const [st, setSt] = useState(() => {
+    const base = { ...initialState, ...loadAccount() };
+    const shared = sharedProductFromUrl();
+    return shared ? { ...base, screen: 'supplier', supId: shared.supId } : base;
+  });
   const patch = (updater) =>
     setSt((prev) => ({ ...prev, ...(typeof updater === 'function' ? updater(prev) : updater) }));
 
   useEffect(() => {
     try {
-      localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ email: st.email, signedIn: st.signedIn, history: st.history }));
+      localStorage.setItem(
+        ACCOUNT_KEY,
+        JSON.stringify({ email: st.email, signedIn: st.signedIn, history: st.history, saved: st.saved })
+      );
     } catch {
       // ignore storage failures (private browsing, quota, etc.)
     }
-  }, [st.email, st.signedIn, st.history]);
+  }, [st.email, st.signedIn, st.history, st.saved]);
 
   const allProducts = () => {
     const out = [];
@@ -137,6 +194,33 @@ export default function App() {
     });
   };
 
+  const toggleSave = (pid) => {
+    patch((s) => {
+      const saved = s.saved || [];
+      return { saved: saved.indexOf(pid) >= 0 ? saved.filter((x) => x !== pid) : saved.concat([pid]) };
+    });
+  };
+  const shareProduct = (pid) => {
+    const p = product(pid);
+    if (!p) return;
+    const s = supplier(p.supId);
+    const url = window.location.origin + window.location.pathname + '?product=' + encodeURIComponent(pid);
+    const text = p.name + (s ? ' from ' + s.name : '') + ' on Manifest';
+    if (navigator.share) {
+      navigator.share({ title: p.name, text, url }).catch(() => {});
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          patch({ copiedPid: pid });
+          setTimeout(() => patch((s2) => (s2.copiedPid === pid ? { copiedPid: null } : {})), 1800);
+        })
+        .catch(() => {});
+    }
+  };
+
   const groups = () => {
     const bySup = {};
     st.items.forEach((it) => {
@@ -153,7 +237,12 @@ export default function App() {
   const evt = EVENTS[st.eventIdx];
   const inSet = (code) => evt[1].indexOf(code) >= 0;
   const nav = (screen, extra) => () =>
-    patch({ screen, sent: screen === 'manifest' ? st.sent : null, ...(extra || {}) });
+    patch({
+      screen,
+      sent: screen === 'manifest' ? st.sent : null,
+      ...(screen === 'manifest' ? { checkoutStep: 0 } : {}),
+      ...(extra || {}),
+    });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
   const openPromoCat = (code) => () => patch({ screen: 'promoCategory', catCode: code });
 
@@ -340,6 +429,11 @@ export default function App() {
       btnBg: has(p.id) ? '#DDF247' : '#171717',
       btnFg: has(p.id) ? '#171717' : '#FFFFFF',
       add: () => add(p.id),
+      saved: (st.saved || []).indexOf(p.id) >= 0,
+      saveLabel: (st.saved || []).indexOf(p.id) >= 0 ? '★ Saved' : '☆ Save',
+      toggleSave: () => toggleSave(p.id),
+      shareLabel: st.copiedPid === p.id ? 'Copied!' : 'Share',
+      share: () => shareProduct(p.id),
     })),
     summaryLine:
       itemCount +
@@ -372,7 +466,6 @@ export default function App() {
       items: g.rows.map((r) => {
         const defs = FIELDS[g.sup.code] || FIELDS_DEFAULT;
         const spec = (st.spec || {})[r.pid] || {};
-        const setCount = defs.filter((d) => spec[d.k]).length;
         return {
           key: r.pid,
           name: r.p.name,
@@ -382,12 +475,6 @@ export default function App() {
           inc: () => bump(r.pid, 1),
           dec: () => bump(r.pid, -1),
           remove: () => remove(r.pid),
-          expanded: !!(st.openSpec || {})[r.pid],
-          detailLabel: setCount ? setCount + ' of ' + defs.length + ' set' : 'Add details',
-          detailBg: setCount ? '#DDF247' : '#171717',
-          detailFg: setCount ? '#171717' : '#FFFFFF',
-          toggle: () =>
-            patch((s) => ({ openSpec: { ...(s.openSpec || {}), [r.pid]: !(s.openSpec || {})[r.pid] } })),
           fields: defs.map((d) => ({
             key: d.k,
             label: d.label,
@@ -418,29 +505,64 @@ export default function App() {
       pick: () => patch({ fulfil: l }),
     })),
     addressLabel: st.fulfil === 'Pickup by us' ? 'Pickup area' : 'Delivery or venue address',
-    sendOpacity: st.items.length ? 1 : 0.4,
+    eventDate: st.eventDate || '',
+    setEventDate: (e) => patch({ eventDate: e.target.value }),
+    guestsExpected: st.guestsExpected || '',
+    setGuestsExpected: (e) => patch({ guestsExpected: e.target.value }),
+    eventTime: st.eventTime || '',
+    setEventTime: (e) => patch({ eventTime: e.target.value }),
+    venueAddress: st.venueAddress || '',
+    setVenueAddress: (e) => patch({ venueAddress: e.target.value }),
+    accessNotes: st.accessNotes || '',
+    setAccessNotes: (e) => patch({ accessNotes: e.target.value }),
+
+    checkoutStep: st.checkoutStep || 0,
+    checkoutStepCopy: CHECKOUT_STEPS[st.checkoutStep || 0],
+    checkoutSteps: CHECKOUT_STEPS.map((s, i) => ({
+      key: s.label,
+      index: i + 1,
+      label: s.label,
+      current: i === (st.checkoutStep || 0),
+      go: () => patch({ checkoutStep: i }),
+    })),
+    isStepEvent: (st.checkoutStep || 0) === 0,
+    isStepItems: (st.checkoutStep || 0) === 1,
+    isStepRequests: (st.checkoutStep || 0) === 2,
+    isStepContact: (st.checkoutStep || 0) === 3,
+    backStep: () => patch((s) => ({ checkoutStep: Math.max(0, (s.checkoutStep || 0) - 1) })),
+    nextStep: () => patch((s) => ({ checkoutStep: Math.min(3, (s.checkoutStep || 0) + 1) })),
+    sendOpacity: st.items.length && st.signedIn ? 1 : 0.4,
+    signInDisabled: !(st.email && st.email.indexOf('@') > 0),
     send: () => {
+      if (!st.signedIn || !st.items.length) return;
       const sentNames = groups().map((g) => g.sup.name);
-      const nowSignedIn = !!(st.email && st.email.indexOf('@') > 0);
       patch((s) => ({
         sent: sentNames,
-        signedIn: nowSignedIn,
-        history: nowSignedIn
-          ? [
-              {
-                id: Date.now(),
-                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                suppliers: sentNames,
-                itemCount: s.items.reduce((n, i) => n + i.qty, 0),
-              },
-              ...(s.history || []),
-            ]
-          : s.history,
+        history: [
+          {
+            id: Date.now(),
+            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            suppliers: sentNames,
+            itemCount: s.items.reduce((n, i) => n + i.qty, 0),
+          },
+          ...(s.history || []),
+        ],
       }));
     },
     sentSummary: st.sent ? 'One inquiry per supplier, each scoped to their own items.' : '',
     sentList: (st.sent || []).map((n) => ({ key: n, name: n, status: 'Sent' })),
-    reset: () => patch({ items: [], sent: null, screen: 'home' }),
+    reset: () =>
+      patch({
+        items: [],
+        sent: null,
+        screen: 'home',
+        checkoutStep: 0,
+        eventDate: '',
+        guestsExpected: '',
+        eventTime: '',
+        venueAddress: '',
+        accessNotes: '',
+      }),
 
     sourcingTags: CATS.map((c) => ({
       key: c[0],
@@ -505,6 +627,26 @@ export default function App() {
         (h.suppliers.length === 1 ? ' supplier' : ' suppliers'),
     })),
     hasHistory: (st.history || []).length > 0,
+
+    savedProducts: (st.saved || [])
+      .map((pid) => {
+        const p = product(pid);
+        if (!p) return null;
+        const s = supplier(p.supId);
+        return {
+          key: pid,
+          photo: photoUrl(pid, 200, 150),
+          name: p.name,
+          supplierName: s ? s.name : '',
+          priceLabel: priceLabel(p),
+          openSupplier: () => patch({ screen: 'supplier', supId: p.supId, supplierOrigin: 'category' }),
+          remove: () => toggleSave(pid),
+          share: () => shareProduct(pid),
+          shareLabel: st.copiedPid === pid ? 'Copied!' : 'Share',
+        };
+      })
+      .filter(Boolean),
+    hasSaved: (st.saved || []).length > 0,
   };
 
   return (
@@ -1649,7 +1791,37 @@ export default function App() {
                           <div style={{ marginTop: 8, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{p.termsLabel}</div>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap', rowGap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', rowGap: 10 }}>
+                        <button
+                          onClick={p.toggleSave}
+                          style={{
+                            border: '1px solid #D7D7D2',
+                            borderRadius: 999,
+                            background: p.saved ? '#171717' : 'transparent',
+                            color: p.saved ? '#FFFFFF' : '#171717',
+                            padding: '9px 14px',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {p.saveLabel}
+                        </button>
+                        <button
+                          onClick={p.share}
+                          style={{
+                            border: '1px solid #D7D7D2',
+                            borderRadius: 999,
+                            background: 'transparent',
+                            color: '#171717',
+                            padding: '9px 14px',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {p.shareLabel}
+                        </button>
                         <div style={{ fontFamily: MONO, fontSize: 15, textAlign: 'right', minWidth: isMobile ? 0 : 150 }}>{p.priceLabel}</div>
                         <button
                           onClick={p.add}
@@ -1740,400 +1912,536 @@ export default function App() {
             <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.manifestSub}</div>
           </div>
 
-          <div style={{ marginTop: 26, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
-              <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? '18px 18px' : '24px 26px' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                  <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Event details</div>
-                  <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                    Sent with every inquiry
-                  </div>
-                </div>
-                <div style={{ marginTop: 4, fontSize: 14, color: '#5B5B5B' }}>
-                  Suppliers need these to quote you. Fill them once and they go out with each inquiry.
-                </div>
-                <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Event date
-                    </span>
-                    <input
-                      type="date"
-                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                    />
-                  </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Guests expected
-                    </span>
-                    <input
-                      type="number"
-                      placeholder="120"
-                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                    />
-                  </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Start and end time
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="4pm to 11pm"
-                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                    />
-                  </label>
-                </div>
-                <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                    Fulfilment
-                  </span>
-                  {V.fulfilmentOptions.map((f) => (
-                    <button
-                      key={f.key}
-                      onClick={f.pick}
+          {V.notSent && V.isEmpty && (
+            <div style={{ marginTop: 26, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '44px 28px', textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 700 }}>Nothing on the manifest yet</div>
+              <div style={{ marginTop: 8, fontSize: 15, color: '#5B5B5B' }}>
+                Add products from any category and they will collect here, grouped by supplier.
+              </div>
+              <button
+                onClick={V.goHome}
+                style={{
+                  marginTop: 20,
+                  border: 0,
+                  borderRadius: 999,
+                  background: '#171717',
+                  color: '#FFFFFF',
+                  padding: '13px 24px',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  fontWeight: 700,
+                }}
+              >
+                Browse categories
+              </button>
+            </div>
+          )}
+
+          {V.notSent && !V.isEmpty && (
+            <>
+              <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {V.checkoutSteps.map((s) => (
+                  <button
+                    key={s.key}
+                    onClick={s.go}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      border: `1px solid ${s.current ? '#171717' : '#E4E4DF'}`,
+                      borderRadius: 999,
+                      background: s.current ? '#171717' : '#FFFFFF',
+                      color: s.current ? '#FFFFFF' : '#171717',
+                      padding: '9px 16px 9px 10px',
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span
                       style={{
-                        border: `1px solid ${f.border}`,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 20,
+                        height: 20,
                         borderRadius: 999,
-                        background: f.bg,
-                        color: f.fg,
-                        padding: '8px 16px',
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 600,
+                        background: s.current ? '#DDF247' : '#F2F2F0',
+                        color: '#171717',
+                        fontFamily: MONO,
+                        fontSize: 11,
                       }}
                     >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-                <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                    {V.addressLabel}
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Venue name, street, town"
-                    style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                  />
-                </label>
-                <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                    Access notes, optional
-                  </span>
-                  <textarea
-                    placeholder="Load in through the back gate on Henry Street. No lift, one flight of stairs. Security needs names by the Friday before."
-                    style={{
-                      minHeight: 84,
-                      border: '1px solid #E4E4DF',
-                      borderRadius: 14,
-                      background: '#F7F7F5',
-                      padding: 14,
-                      fontFamily: SANS,
-                      fontSize: 15,
-                      lineHeight: 1.5,
-                      color: '#171717',
-                      resize: 'vertical',
-                    }}
-                  />
-                </label>
-              </div>
-              {V.isEmpty && (
-                <div style={{ border: '1px dashed #D7D7D2', borderRadius: 24, padding: '44px 28px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 20, fontWeight: 700 }}>Nothing on the manifest yet</div>
-                  <div style={{ marginTop: 8, fontSize: 15, color: '#5B5B5B' }}>
-                    Add products from any category and they will collect here, grouped by supplier.
-                  </div>
-                  <button
-                    onClick={V.goHome}
-                    style={{
-                      marginTop: 20,
-                      border: 0,
-                      borderRadius: 999,
-                      background: '#171717',
-                      color: '#FFFFFF',
-                      padding: '13px 24px',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      fontWeight: 700,
-                    }}
-                  >
-                    Browse categories
+                      {s.index}
+                    </span>
+                    {s.label}
                   </button>
-                </div>
-              )}
-              {V.manifestGroups.map((g) => (
-                <div key={g.key} style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: '24px 26px' }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-                      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{g.supplierName}</div>
-                      <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
-                        {g.code} · {g.location}
-                      </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+                  <div>
+                    <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      {V.checkoutStepCopy.eyebrow}
                     </div>
-                    <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      {g.inquiryLabel}
-                    </div>
+                    <h2 style={{ margin: '8px 0 0', fontSize: isMobile ? 22 : 28, letterSpacing: '-0.02em', fontWeight: 800 }}>{V.checkoutStepCopy.title}</h2>
+                    <p style={{ margin: '8px 0 0', maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>{V.checkoutStepCopy.sub}</p>
                   </div>
-                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {g.items.map((it) => (
-                      <div key={it.key} style={{ borderTop: '1px solid #ECECEC', padding: '14px 0' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
-                          <div style={{ flex: '1 1 260px', minWidth: 220 }}>
-                            <div style={{ fontSize: 16, fontWeight: 600 }}>{it.name}</div>
-                            <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{it.termsLabel}</div>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', rowGap: 10 }}>
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 10,
-                                border: '1px solid #E4E4DF',
-                                borderRadius: 999,
-                                padding: '5px 6px',
-                              }}
-                            >
-                              <button
-                                onClick={it.dec}
-                                style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
-                              >
-                                −
-                              </button>
-                              <span style={{ fontFamily: MONO, fontSize: 13, minWidth: 22, textAlign: 'center' }}>{it.qty}</span>
-                              <button
-                                onClick={it.inc}
-                                style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
-                              >
-                                +
-                              </button>
+
+                  {V.isStepEvent && (
+                    <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? '18px 18px' : '24px 26px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                            Event date
+                          </span>
+                          <input
+                            type="date"
+                            value={V.eventDate}
+                            onChange={V.setEventDate}
+                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                          />
+                        </label>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                            Guests expected
+                          </span>
+                          <input
+                            type="number"
+                            placeholder="120"
+                            value={V.guestsExpected}
+                            onChange={V.setGuestsExpected}
+                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                          />
+                        </label>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                            Start and end time
+                          </span>
+                          <input
+                            type="text"
+                            placeholder="4pm to 11pm"
+                            value={V.eventTime}
+                            onChange={V.setEventTime}
+                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                          />
+                        </label>
+                      </div>
+                      <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Fulfilment
+                        </span>
+                        {V.fulfilmentOptions.map((f) => (
+                          <button
+                            key={f.key}
+                            onClick={f.pick}
+                            style={{
+                              border: `1px solid ${f.border}`,
+                              borderRadius: 999,
+                              background: f.bg,
+                              color: f.fg,
+                              padding: '8px 16px',
+                              cursor: 'pointer',
+                              fontSize: 13,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {f.label}
+                          </button>
+                        ))}
+                      </div>
+                      <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          {V.addressLabel}
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Venue name, street, town"
+                          value={V.venueAddress}
+                          onChange={V.setVenueAddress}
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                        />
+                      </label>
+                      <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Access notes, optional
+                        </span>
+                        <textarea
+                          placeholder="Load in through the back gate on Henry Street. No lift, one flight of stairs. Security needs names by the Friday before."
+                          value={V.accessNotes}
+                          onChange={V.setAccessNotes}
+                          style={{
+                            minHeight: 84,
+                            border: '1px solid #E4E4DF',
+                            borderRadius: 14,
+                            background: '#F7F7F5',
+                            padding: 14,
+                            fontFamily: SANS,
+                            fontSize: 15,
+                            lineHeight: 1.5,
+                            color: '#171717',
+                            resize: 'vertical',
+                          }}
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {V.isStepItems &&
+                    V.manifestGroups.map((g) => (
+                      <div key={g.key} style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: '24px 26px' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{g.supplierName}</div>
+                            <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
+                              {g.code} · {g.location}
                             </div>
-                            <div style={{ fontFamily: MONO, fontSize: 14, minWidth: isMobile ? 0 : 148, textAlign: 'right' }}>{it.priceLabel}</div>
-                            <button
-                              onClick={it.toggle}
-                              style={{
-                                border: '1px solid #171717',
-                                borderRadius: 999,
-                                background: it.detailBg,
-                                padding: '8px 14px',
-                                cursor: 'pointer',
-                                fontSize: 13,
-                                fontWeight: 700,
-                                color: it.detailFg,
-                              }}
-                            >
-                              {it.detailLabel}
-                            </button>
-                            <button
-                              onClick={it.remove}
-                              style={{
-                                border: 0,
-                                background: 'transparent',
-                                padding: 0,
-                                cursor: 'pointer',
-                                fontSize: 13,
-                                fontWeight: 600,
-                                color: '#8A8A8A',
-                                textDecoration: 'underline',
-                                textUnderlineOffset: '3px',
-                              }}
-                            >
-                              Remove
-                            </button>
+                          </div>
+                          <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                            {g.inquiryLabel}
                           </div>
                         </div>
-                        {it.expanded && (
-                          <div style={{ marginTop: 12, borderRadius: 18, background: '#F7F7F5', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            {it.fields.map((fd) => (
-                              <div key={fd.key}>
-                                <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                                  {fd.label}
-                                </div>
-                                {fd.isChoice && (
-                                  <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                                    {fd.options.map((o) => (
-                                      <button
-                                        key={o.key}
-                                        onClick={o.pick}
-                                        style={{
-                                          border: `1px solid ${o.border}`,
-                                          borderRadius: 999,
-                                          background: o.bg,
-                                          color: o.fg,
-                                          padding: '7px 14px',
-                                          cursor: 'pointer',
-                                          fontSize: 13,
-                                          fontWeight: 600,
-                                        }}
-                                      >
-                                        {o.label}
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-                                {fd.isText && (
-                                  <input
-                                    type="text"
-                                    value={fd.value}
-                                    onChange={fd.set}
-                                    placeholder={fd.ph}
-                                    style={{
-                                      marginTop: 8,
-                                      width: '100%',
-                                      border: '1px solid #E4E4DF',
-                                      borderRadius: 14,
-                                      background: '#FFFFFF',
-                                      padding: '11px 14px',
-                                      fontFamily: SANS,
-                                      fontSize: 14,
-                                      color: '#171717',
-                                    }}
-                                  />
-                                )}
+                        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          {g.items.map((it) => (
+                            <div key={it.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', borderTop: '1px solid #ECECEC', padding: '14px 0' }}>
+                              <div style={{ flex: '1 1 260px', minWidth: 220 }}>
+                                <div style={{ fontSize: 16, fontWeight: 600 }}>{it.name}</div>
+                                <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{it.termsLabel}</div>
                               </div>
-                            ))}
-                          </div>
-                        )}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', rowGap: 10 }}>
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    border: '1px solid #E4E4DF',
+                                    borderRadius: 999,
+                                    padding: '5px 6px',
+                                  }}
+                                >
+                                  <button
+                                    onClick={it.dec}
+                                    style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
+                                  >
+                                    −
+                                  </button>
+                                  <span style={{ fontFamily: MONO, fontSize: 13, minWidth: 22, textAlign: 'center' }}>{it.qty}</span>
+                                  <button
+                                    onClick={it.inc}
+                                    style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                                <div style={{ fontFamily: MONO, fontSize: 14, minWidth: isMobile ? 0 : 148, textAlign: 'right' }}>{it.priceLabel}</div>
+                                <button
+                                  onClick={it.remove}
+                                  style={{
+                                    border: 0,
+                                    background: 'transparent',
+                                    padding: 0,
+                                    cursor: 'pointer',
+                                    fontSize: 13,
+                                    fontWeight: 600,
+                                    color: '#8A8A8A',
+                                    textDecoration: 'underline',
+                                    textUnderlineOffset: '3px',
+                                  }}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
-                  </div>
-                  <label style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Note to {g.supplierName}, optional
-                    </span>
-                    <textarea
-                      placeholder={g.notePlaceholder}
-                      style={{
-                        minHeight: 68,
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 14,
-                        background: '#F7F7F5',
-                        padding: '13px 14px',
-                        fontFamily: SANS,
-                        fontSize: 14,
-                        lineHeight: 1.5,
-                        color: '#171717',
-                        resize: 'vertical',
-                      }}
-                    />
-                    <span style={{ fontSize: 12, color: '#9A9A9A' }}>Only {g.supplierName} sees this note.</span>
-                  </label>
-                </div>
-              ))}
-            </div>
 
-            <div style={{ position: isMobile ? 'static' : 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
-              {V.notSent && (
-                <div style={{ borderRadius: 24, background: '#DDF247', padding: 26 }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>About to send</div>
-                  <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {V.sendStats.map((s) => (
-                      <div
-                        key={s.key}
-                        style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #C6D93C', padding: '11px 0' }}
-                      >
-                        <span style={{ fontSize: 14, fontWeight: 600, color: '#3B4200' }}>{s.label}</span>
-                        <span style={{ fontFamily: MONO, fontSize: 17 }}>{s.value}</span>
+                  {V.isStepRequests &&
+                    V.manifestGroups.map((g) => (
+                      <div key={g.key} style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: '24px 26px' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{g.supplierName}</div>
+                            <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
+                              {g.code} · {g.location}
+                            </div>
+                          </div>
+                          <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                            {g.inquiryLabel}
+                          </div>
+                        </div>
+                        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                          {g.items.map((it) => (
+                            <div key={it.key} style={{ borderTop: '1px solid #ECECEC', paddingTop: 14 }}>
+                              <div style={{ fontSize: 15, fontWeight: 600 }}>{it.name}</div>
+                              <div style={{ marginTop: 12, borderRadius: 18, background: '#F7F7F5', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                {it.fields.map((fd) => (
+                                  <div key={fd.key}>
+                                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                                      {fd.label}
+                                    </div>
+                                    {fd.isChoice && (
+                                      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                        {fd.options.map((o) => (
+                                          <button
+                                            key={o.key}
+                                            onClick={o.pick}
+                                            style={{
+                                              border: `1px solid ${o.border}`,
+                                              borderRadius: 999,
+                                              background: o.bg,
+                                              color: o.fg,
+                                              padding: '7px 14px',
+                                              cursor: 'pointer',
+                                              fontSize: 13,
+                                              fontWeight: 600,
+                                            }}
+                                          >
+                                            {o.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {fd.isText && (
+                                      <input
+                                        type="text"
+                                        value={fd.value}
+                                        onChange={fd.set}
+                                        placeholder={fd.ph}
+                                        style={{
+                                          marginTop: 8,
+                                          width: '100%',
+                                          border: '1px solid #E4E4DF',
+                                          borderRadius: 14,
+                                          background: '#FFFFFF',
+                                          padding: '11px 14px',
+                                          fontFamily: SANS,
+                                          fontSize: 14,
+                                          color: '#171717',
+                                        }}
+                                      />
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                            Note to {g.supplierName}, optional
+                          </span>
+                          <textarea
+                            placeholder={g.notePlaceholder}
+                            style={{
+                              minHeight: 68,
+                              border: '1px solid #E4E4DF',
+                              borderRadius: 14,
+                              background: '#F7F7F5',
+                              padding: '13px 14px',
+                              fontFamily: SANS,
+                              fontSize: 14,
+                              lineHeight: 1.5,
+                              color: '#171717',
+                              resize: 'vertical',
+                            }}
+                          />
+                          <span style={{ fontSize: 12, color: '#9A9A9A' }}>Only {g.supplierName} sees this note.</span>
+                        </label>
                       </div>
                     ))}
-                  </div>
-                  {V.needsAccount && (
-                    <div style={{ marginTop: 18, borderTop: '1px solid #C6D93C', paddingTop: 16 }}>
-                      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B7A1F' }}>
-                        Your email
-                      </div>
-                      <input
-                        type="email"
-                        value={V.email}
-                        onChange={V.setEmail}
-                        placeholder="you@organisation.tt"
-                        style={{
-                          marginTop: 8,
-                          width: '100%',
-                          border: '1px solid #C6D93C',
-                          borderRadius: 14,
-                          background: '#FFFFFF',
-                          padding: '12px 14px',
-                          fontFamily: SANS,
-                          fontSize: 15,
-                          color: '#171717',
-                        }}
-                      />
-                      <div style={{ marginTop: 8, fontSize: 12, lineHeight: 1.5, color: '#3B4200' }}>
-                        We send your inquiries to suppliers from here and save this manifest to your account. No
-                        password, we email you a sign-in link.
-                      </div>
+
+                  {V.isStepContact && (
+                    <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? '18px 18px' : '24px 26px' }}>
+                      <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Your email</div>
+                      <p style={{ margin: '8px 0 0', maxWidth: 480, fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                        No password, we email you a sign-in link. Signing in is required to send your inquiries and
+                        saves this manifest to your account.
+                      </p>
+                      {V.needsAccount ? (
+                        <div style={{ marginTop: 18, maxWidth: 360 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                            Your email
+                          </span>
+                          <input
+                            type="email"
+                            value={V.email}
+                            onChange={V.setEmail}
+                            placeholder="you@organisation.tt"
+                            style={{
+                              marginTop: 8,
+                              width: '100%',
+                              border: '1px solid #E4E4DF',
+                              borderRadius: 14,
+                              background: '#F7F7F5',
+                              padding: '12px 14px',
+                              fontFamily: SANS,
+                              fontSize: 15,
+                              color: '#171717',
+                            }}
+                          />
+                          <button
+                            onClick={V.signIn}
+                            disabled={V.signInDisabled}
+                            style={{
+                              marginTop: 12,
+                              width: '100%',
+                              border: 0,
+                              borderRadius: 999,
+                              background: '#171717',
+                              color: '#FFFFFF',
+                              padding: '13px 20px',
+                              cursor: 'pointer',
+                              fontSize: 14,
+                              fontWeight: 700,
+                              opacity: V.signInDisabled ? 0.4 : 1,
+                            }}
+                          >
+                            Sign in to continue
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ marginTop: 18, borderRadius: 16, background: '#F7F7F5', padding: '14px 16px', fontSize: 14, color: '#171717', fontWeight: 600 }}>
+                          Signed in as {V.email}. You're ready to send.
+                        </div>
+                      )}
                     </div>
                   )}
-                  {V.signedIn && (
-                    <div style={{ marginTop: 18, borderTop: '1px solid #C6D93C', paddingTop: 14, fontSize: 13, color: '#3B4200' }}>
-                      Saved to {V.email}. You can come back to this manifest any time.
-                    </div>
-                  )}
-                  <button
-                    onClick={V.send}
-                    disabled={V.isEmpty}
-                    style={{
-                      marginTop: 20,
-                      width: '100%',
-                      border: 0,
-                      borderRadius: 999,
-                      background: '#171717',
-                      color: '#FFFFFF',
-                      padding: '16px 20px',
-                      cursor: 'pointer',
-                      fontSize: 15,
-                      fontWeight: 700,
-                      opacity: V.sendOpacity,
-                    }}
-                  >
-                    Send all inquiries
-                  </button>
-                  <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5, color: '#3B4200' }}>
-                    Each supplier receives one inquiry with your event details, their own line items and their own
-                    note. No supplier sees the rest of your manifest, and no payment is taken here.
-                  </div>
-                </div>
-              )}
-              {V.sent && (
-                <div style={{ borderRadius: 24, background: '#171717', color: '#FFFFFF', padding: 26 }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Inquiries sent</div>
-                  <div style={{ marginTop: 6, fontSize: 14, color: '#A8A8A8' }}>{V.sentSummary}</div>
-                  <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {V.sentList.map((s) => (
-                      <div
-                        key={s.key}
-                        style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #2B2B2B', padding: '11px 0' }}
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    {V.checkoutStep > 0 ? (
+                      <button
+                        onClick={V.backStep}
+                        style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '11px 20px', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#171717' }}
                       >
-                        <span style={{ fontSize: 14, fontWeight: 600 }}>{s.name}</span>
-                        <span style={{ fontFamily: MONO, fontSize: 11, color: '#DDF247' }}>{s.status}</span>
-                      </div>
-                    ))}
+                        ← Back
+                      </button>
+                    ) : (
+                      <span />
+                    )}
+                    {V.checkoutStep < 3 && (
+                      <button
+                        onClick={V.nextStep}
+                        style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '11px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
+                      >
+                        Continue →
+                      </button>
+                    )}
                   </div>
-                  <div style={{ marginTop: 16, fontSize: 13, lineHeight: 1.55, color: '#A8A8A8' }}>
-                    Suppliers reply by email or phone, usually within their listed response time. Quotes and payment
-                    happen directly with them.
-                  </div>
-                  <button
-                    onClick={V.reset}
-                    style={{
-                      marginTop: 20,
-                      width: '100%',
-                      border: '1px solid #3B3B3B',
-                      borderRadius: 999,
-                      background: 'transparent',
-                      color: '#FFFFFF',
-                      padding: '14px 20px',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      fontWeight: 700,
-                    }}
-                  >
-                    Start a new manifest
-                  </button>
                 </div>
-              )}
+
+                <div style={{ position: isMobile ? 'static' : 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+                  <div style={{ borderRadius: 24, background: '#DDF247', padding: 26 }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Your order so far</div>
+                    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {V.sendStats.map((s) => (
+                        <div
+                          key={s.key}
+                          style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #C6D93C', padding: '11px 0' }}
+                        >
+                          <span style={{ fontSize: 14, fontWeight: 600, color: '#3B4200' }}>{s.label}</span>
+                          <span style={{ fontFamily: MONO, fontSize: 17 }}>{s.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {V.isStepContact ? (
+                      <>
+                        <button
+                          onClick={V.send}
+                          disabled={V.isEmpty || !V.signedIn}
+                          style={{
+                            marginTop: 20,
+                            width: '100%',
+                            border: 0,
+                            borderRadius: 999,
+                            background: '#171717',
+                            color: '#FFFFFF',
+                            padding: '16px 20px',
+                            cursor: 'pointer',
+                            fontSize: 15,
+                            fontWeight: 700,
+                            opacity: V.sendOpacity,
+                          }}
+                        >
+                          Send all inquiries
+                        </button>
+                        <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5, color: '#3B4200' }}>
+                          Each supplier receives one inquiry with your event details, their own line items and their
+                          own note. No supplier sees the rest of your manifest, and no payment is taken here.
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={V.nextStep}
+                          style={{
+                            marginTop: 20,
+                            width: '100%',
+                            border: 0,
+                            borderRadius: 999,
+                            background: '#171717',
+                            color: '#FFFFFF',
+                            padding: '16px 20px',
+                            cursor: 'pointer',
+                            fontSize: 15,
+                            fontWeight: 700,
+                          }}
+                        >
+                          Continue
+                        </button>
+                        <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5, color: '#3B4200' }}>
+                          Step {V.checkoutStep + 1} of 4. You'll add your email last, once everything else is set.
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {V.sent && (
+            <div style={{ marginTop: 26, maxWidth: 560 }}>
+              <div style={{ borderRadius: 24, background: '#171717', color: '#FFFFFF', padding: 26 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Inquiries sent</div>
+                <div style={{ marginTop: 6, fontSize: 14, color: '#A8A8A8' }}>{V.sentSummary}</div>
+                <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {V.sentList.map((s) => (
+                    <div
+                      key={s.key}
+                      style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #2B2B2B', padding: '11px 0' }}
+                    >
+                      <span style={{ fontSize: 14, fontWeight: 600 }}>{s.name}</span>
+                      <span style={{ fontFamily: MONO, fontSize: 11, color: '#DDF247' }}>{s.status}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: 16, fontSize: 13, lineHeight: 1.55, color: '#A8A8A8' }}>
+                  Suppliers reply by email or phone, usually within their listed response time. Quotes and payment
+                  happen directly with them.
+                </div>
+                <button
+                  onClick={V.reset}
+                  style={{
+                    marginTop: 20,
+                    width: '100%',
+                    border: '1px solid #3B3B3B',
+                    borderRadius: 999,
+                    background: 'transparent',
+                    color: '#FFFFFF',
+                    padding: '14px 20px',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 700,
+                  }}
+                >
+                  Start a new manifest
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -2350,6 +2658,89 @@ export default function App() {
             ← Back
           </button>
           <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Your account</h1>
+
+          <div style={{ marginTop: 26 }}>
+            <h2 style={{ margin: 0, fontSize: 22, letterSpacing: '-0.02em', fontWeight: 800 }}>Saved products</h2>
+            {!V.hasSaved && (
+              <div style={{ marginTop: 12, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '32px 24px', textAlign: 'center' }}>
+                <div style={{ fontSize: 15, color: '#5B5B5B' }}>Nothing saved yet. Tap Save on any product to keep it here.</div>
+              </div>
+            )}
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {V.savedProducts.map((p) => (
+                <div
+                  key={p.key}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 16,
+                    flexWrap: 'wrap',
+                    border: '1px solid #ECECEC',
+                    borderRadius: 20,
+                    padding: '16px 18px',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: 14, alignItems: 'center', minWidth: 220 }}>
+                    <img src={p.photo} alt={p.name} style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 700 }}>{p.name}</div>
+                      <button
+                        onClick={p.openSupplier}
+                        style={{
+                          border: 0,
+                          background: 'transparent',
+                          padding: 0,
+                          cursor: 'pointer',
+                          fontFamily: MONO,
+                          fontSize: 12,
+                          color: '#6E6E6E',
+                          textDecoration: 'underline',
+                          textUnderlineOffset: '3px',
+                        }}
+                      >
+                        {p.supplierName}
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <div style={{ fontFamily: MONO, fontSize: 13 }}>{p.priceLabel}</div>
+                    <button
+                      onClick={p.share}
+                      style={{
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: 'transparent',
+                        padding: '8px 14px',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: '#171717',
+                      }}
+                    >
+                      {p.shareLabel}
+                    </button>
+                    <button
+                      onClick={p.remove}
+                      style={{
+                        border: 0,
+                        background: 'transparent',
+                        padding: 0,
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: '#8A8A8A',
+                        textDecoration: 'underline',
+                        textUnderlineOffset: '3px',
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {V.accountNeedsSignIn && (
             <div style={{ marginTop: 26, border: '1px solid #ECECEC', borderRadius: 24, padding: 26 }}>
