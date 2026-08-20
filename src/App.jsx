@@ -66,11 +66,9 @@ const sharedProductFromUrl = () => {
   }
 };
 
-const DEFAULT_EVENT_IDX = Math.max(0, EVENTS.findIndex((e) => e[0] === 'Team building day'));
-
 const initialState = {
   screen: 'home',
-  eventIdx: DEFAULT_EVENT_IDX,
+  eventIdx: 0,
   catCode: 'CAT.01',
   supId: 's1',
   items: [],
@@ -859,7 +857,7 @@ export default function App() {
                 </div>
                 {isMobile && V.showPopular && (
                   <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {V.eventTypes.map((et) => (
+                    {V.eventTypes.filter((et) => et.name !== 'Corporate offsite').map((et) => (
                       <button
                         key={et.name}
                         onClick={et.pick}
