@@ -12,7 +12,6 @@ import {
   PLANNING_REQUIREMENTS,
   money,
 } from './data';
-import { heroImage } from './heroImage';
 
 const MONO = "'IBM Plex Mono', monospace";
 const SANS = 'Manrope, sans-serif';
@@ -722,21 +721,21 @@ export default function App() {
                 aria-label="Menu"
                 style={{
                   display: 'flex',
-                  flexDirection: 'column',
+                  alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 4,
-                  width: 30,
-                  height: 30,
-                  border: '1px solid #E4E4DF',
-                  borderRadius: 8,
-                  background: V.navMenuOpen ? '#171717' : 'transparent',
+                  width: 40,
+                  height: 40,
+                  marginLeft: -8,
+                  border: 0,
+                  background: 'transparent',
                   padding: 0,
                   cursor: 'pointer',
+                  fontSize: 20,
+                  color: '#171717',
+                  lineHeight: 1,
                 }}
               >
-                <span style={{ display: 'block', height: 2, marginLeft: 7, marginRight: 7, background: V.navMenuOpen ? '#FFFFFF' : '#171717', borderRadius: 1 }} />
-                <span style={{ display: 'block', height: 2, marginLeft: 7, marginRight: 7, background: V.navMenuOpen ? '#FFFFFF' : '#171717', borderRadius: 1 }} />
-                <span style={{ display: 'block', height: 2, marginLeft: 7, marginRight: 7, background: V.navMenuOpen ? '#FFFFFF' : '#171717', borderRadius: 1 }} />
+                {V.navMenuOpen ? '✕' : '☰'}
               </button>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', columnGap: 22, flexWrap: 'wrap', rowGap: 6 }}>
@@ -849,7 +848,7 @@ export default function App() {
               fontWeight: 700,
             }}
           >
-            Your manifest
+            Request
             <span
               style={{
                 display: 'inline-flex',
@@ -901,10 +900,6 @@ export default function App() {
                     Event
                   </span>
                 </h1>
-                <p style={{ margin: '20px 0 0', maxWidth: 460, fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
-                  Pick the kind of event you are putting together. We check off the categories you will need, then you
-                  browse suppliers and build one list. Send every inquiry in a single action.
-                </p>
               </div>
               <div>
                 {!isMobile && (
@@ -1060,51 +1055,6 @@ export default function App() {
                 </div>
               </div>
             )}
-          </div>
-
-          <div style={{ marginTop: 20, position: 'relative', borderRadius: 28, overflow: 'hidden', height: isMobile ? 300 : 420 }}>
-            <img
-              src={heroImage}
-              alt="Guests at a networking mixer in a lit venue"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 40%', display: 'block' }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                left: isMobile ? 14 : 22,
-                bottom: isMobile ? 14 : 22,
-                right: isMobile ? 14 : 22,
-                display: 'flex',
-                alignItems: 'flex-end',
-                justifyContent: 'space-between',
-                gap: 14,
-                flexWrap: 'wrap',
-              }}
-            >
-              <div style={{ background: '#FFFFFF', borderRadius: 20, padding: isMobile ? '14px 16px' : '18px 22px', maxWidth: 420 }}>
-                <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                  Networking mixer · Port of Spain
-                </div>
-                <div style={{ marginTop: 8, fontSize: 17, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3 }}>
-                  Venue, bar service, lounge furniture and a photographer. Four suppliers, one send.
-                </div>
-              </div>
-              <button
-                onClick={V.goManifest}
-                style={{
-                  border: 0,
-                  borderRadius: 999,
-                  background: '#DDF247',
-                  color: '#171717',
-                  padding: '14px 24px',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  fontWeight: 700,
-                }}
-              >
-                See how a manifest works
-              </button>
-            </div>
           </div>
 
           <div id="all-categories" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
