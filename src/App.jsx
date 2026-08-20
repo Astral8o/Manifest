@@ -41,16 +41,17 @@ function useIsMobile() {
 const loadAccount = () => {
   try {
     const raw = localStorage.getItem(ACCOUNT_KEY);
-    if (!raw) return { email: '', signedIn: false, history: [], saved: [] };
+    if (!raw) return { email: '', signedIn: false, history: [], saved: [], promoOptIn: false };
     const parsed = JSON.parse(raw);
     return {
       email: parsed.email || '',
       signedIn: !!parsed.signedIn,
       history: parsed.history || [],
       saved: parsed.saved || [],
+      promoOptIn: !!parsed.promoOptIn,
     };
   } catch {
-    return { email: '', signedIn: false, history: [], saved: [] };
+    return { email: '', signedIn: false, history: [], saved: [], promoOptIn: false };
   }
 };
 
@@ -88,6 +89,7 @@ const initialState = {
   signedIn: false,
   history: [],
   saved: [],
+  promoOptIn: false,
   copiedPid: null,
   q: '',
   showAll: false,
@@ -110,12 +112,18 @@ export default function App() {
     try {
       localStorage.setItem(
         ACCOUNT_KEY,
-        JSON.stringify({ email: st.email, signedIn: st.signedIn, history: st.history, saved: st.saved })
+        JSON.stringify({
+          email: st.email,
+          signedIn: st.signedIn,
+          history: st.history,
+          saved: st.saved,
+          promoOptIn: st.promoOptIn,
+        })
       );
     } catch {
       // ignore storage failures (private browsing, quota, etc.)
     }
-  }, [st.email, st.signedIn, st.history, st.saved]);
+  }, [st.email, st.signedIn, st.history, st.saved, st.promoOptIn]);
 
   const allProducts = () => {
     const out = [];
@@ -575,6 +583,8 @@ export default function App() {
     setAccountEmail: (e) => patch({ email: e.target.value }),
     signIn: () => patch({ signedIn: !!(st.email && st.email.indexOf('@') > 0) }),
     signOut: () => patch({ signedIn: false }),
+    promoOptIn: !!st.promoOptIn,
+    togglePromoOptIn: () => patch((s) => ({ promoOptIn: !s.promoOptIn })),
     accountHistory: (st.history || []).map((h) => ({
       key: h.id,
       date: h.date,
@@ -2202,10 +2212,47 @@ export default function App() {
                         }}
                       />
                       <button
+                        onClick={V.togglePromoOptIn}
+                        style={{
+                          marginTop: 12,
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 10,
+                          border: 0,
+                          background: 'transparent',
+                          padding: 0,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 18,
+                            height: 18,
+                            marginTop: 1,
+                            border: `1px solid ${V.promoOptIn ? '#171717' : '#7A8A1F'}`,
+                            borderRadius: 5,
+                            background: V.promoOptIn ? '#171717' : 'transparent',
+                            color: '#FFFFFF',
+                            fontSize: 11,
+                            fontWeight: 800,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {V.promoOptIn ? '✓' : ''}
+                        </span>
+                        <span style={{ fontSize: 13, lineHeight: 1.4, color: '#3B4200' }}>
+                          Send me promos and offers from suppliers
+                        </span>
+                      </button>
+                      <button
                         onClick={V.signIn}
                         disabled={V.signInDisabled}
                         style={{
-                          marginTop: 10,
+                          marginTop: 12,
                           width: '100%',
                           border: 0,
                           borderRadius: 999,
@@ -2626,6 +2673,43 @@ export default function App() {
                 />
               </label>
               <button
+                onClick={V.togglePromoOptIn}
+                style={{
+                  marginTop: 16,
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  border: 0,
+                  background: 'transparent',
+                  padding: 0,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 18,
+                    height: 18,
+                    marginTop: 1,
+                    border: `1px solid ${V.promoOptIn ? '#171717' : '#C8C8C2'}`,
+                    borderRadius: 5,
+                    background: V.promoOptIn ? '#171717' : 'transparent',
+                    color: '#FFFFFF',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    flexShrink: 0,
+                  }}
+                >
+                  {V.promoOptIn ? '✓' : ''}
+                </span>
+                <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>
+                  Send me promos and offers from suppliers
+                </span>
+              </button>
+              <button
                 onClick={V.signIn}
                 style={{
                   marginTop: 18,
@@ -2651,6 +2735,43 @@ export default function App() {
                   Signed in as
                 </div>
                 <div style={{ marginTop: 6, fontSize: 18, fontWeight: 700 }}>{V.accountEmail}</div>
+                <button
+                  onClick={V.togglePromoOptIn}
+                  style={{
+                    marginTop: 18,
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    border: 0,
+                    background: 'transparent',
+                    padding: 0,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 18,
+                      height: 18,
+                      marginTop: 1,
+                      border: `1px solid ${V.promoOptIn ? '#DDF247' : '#3B3B3B'}`,
+                      borderRadius: 5,
+                      background: V.promoOptIn ? '#DDF247' : 'transparent',
+                      color: '#171717',
+                      fontSize: 11,
+                      fontWeight: 800,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {V.promoOptIn ? '✓' : ''}
+                  </span>
+                  <span style={{ fontSize: 13, lineHeight: 1.4, color: '#A8A8A8' }}>
+                    Send me promos and offers from suppliers
+                  </span>
+                </button>
                 <button
                   onClick={V.signOut}
                   style={{
