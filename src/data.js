@@ -38,6 +38,8 @@ export const EVENT_GROUPS = ["Staff and internal", "Customer facing", "Community
 export const SUPPLIERS = [
   { id: "s1", code: "CAT.01", name: "Cocoa Pod Catering", city: "Port of Spain", region: "Port of Spain", desc: "Family kitchen doing seated dinners and staffed buffets since 2009. Handles vegetarian and no-pork requests without an upcharge and brings its own service ware.",
     tags: ["Staffed service", "Vegetarian and no pork", "Own service ware"], minGroup: 25, lead: 10, radius: 60, rating: "4.8 (126)", response: "Replies in ~4 hrs",
+    bio: "Family-run caterer serving Port of Spain since 2009.",
+    phone: "+1 868 622 0147", instagram: "@cocoapodcatering", facebook: "Cocoa Pod Catering",
     reviews: [
       { author: "Michelle A.", stars: 5, text: "Booked them for our office Christmas party, 90 people. The vegetarian plates were incredible and nobody felt like an afterthought." },
       { author: "Kern R.", stars: 4, text: "Solid buffet, showed up on time and cleaned up well. Would have liked a few more dessert options." },
@@ -50,6 +52,8 @@ export const SUPPLIERS = [
     ] },
   { id: "s2", code: "CAT.01", name: "Maracas Road Kitchen", city: "Chaguanas", region: "Chaguanas", desc: "Volume caterer built for church halls and school auditoriums. Straightforward local menus, large batches, clear per-guest pricing.",
     tags: ["Large groups", "Halal options", "Weekend availability"], minGroup: 60, lead: 14, radius: 70, rating: "4.6 (84)", response: "Replies in ~1 day",
+    bio: "Volume caterer for churches and schools in Chaguanas.",
+    phone: "+1 868 671 5528", instagram: "@maracasroadkitchen", facebook: "Maracas Road Kitchen",
     reviews: [
       { author: "Father Anthony", stars: 5, text: "Fed 200 people at our harvest fundraiser without a hitch. Portions were generous and the sorrel was a hit." },
       { author: "Denise C.", stars: 4, text: "Good value for large groups. Setup took a little longer than expected but the food made up for it." },
@@ -62,6 +66,8 @@ export const SUPPLIERS = [
     ] },
   { id: "s3", code: "CAT.02", name: "The Wrightson Room", city: "Port of Spain", region: "Port of Spain", desc: "Converted warehouse near the waterfront with 4,200 square feet, roll-up door load-in and house tables. Good for dinners, all-hands and small trade shows.",
     tags: ["Capacity 220", "Load-in door", "House tables included"], minGroup: 40, lead: 21, radius: 0, rating: "4.9 (58)", response: "Replies same day",
+    bio: "Waterfront warehouse venue in Port of Spain.",
+    phone: "+1 868 623 9016", instagram: "@thewrightsonroom", facebook: "The Wrightson Room",
     reviews: [
       { author: "Alicia F.", stars: 5, text: "Beautiful space with real character. The roll-up door made load-in for our trade show painless." },
       { author: "Simeon P.", stars: 4, text: "Great for a dinner of 150. Parking nearby is limited so plan for that." },
@@ -74,6 +80,8 @@ export const SUPPLIERS = [
     ] },
   { id: "s4", code: "CAT.02", name: "Cipero Fieldhouse", city: "San Fernando", region: "San Fernando", desc: "Indoor hard court with bleachers, plus a paved lot for start and finish lines. Used often for runs, expos and community events.",
     tags: ["Capacity 600", "Parking for 180", "Outdoor lot"], minGroup: 100, lead: 30, radius: 0, rating: "4.5 (41)", response: "Replies in ~2 days",
+    bio: "Indoor court and outdoor lot venue in San Fernando.",
+    phone: "+1 868 652 3384", instagram: "@ciperofieldhouse", facebook: "Cipero Fieldhouse",
     reviews: [
       { author: "Marcus J.", stars: 5, text: "Ran our 5K start and finish from their lot. Plenty of space and the staff handled the cone layout perfectly." },
       { author: "Tricia B.", stars: 4, text: "Court held our expo fine, just get there early to beat the bleacher line for setup." },
@@ -86,6 +94,8 @@ export const SUPPLIERS = [
     ] },
   { id: "s5", code: "CAT.03", name: "Sound Base AV", city: "Port of Spain", region: "Port of Spain", desc: "Two-person crews for talks, panels and awards nights. Everything comes with an operator, so nobody on your team runs the board.",
     tags: ["Operator included", "Backup gear on site", "Hybrid streaming"], minGroup: 1, lead: 7, radius: 120, rating: "4.9 (167)", response: "Replies in ~2 hrs",
+    bio: "Operator-run AV crew based in Port of Spain.",
+    phone: "+1 868 625 7710", instagram: "@soundbaseav", facebook: "Sound Base AV",
     reviews: [
       { author: "Nigel S.", stars: 5, text: "Their tech ran the whole show, mics never cut out once during a three hour awards night." },
       { author: "Farah A.", stars: 5, text: "Backup gear on-site saved us when a mic pack died mid-panel. Barely missed a beat." },
@@ -98,6 +108,8 @@ export const SUPPLIERS = [
     ] },
   { id: "s6", code: "CAT.04", name: "Ironwood Rentals", city: "Chaguanas", region: "Chaguanas", desc: "Tables, chairs, linens and lounge furniture with next-day delivery across the east-west corridor. Counts are confirmed at pickup, so you only pay for what you use.",
     tags: ["Next day delivery", "Linens laundered", "Flexible counts"], minGroup: 1, lead: 3, radius: 65, rating: "4.7 (203)", response: "Replies in ~5 hrs",
+    bio: "Furniture and rental house covering the east-west corridor.",
+    phone: "+1 868 665 2249", instagram: "@ironwoodrentals", facebook: "Ironwood Rentals",
     reviews: [
       { author: "Sonia W.", stars: 5, text: "Delivered the day before like promised, chairs were clean and counted correctly." },
       { author: "Andre H.", stars: 4, text: "Linens were nicely pressed. One table had a wobble but they swapped it fast." },
@@ -110,6 +122,8 @@ export const SUPPLIERS = [
     ] },
   { id: "s7", code: "CAT.05", name: "Northside Film and Photo", city: "Port of Spain", region: "Port of Spain", desc: "Documentary event coverage and a fast headshot setup. Galleries land within three days, licensed for internal and marketing use.",
     tags: ["3 day turnaround", "Full usage rights", "Two shooters available"], minGroup: 1, lead: 5, radius: 140, rating: "4.8 (95)", response: "Replies in ~6 hrs",
+    bio: "Event photography and video studio in Port of Spain.",
+    phone: "+1 868 627 4482", instagram: "@northsidefilmphoto", facebook: "Northside Film and Photo",
     reviews: [
       { author: "Kwame O.", stars: 5, text: "Gallery landed in two days, way ahead of schedule. Photos captured the whole night well." },
       { author: "Renee V.", stars: 5, text: "Headshot station kept the line moving fast for 40 staff. Retouching was tasteful, not overdone." },
@@ -122,6 +136,8 @@ export const SUPPLIERS = [
     ] },
   { id: "s8", code: "CAT.06", name: "Ridgeway Print and Signs", city: "Arima", region: "Arima", desc: "Signage shop that handles wayfinding for runs and expos. Sends a proof within a day and will hold files for reprints next year.",
     tags: ["Next day proofs", "Weatherproof stock", "Files kept on file"], minGroup: 1, lead: 6, radius: 160, rating: "4.7 (152)", response: "Replies in ~3 hrs",
+    bio: "Signage and print shop based in Arima.",
+    phone: "+1 868 667 3390", instagram: "@ridgewayprintsigns", facebook: "Ridgeway Print and Signs",
     reviews: [
       { author: "Camille R.", stars: 5, text: "Proof came back next morning exactly as requested. Banners held up fine outdoors in the rain." },
       { author: "Terrence A.", stars: 4, text: "Badges were sorted alphabetically like they said, made registration painless." },
@@ -134,6 +150,8 @@ export const SUPPLIERS = [
     ] },
   { id: "s9", code: "CAT.09", name: "Crossroads Event Staffing", city: "San Fernando", region: "San Fernando", desc: "Registration, ushers and setup crews booked by the shift. Staff arrive briefed, in plain black, with a lead on site for groups over six.",
     tags: ["Booked by shift", "Lead on site", "Police certificate on file"], minGroup: 2, lead: 5, radius: 80, rating: "4.6 (78)", response: "Replies in ~8 hrs",
+    bio: "Event staffing agency based in San Fernando.",
+    phone: "+1 868 653 8871", instagram: "@crossroadsstaffing", facebook: "Crossroads Event Staffing",
     reviews: [
       { author: "Wendy L.", stars: 5, text: "Registration staff arrived briefed and on time, badge line never backed up." },
       { author: "Curtis N.", stars: 4, text: "Setup crew worked fast. Would book again for a bigger event." },
@@ -146,6 +164,8 @@ export const SUPPLIERS = [
     ] },
   { id: "s10", code: "CAT.10", name: "Sundown Sound", city: "Scarborough, Tobago", region: "Tobago", desc: "DJs and hosts who read a corporate room. Brings its own small PA, so you can skip a separate AV order for parties under 150.",
     tags: ["PA included", "Clean edits only", "Host or DJ"], minGroup: 1, lead: 12, radius: 40, rating: "4.8 (119)", response: "Replies in ~5 hrs",
+    bio: "DJ and hosting duo based in Scarborough, Tobago.",
+    phone: "+1 868 639 5527", instagram: "@sundownsoundtt", facebook: "Sundown Sound",
     reviews: [
       { author: "Shania P.", stars: 5, text: "DJ read the room perfectly, kept the dance floor full all night." },
       { author: "Learie D.", stars: 5, text: "Emcee ran our awards segment smoothly, kept the pace tight." },
