@@ -102,6 +102,7 @@ const initialState = {
   svcQuery: '',
   svcGroup: 'All',
   svcVisible: 8,
+  navMenuOpen: false,
 };
 
 export default function App() {
@@ -225,7 +226,7 @@ export default function App() {
   const evt = EVENTS[st.eventIdx];
   const inSet = (code) => evt[1].indexOf(code) >= 0;
   const nav = (screen, extra) => () =>
-    patch({ screen, sent: screen === 'manifest' ? st.sent : null, ...(extra || {}) });
+    patch({ screen, sent: screen === 'manifest' ? st.sent : null, navMenuOpen: false, ...(extra || {}) });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
   const openPromoCat = (code) => () => patch({ screen: 'promoCategory', catCode: code });
   const pickEvent = (i) => () => patch({ eventIdx: i });
@@ -287,6 +288,9 @@ export default function App() {
     joinSubmitted: !!st.joinSubmitted,
     goAccount: nav('account'),
     goPromo: nav('promo'),
+    navMenuOpen: !!st.navMenuOpen,
+    toggleNavMenu: () => patch((s) => ({ navMenuOpen: !s.navMenuOpen })),
+    closeNavMenu: () => patch({ navMenuOpen: false }),
     startPlanning: () => {
       document.getElementById('all-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     },
@@ -682,61 +686,137 @@ export default function App() {
           top: 0,
           zIndex: 20,
           background: '#FFFFFF',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          rowGap: 10,
-          gap: 24,
-          padding: '18px 0 16px',
-          borderBottom: '1px solid #ECECEC',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', columnGap: isMobile ? 18 : 32, flexWrap: 'wrap', rowGap: 8 }}>
-          <button
-            onClick={V.goHome}
-            style={{
-              border: 0,
-              background: 'transparent',
-              padding: 0,
-              cursor: 'pointer',
-              fontSize: 19,
-              fontWeight: 800,
-              letterSpacing: '-0.02em',
-            }}
-          >
-            Manifest
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', columnGap: 22, flexWrap: 'wrap', rowGap: 6 }}>
+        <div
+          style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            rowGap: 10,
+            gap: 24,
+            padding: '18px 0 16px',
+            borderBottom: '1px solid #ECECEC',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', columnGap: isMobile ? 14 : 32, flexWrap: 'wrap', rowGap: 8 }}>
             <button
               onClick={V.goHome}
-              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
-            >
-              Browse categories
-            </button>
-            <button
-              onClick={V.goPromo}
               style={{
                 border: 0,
                 background: 'transparent',
                 padding: 0,
                 cursor: 'pointer',
-                fontSize: 14,
-                fontWeight: 500,
-                color: V.isPromo || V.isPromoCategory ? PROMO_ACCENT : '#5B5B5B',
+                fontSize: 19,
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
               }}
             >
-              Promotions
+              Manifest
             </button>
-            <button
-              onClick={V.goJoin}
-              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
-            >
-              List your business
-            </button>
+            {isMobile ? (
+              <button
+                onClick={V.toggleNavMenu}
+                aria-label="Menu"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  gap: 4,
+                  width: 30,
+                  height: 30,
+                  border: '1px solid #E4E4DF',
+                  borderRadius: 8,
+                  background: V.navMenuOpen ? '#171717' : 'transparent',
+                  padding: 0,
+                  cursor: 'pointer',
+                }}
+              >
+                <span style={{ display: 'block', height: 2, marginLeft: 7, marginRight: 7, background: V.navMenuOpen ? '#FFFFFF' : '#171717', borderRadius: 1 }} />
+                <span style={{ display: 'block', height: 2, marginLeft: 7, marginRight: 7, background: V.navMenuOpen ? '#FFFFFF' : '#171717', borderRadius: 1 }} />
+                <span style={{ display: 'block', height: 2, marginLeft: 7, marginRight: 7, background: V.navMenuOpen ? '#FFFFFF' : '#171717', borderRadius: 1 }} />
+              </button>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', columnGap: 22, flexWrap: 'wrap', rowGap: 6 }}>
+                <button
+                  onClick={V.goHome}
+                  style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
+                >
+                  Browse categories
+                </button>
+                <button
+                  onClick={V.goPromo}
+                  style={{
+                    border: 0,
+                    background: 'transparent',
+                    padding: 0,
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: V.isPromo || V.isPromoCategory ? PROMO_ACCENT : '#5B5B5B',
+                  }}
+                >
+                  Promotions
+                </button>
+                <button
+                  onClick={V.goJoin}
+                  style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
+                >
+                  List your business
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {isMobile && V.navMenuOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                left: 0,
+                minWidth: 220,
+                border: '1px solid #ECECEC',
+                borderRadius: 16,
+                background: '#FFFFFF',
+                boxShadow: '0 12px 28px rgba(0,0,0,0.12)',
+                padding: 6,
+                display: 'flex',
+                flexDirection: 'column',
+                zIndex: 22,
+              }}
+            >
+              <button
+                onClick={V.goHome}
+                style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
+              >
+                Browse categories
+              </button>
+              <button
+                onClick={V.goPromo}
+                style={{
+                  border: 0,
+                  borderRadius: 10,
+                  background: 'transparent',
+                  padding: '12px 14px',
+                  cursor: 'pointer',
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: V.isPromo || V.isPromoCategory ? PROMO_ACCENT : '#171717',
+                  textAlign: 'left',
+                }}
+              >
+                Promotions
+              </button>
+              <button
+                onClick={V.goJoin}
+                style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
+              >
+                List your business
+              </button>
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
             onClick={V.goAccount}
             style={{
@@ -789,7 +869,14 @@ export default function App() {
               {V.itemCount}
             </span>
           </button>
+          </div>
         </div>
+        {isMobile && V.navMenuOpen && (
+          <div
+            onClick={V.closeNavMenu}
+            style={{ position: 'fixed', inset: 0, zIndex: 19, background: 'transparent' }}
+          />
+        )}
       </div>
 
       {V.isHome && (
@@ -820,94 +907,56 @@ export default function App() {
                 </p>
               </div>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <input
-                    type="search"
-                    value={V.eventQuery}
-                    onChange={V.setEventQuery}
-                    placeholder="Search event types"
-                    style={{
-                      flex: '1 1 200px',
-                      border: '1px solid #E4E4DF',
-                      borderRadius: 999,
-                      background: '#F7F7F5',
-                      padding: '12px 18px',
-                      fontFamily: SANS,
-                      fontSize: 14,
-                      color: '#171717',
-                    }}
-                  />
-                  {isMobile && (
-                    <button
-                      onClick={V.toggleAllEvents}
-                      style={{
-                        border: 0,
-                        background: 'transparent',
-                        padding: 0,
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: '#171717',
-                        textDecoration: 'underline',
-                        textUnderlineOffset: '3px',
-                      }}
-                    >
-                      {V.toggleAllLabel}
-                    </button>
-                  )}
-                </div>
-                {isMobile && V.showPopular && (
-                  <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {V.eventTypes.filter((et) => et.name !== 'Corporate offsite').map((et) => (
-                      <button
-                        key={et.name}
-                        onClick={et.pick}
+                {!isMobile && (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                      <input
+                        type="search"
+                        value={V.eventQuery}
+                        onChange={V.setEventQuery}
+                        placeholder="Search event types"
                         style={{
-                          border: `1px solid ${et.border}`,
+                          flex: '1 1 200px',
+                          border: '1px solid #E4E4DF',
                           borderRadius: 999,
-                          background: et.bg,
-                          color: et.fg,
-                          padding: '11px 18px',
-                          cursor: 'pointer',
+                          background: '#F7F7F5',
+                          padding: '12px 18px',
+                          fontFamily: SANS,
                           fontSize: 14,
-                          fontWeight: 600,
+                          color: '#171717',
                         }}
-                      >
-                        {et.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {(!isMobile || V.showEventGroups) && (
-                  <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    {V.eventGroups.map((g) => (
-                      <div key={g.label}>
-                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          {g.label}
+                      />
+                    </div>
+                    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      {V.eventGroups.map((g) => (
+                        <div key={g.label}>
+                          <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                            {g.label}
+                          </div>
+                          <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                            {g.items.map((et) => (
+                              <button
+                                key={et.name}
+                                onClick={et.pick}
+                                style={{
+                                  border: `1px solid ${et.border}`,
+                                  borderRadius: 999,
+                                  background: et.bg,
+                                  color: et.fg,
+                                  padding: '10px 16px',
+                                  cursor: 'pointer',
+                                  fontSize: 14,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {et.name}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                        <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                          {g.items.map((et) => (
-                            <button
-                              key={et.name}
-                              onClick={et.pick}
-                              style={{
-                                border: `1px solid ${et.border}`,
-                                borderRadius: 999,
-                                background: et.bg,
-                                color: et.fg,
-                                padding: '10px 16px',
-                                cursor: 'pointer',
-                                fontSize: 14,
-                                fontWeight: 600,
-                              }}
-                            >
-                              {et.name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </>
                 )}
                 <div style={{ marginTop: 26, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                   <button
