@@ -228,12 +228,7 @@ export default function App() {
     patch({ screen, sent: screen === 'manifest' ? st.sent : null, ...(extra || {}) });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
   const openPromoCat = (code) => () => patch({ screen: 'promoCategory', catCode: code });
-  const pickEvent = (i) => () => {
-    patch({ eventIdx: i });
-    if (isMobile) {
-      document.getElementById('event-checklist-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
+  const pickEvent = (i) => () => patch({ eventIdx: i });
 
   const cat = CATS.find((c) => c[0] === st.catCode) || CATS[0];
   const catSuppliers = SUPPLIERS.filter((s) => s.code === st.catCode);
@@ -934,87 +929,88 @@ export default function App() {
               </div>
             </div>
 
-            <div
-              id="event-checklist-panel"
-              style={{
-                background: '#171717',
-                borderRadius: 28,
-                padding: isMobile ? '24px 22px 20px' : '30px 30px 26px',
-                color: '#FFFFFF',
-                minWidth: isMobile ? 0 : 300,
-                scrollMarginTop: 140,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16 }}>
-                <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>{V.selectedEventName}</div>
-                <div style={{ fontFamily: MONO, fontSize: 12, color: '#DDF247' }}>{V.checkedLabel}</div>
-              </div>
-              <div style={{ marginTop: 4, fontSize: 13, color: '#9C9C9C' }}>Categories usually needed for this event</div>
-              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {V.checklist.map((row) => (
-                  <button
-                    key={row.code}
-                    onClick={row.open}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 14,
-                      width: '100%',
-                      textAlign: 'left',
-                      border: 0,
-                      borderTop: '1px solid #2B2B2B',
-                      background: 'transparent',
-                      padding: '11px 2px',
-                      cursor: 'pointer',
-                      color: row.color,
-                    }}
-                  >
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 18,
-                        height: 18,
-                        border: `1px solid ${row.boxBorder}`,
-                        borderRadius: 5,
-                        background: row.boxBg,
-                        color: '#171717',
-                        fontSize: 11,
-                        fontWeight: 800,
-                      }}
-                    >
-                      {row.mark}
-                    </span>
-                    <span style={{ fontFamily: MONO, fontSize: 12, color: row.codeColor }}>{row.code}</span>
-                    <span style={{ fontSize: 14, fontWeight: 600 }}>{row.name}</span>
-                  </button>
-                ))}
-              </div>
-              <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid #2B2B2B' }}>
-                <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E6E' }}>
-                  Planning requirements
+            {!isMobile && (
+              <div
+                id="event-checklist-panel"
+                style={{
+                  background: '#171717',
+                  borderRadius: 28,
+                  padding: '30px 30px 26px',
+                  color: '#FFFFFF',
+                  minWidth: 300,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16 }}>
+                  <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>{V.selectedEventName}</div>
+                  <div style={{ fontFamily: MONO, fontSize: 12, color: '#DDF247' }}>{V.checkedLabel}</div>
                 </div>
-                <div style={{ marginTop: 4, fontSize: 12, color: '#6E6E6E' }}>Handled by you, not sourced from a supplier</div>
-                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {V.planningRequirements.map((item) => (
-                    <span
-                      key={item}
+                <div style={{ marginTop: 4, fontSize: 13, color: '#9C9C9C' }}>Categories usually needed for this event</div>
+                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {V.checklist.map((row) => (
+                    <button
+                      key={row.code}
+                      onClick={row.open}
                       style={{
-                        border: '1px solid #3B3B3B',
-                        borderRadius: 999,
-                        padding: '5px 12px',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: '#9C9C9C',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 14,
+                        width: '100%',
+                        textAlign: 'left',
+                        border: 0,
+                        borderTop: '1px solid #2B2B2B',
+                        background: 'transparent',
+                        padding: '11px 2px',
+                        cursor: 'pointer',
+                        color: row.color,
                       }}
                     >
-                      {item}
-                    </span>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 18,
+                          height: 18,
+                          border: `1px solid ${row.boxBorder}`,
+                          borderRadius: 5,
+                          background: row.boxBg,
+                          color: '#171717',
+                          fontSize: 11,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {row.mark}
+                      </span>
+                      <span style={{ fontFamily: MONO, fontSize: 12, color: row.codeColor }}>{row.code}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600 }}>{row.name}</span>
+                    </button>
                   ))}
                 </div>
+                <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid #2B2B2B' }}>
+                  <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E6E' }}>
+                    Planning requirements
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 12, color: '#6E6E6E' }}>Handled by you, not sourced from a supplier</div>
+                  <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {V.planningRequirements.map((item) => (
+                      <span
+                        key={item}
+                        style={{
+                          border: '1px solid #3B3B3B',
+                          borderRadius: 999,
+                          padding: '5px 12px',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: '#9C9C9C',
+                        }}
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div style={{ marginTop: 20, position: 'relative', borderRadius: 28, overflow: 'hidden', height: isMobile ? 300 : 420 }}>
