@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   CATS,
   EVENTS,
@@ -15,6 +15,22 @@ import { heroImage } from './heroImage';
 
 const MONO = "'IBM Plex Mono', monospace";
 const SANS = 'Manrope, sans-serif';
+const ACCOUNT_KEY = 'manifestAccount';
+
+const avatarUrl = (seed) =>
+  'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(seed) + '&backgroundColor=171717&textColor=ffffff&fontWeight=700';
+const photoUrl = (seed, w, h) => 'https://picsum.photos/seed/' + encodeURIComponent(seed) + '/' + w + '/' + h;
+
+const loadAccount = () => {
+  try {
+    const raw = localStorage.getItem(ACCOUNT_KEY);
+    if (!raw) return { email: '', signedIn: false, history: [] };
+    const parsed = JSON.parse(raw);
+    return { email: parsed.email || '', signedIn: !!parsed.signedIn, history: parsed.history || [] };
+  } catch {
+    return { email: '', signedIn: false, history: [] };
+  }
+};
 
 const initialState = {
   screen: 'home',
@@ -32,15 +48,24 @@ const initialState = {
   openSpec: {},
   email: '',
   signedIn: false,
+  history: [],
   q: '',
   showAll: false,
   joinCats: [],
 };
 
 export default function App() {
-  const [st, setSt] = useState(initialState);
+  const [st, setSt] = useState(() => ({ ...initialState, ...loadAccount() }));
   const patch = (updater) =>
     setSt((prev) => ({ ...prev, ...(typeof updater === 'function' ? updater(prev) : updater) }));
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ email: st.email, signedIn: st.signedIn, history: st.history }));
+    } catch {
+      // ignore storage failures (private browsing, quota, etc.)
+    }
+  }, [st.email, st.signedIn, st.history]);
 
   const allProducts = () => {
     const out = [];
@@ -134,10 +159,12 @@ export default function App() {
     isManifest: st.screen === 'manifest',
     isSourcing: st.screen === 'sourcing',
     isJoin: st.screen === 'join',
+    isAccount: st.screen === 'account',
     goHome: nav('home'),
     goManifest: nav('manifest'),
     goSourcing: nav('sourcing'),
     goJoin: nav('join'),
+    goAccount: nav('account'),
     backToCategory: () => patch({ screen: 'category', catCode: sup.code }),
 
     eventTypes: EVENTS.map((e, i) => ({
@@ -192,30 +219,21 @@ export default function App() {
     resultLabel: filtered.length + ' of ' + catSuppliers.length + ' suppliers',
     locationFilters: LOCATIONS.map((l, i) => ({ label: l, ...chip(i === st.loc), pick: () => patch({ loc: i }) })),
     groupFilters: GROUPS.map((g, i) => ({ label: g[0], ...chip(i === st.grp), pick: () => patch({ grp: i }) })),
-    supplierRows: filtered.map((s) => {
-      const ps = allProducts().filter((p) => p.supId === s.id);
-      const lo = Math.min.apply(null, ps.map((p) => p.min));
-      const hi = Math.max.apply(null, ps.map((p) => p.max));
-      const headline = ps[0];
-      const added = has(headline.id);
-      return {
-        key: s.id,
-        name: s.name,
-        location: s.city,
-        description: s.desc,
-        tags: s.tags,
-        priceLabel: money(lo) + '–' + money(hi),
-        metaLabel: 'Min ' + s.minGroup + ' · ' + s.lead + ' day lead · ' + s.rating,
-        responseLabel: s.response,
-        addLabel: added ? 'On manifest' : 'Add to manifest',
-        addBg: added ? '#DDF247' : '#171717',
-        addFg: added ? '#171717' : '#FFFFFF',
-        add: () => add(headline.id),
-        open: () => patch({ screen: 'supplier', supId: s.id }),
-      };
-    }),
+    supplierRows: filtered.map((s) => ({
+      key: s.id,
+      logo: avatarUrl(s.name),
+      name: s.name,
+      location: s.city,
+      description: s.desc,
+      tags: s.tags,
+      metaLabel: 'Min ' + s.minGroup + ' · ' + s.lead + ' day lead · ' + s.rating,
+      responseLabel: s.response,
+      open: () => patch({ screen: 'supplier', supId: s.id }),
+    })),
 
     sup: {
+      logo: avatarUrl(sup.name),
+      cover: photoUrl(sup.id + '-cover', 960, 360),
       name: sup.name,
       code: sup.code,
       description: sup.desc,
@@ -226,9 +244,16 @@ export default function App() {
         { label: 'Min group', value: sup.minGroup + ' guests' },
         { label: 'Lead time', value: sup.lead + ' days' },
       ],
+      reviews: (sup.reviews || []).map((r) => ({
+        key: r.author,
+        author: r.author,
+        stars: '★'.repeat(r.stars) + '☆'.repeat(5 - r.stars),
+        text: r.text,
+      })),
     },
     supplierProducts: supProducts.map((p) => ({
       key: p.id,
+      photo: photoUrl(p.id, 300, 220),
       name: p.name,
       description: p.description,
       termsLabel: 'Min ' + p.minQty + ' ' + (p.unit === 'flat' ? 'booking' : 'units') + ' · ' + p.lead + ' day lead',
@@ -315,8 +340,25 @@ export default function App() {
     })),
     addressLabel: st.fulfil === 'Pickup by us' ? 'Pickup area' : 'Delivery or venue address',
     sendOpacity: st.items.length ? 1 : 0.4,
-    send: () =>
-      patch({ sent: groups().map((g) => g.sup.name), signedIn: !!(st.email && st.email.indexOf('@') > 0) }),
+    send: () => {
+      const sentNames = groups().map((g) => g.sup.name);
+      const nowSignedIn = !!(st.email && st.email.indexOf('@') > 0);
+      patch((s) => ({
+        sent: sentNames,
+        signedIn: nowSignedIn,
+        history: nowSignedIn
+          ? [
+              {
+                id: Date.now(),
+                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                suppliers: sentNames,
+                itemCount: s.items.reduce((n, i) => n + i.qty, 0),
+              },
+              ...(s.history || []),
+            ]
+          : s.history,
+      }));
+    },
     sentSummary: st.sent ? 'One inquiry per supplier, each scoped to their own items.' : '',
     sentList: (st.sent || []).map((n) => ({ key: n, name: n, status: 'Sent' })),
     reset: () => patch({ items: [], sent: null, screen: 'home' }),
@@ -365,7 +407,25 @@ export default function App() {
     setEmail: (e) => patch({ email: e.target.value }),
     signedIn: !!st.signedIn,
     needsAccount: !st.signedIn,
-    accountLabel: st.signedIn ? 'Signed in · ' + st.email : '',
+    accountLabel: st.signedIn ? 'Signed in · ' + st.email : 'Sign in',
+
+    isSignedIn: !!st.signedIn,
+    accountNeedsSignIn: !st.signedIn,
+    accountEmail: st.email || '',
+    setAccountEmail: (e) => patch({ email: e.target.value }),
+    signIn: () => patch({ signedIn: !!(st.email && st.email.indexOf('@') > 0) }),
+    signOut: () => patch({ signedIn: false }),
+    accountHistory: (st.history || []).map((h) => ({
+      key: h.id,
+      date: h.date,
+      suppliersLabel: h.suppliers.join(', '),
+      itemLabel:
+        h.itemCount +
+        (h.itemCount === 1 ? ' product · ' : ' products · ') +
+        h.suppliers.length +
+        (h.suppliers.length === 1 ? ' supplier' : ' suppliers'),
+    })),
+    hasHistory: (st.history || []).length > 0,
   };
 
   return (
@@ -421,7 +481,23 @@ export default function App() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontFamily: MONO, fontSize: 11, color: '#6E6E6E' }}>{V.accountLabel}</span>
+          <button
+            onClick={V.goAccount}
+            style={{
+              border: 0,
+              background: 'transparent',
+              padding: 0,
+              cursor: 'pointer',
+              fontFamily: MONO,
+              fontSize: 11,
+              color: V.isSignedIn ? '#6E6E6E' : '#171717',
+              fontWeight: V.isSignedIn ? 400 : 700,
+              textDecoration: V.isSignedIn ? 'none' : 'underline',
+              textUnderlineOffset: '3px',
+            }}
+          >
+            {V.accountLabel}
+          </button>
           <button
             onClick={V.goManifest}
             style={{
@@ -913,68 +989,58 @@ export default function App() {
                   padding: '22px 24px',
                 }}
               >
-                <div style={{ flex: '1 1 380px', minWidth: 280 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-                    <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{s.name}</div>
-                    <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.location}</div>
-                  </div>
-                  <p style={{ margin: '8px 0 0', maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>{s.description}</p>
-                  <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {s.tags.map((t) => (
-                      <span
-                        key={t}
-                        style={{
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 999,
-                          background: '#F7F7F5',
-                          padding: '5px 12px',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: '#4A4A4A',
-                        }}
-                      >
-                        {t}
-                      </span>
-                    ))}
+                <div style={{ flex: '1 1 380px', minWidth: 280, display: 'flex', gap: 16 }}>
+                  <img
+                    src={s.logo}
+                    alt={s.name + ' logo'}
+                    style={{ width: 52, height: 52, borderRadius: 999, flexShrink: 0, background: '#171717' }}
+                  />
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{s.name}</div>
+                      <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.location}</div>
+                    </div>
+                    <p style={{ margin: '8px 0 0', maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>{s.description}</p>
+                    <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {s.tags.map((t) => (
+                        <span
+                          key={t}
+                          style={{
+                            border: '1px solid #E4E4DF',
+                            borderRadius: 999,
+                            background: '#F7F7F5',
+                            padding: '5px 12px',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: '#4A4A4A',
+                          }}
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <div style={{ flex: '0 0 260px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ flex: '0 0 220px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
-                    <div style={{ fontSize: 17, color: '#171717' }}>{s.priceLabel}</div>
                     <div>{s.metaLabel}</div>
                     <div>{s.responseLabel}</div>
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    <button
-                      onClick={s.add}
-                      style={{
-                        border: 0,
-                        borderRadius: 999,
-                        background: s.addBg,
-                        color: s.addFg,
-                        padding: '12px 20px',
-                        cursor: 'pointer',
-                        fontSize: 14,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {s.addLabel}
-                    </button>
-                    <button
-                      onClick={s.open}
-                      style={{
-                        border: '1px solid #D7D7D2',
-                        borderRadius: 999,
-                        background: '#FFFFFF',
-                        padding: '12px 20px',
-                        cursor: 'pointer',
-                        fontSize: 14,
-                        fontWeight: 700,
-                      }}
-                    >
-                      View products
-                    </button>
-                  </div>
+                  <button
+                    onClick={s.open}
+                    style={{
+                      border: 0,
+                      borderRadius: 999,
+                      background: '#171717',
+                      color: '#FFFFFF',
+                      padding: '12px 20px',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 700,
+                    }}
+                  >
+                    See Profile
+                  </button>
                 </div>
               </div>
             ))}
@@ -1020,12 +1086,26 @@ export default function App() {
           >
             ← {V.sup.categoryName}
           </button>
-          <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
+          <div style={{ marginTop: 22, borderRadius: 24, overflow: 'hidden', height: 220 }}>
+            <img
+              src={V.sup.cover}
+              alt={V.sup.name + ' cover photo'}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </div>
+          <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
             <div>
               <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: 28 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
-                  <h1 style={{ margin: 0, fontSize: 40, lineHeight: 1, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.sup.name}</h1>
-                  <span style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.sup.code}</span>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                  <img
+                    src={V.sup.logo}
+                    alt={V.sup.name + ' logo'}
+                    style={{ width: 64, height: 64, borderRadius: 999, marginTop: -50, border: '4px solid #FFFFFF', background: '#171717', flexShrink: 0 }}
+                  />
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+                    <h1 style={{ margin: 0, fontSize: 40, lineHeight: 1, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.sup.name}</h1>
+                    <span style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.sup.code}</span>
+                  </div>
                 </div>
                 <p style={{ margin: '14px 0 0', maxWidth: 620, fontSize: 16, lineHeight: 1.55, color: '#4A4A4A' }}>{V.sup.description}</p>
                 <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(120px, 1fr))', gap: 12 }}>
@@ -1061,10 +1141,17 @@ export default function App() {
                         padding: '20px 2px',
                       }}
                     >
-                      <div style={{ flex: '1 1 340px', minWidth: 260 }}>
-                        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>{p.name}</div>
-                        <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>{p.description}</div>
-                        <div style={{ marginTop: 8, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{p.termsLabel}</div>
+                      <div style={{ flex: '1 1 340px', minWidth: 260, display: 'flex', gap: 16 }}>
+                        <img
+                          src={p.photo}
+                          alt={p.name}
+                          style={{ width: 88, height: 66, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }}
+                        />
+                        <div>
+                          <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>{p.name}</div>
+                          <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>{p.description}</div>
+                          <div style={{ marginTop: 8, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{p.termsLabel}</div>
+                        </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
                         <div style={{ fontFamily: MONO, fontSize: 15, textAlign: 'right', minWidth: 150 }}>{p.priceLabel}</div>
@@ -1085,6 +1172,21 @@ export default function App() {
                           {p.btnLabel}
                         </button>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 24 }}>
+                <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Reviews</h2>
+                <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {V.sup.reviews.map((r) => (
+                    <div key={r.key} style={{ borderTop: '1px solid #ECECEC', padding: '18px 2px' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: 15, fontWeight: 700 }}>{r.author}</div>
+                        <div style={{ color: '#DDA915', fontSize: 14, letterSpacing: '2px' }}>{r.stars}</div>
+                      </div>
+                      <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>{r.text}</p>
                     </div>
                   ))}
                 </div>
@@ -1873,6 +1975,110 @@ export default function App() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {V.isAccount && (
+        <div style={{ padding: '34px 0 0', maxWidth: 560 }}>
+          <button
+            onClick={V.goHome}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← Back
+          </button>
+          <h1 style={{ margin: '18px 0 0', fontSize: 46, lineHeight: 1, letterSpacing: '-0.03em', fontWeight: 800 }}>Your account</h1>
+
+          {V.accountNeedsSignIn && (
+            <div style={{ marginTop: 26, border: '1px solid #ECECEC', borderRadius: 24, padding: 26 }}>
+              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Sign in</div>
+              <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                No password, we email you a sign-in link. Signing in saves your manifests so you can find them again.
+              </p>
+              <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Your email
+                </span>
+                <input
+                  type="email"
+                  value={V.accountEmail}
+                  onChange={V.setAccountEmail}
+                  placeholder="you@organisation.tt"
+                  style={{
+                    border: '1px solid #E4E4DF',
+                    borderRadius: 14,
+                    background: '#F7F7F5',
+                    padding: '12px 14px',
+                    fontFamily: SANS,
+                    fontSize: 15,
+                    color: '#171717',
+                  }}
+                />
+              </label>
+              <button
+                onClick={V.signIn}
+                style={{
+                  marginTop: 18,
+                  border: 0,
+                  borderRadius: 999,
+                  background: '#171717',
+                  color: '#FFFFFF',
+                  padding: '14px 24px',
+                  cursor: 'pointer',
+                  fontSize: 15,
+                  fontWeight: 700,
+                }}
+              >
+                Sign in
+              </button>
+            </div>
+          )}
+
+          {V.isSignedIn && (
+            <>
+              <div style={{ marginTop: 26, borderRadius: 24, background: '#171717', color: '#FFFFFF', padding: 26 }}>
+                <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9C9C9C' }}>
+                  Signed in as
+                </div>
+                <div style={{ marginTop: 6, fontSize: 18, fontWeight: 700 }}>{V.accountEmail}</div>
+                <button
+                  onClick={V.signOut}
+                  style={{
+                    marginTop: 18,
+                    border: '1px solid #3B3B3B',
+                    borderRadius: 999,
+                    background: 'transparent',
+                    color: '#FFFFFF',
+                    padding: '11px 18px',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 700,
+                  }}
+                >
+                  Sign out
+                </button>
+              </div>
+
+              <div style={{ marginTop: 24 }}>
+                <h2 style={{ margin: 0, fontSize: 22, letterSpacing: '-0.02em', fontWeight: 800 }}>Past manifests</h2>
+                {!V.hasHistory && (
+                  <div style={{ marginTop: 12, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '32px 24px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 15, color: '#5B5B5B' }}>Nothing sent yet. Manifests you send while signed in will show up here.</div>
+                  </div>
+                )}
+                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {V.accountHistory.map((h) => (
+                    <div key={h.key} style={{ border: '1px solid #ECECEC', borderRadius: 20, padding: '18px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: 15, fontWeight: 700 }}>{h.date}</div>
+                        <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{h.itemLabel}</div>
+                      </div>
+                      <div style={{ marginTop: 6, fontSize: 13, color: '#5B5B5B' }}>{h.suppliersLabel}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
