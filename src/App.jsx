@@ -2,14 +2,12 @@ import { useState, useEffect } from 'react';
 import {
   CATS,
   EVENTS,
-  EVENT_GROUPS,
   SUPPLIERS,
   LOCATIONS,
   GROUPS,
   FIELDS,
   TIERS,
   FIELDS_DEFAULT,
-  PLANNING_REQUIREMENTS,
   money,
 } from './data';
 import heroPhoto from './assets/hero-photo.jpg';
@@ -93,8 +91,6 @@ const initialState = {
   saved: [],
   promoOptIn: false,
   copiedPid: null,
-  q: '',
-  showAll: false,
   joinCats: [],
   joinCatsMenuOpen: false,
   joinSubmitted: false,
@@ -232,7 +228,6 @@ export default function App() {
   const nav = (screen, extra) => () =>
     patch({ screen, sent: screen === 'manifest' ? st.sent : null, navMenuOpen: false, ...(extra || {}) });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
-  const pickEvent = (i) => () => patch({ eventIdx: i });
 
   const cat = CATS.find((c) => c[0] === st.catCode) || CATS[0];
   const catSuppliers = SUPPLIERS.filter((s) => s.code === st.catCode);
@@ -299,39 +294,6 @@ export default function App() {
     },
     backToCategory: () => patch({ screen: 'category', catCode: sup.code }),
 
-    eventTypes: EVENTS.map((e, i) => ({
-      name: e[0],
-      ...chip(i === st.eventIdx),
-      pick: pickEvent(i),
-    })).filter((e, i) => EVENTS[i][3] === 1 || i === st.eventIdx),
-    eventQuery: st.q || '',
-    setEventQuery: (e) => patch({ q: e.target.value, showAll: !!e.target.value }),
-    showEventGroups: !!(st.showAll || st.q),
-    showPopular: !(st.showAll || st.q),
-    toggleAllEvents: () => patch((s) => ({ showAll: !s.showAll, q: '' })),
-    toggleAllLabel: st.showAll || st.q ? 'Show fewer' : 'Show all ' + EVENTS.length + ' event types',
-    eventGroups: EVENT_GROUPS.map((gname) => ({
-      label: gname,
-      items: EVENTS.map((e, i) => ({ e, i }))
-        .filter((x) => x.e[2] === gname && (!st.q || x.e[0].toLowerCase().indexOf(st.q.toLowerCase()) >= 0))
-        .map((x) => ({ name: x.e[0], ...chip(x.i === st.eventIdx), pick: pickEvent(x.i) })),
-    })).filter((g) => g.items.length),
-    selectedEventName: evt[0],
-    checkedLabel: evt[1].length + ' of ' + CATS.length + ' categories',
-    checklist: CATS.map((c) => {
-      const on = inSet(c[0]);
-      return {
-        code: c[0],
-        name: c[1],
-        mark: on ? '✓' : '',
-        color: on ? '#FFFFFF' : '#6E6E6E',
-        codeColor: on ? '#DDF247' : '#5B5B5B',
-        boxBg: on ? '#DDF247' : 'transparent',
-        boxBorder: on ? '#DDF247' : '#3B3B3B',
-        open: openCat(c[0]),
-      };
-    }),
-    planningRequirements: PLANNING_REQUIREMENTS,
     categoryTiles: CATS.map((c) => {
       const on = inSet(c[0]);
       const n = SUPPLIERS.filter((s) => s.code === c[0]).length;
@@ -879,149 +841,6 @@ export default function App() {
               Plan Your Event
             </button>
           </div>
-
-          {!isMobile && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 20, alignItems: 'stretch', padding: '40px 0 0' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 32, minWidth: 320 }}>
-              <div>
-                {!isMobile && (
-                  <>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                      <input
-                        type="search"
-                        value={V.eventQuery}
-                        onChange={V.setEventQuery}
-                        placeholder="Search event types"
-                        style={{
-                          flex: '1 1 200px',
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 999,
-                          background: '#F7F7F5',
-                          padding: '12px 18px',
-                          fontFamily: SANS,
-                          fontSize: 14,
-                          color: '#171717',
-                        }}
-                      />
-                    </div>
-                    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      {V.eventGroups.map((g) => (
-                        <div key={g.label}>
-                          <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                            {g.label}
-                          </div>
-                          <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                            {g.items.map((et) => (
-                              <button
-                                key={et.name}
-                                onClick={et.pick}
-                                style={{
-                                  border: `1px solid ${et.border}`,
-                                  borderRadius: 999,
-                                  background: et.bg,
-                                  color: et.fg,
-                                  padding: '10px 16px',
-                                  cursor: 'pointer',
-                                  fontSize: 14,
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {et.name}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {!isMobile && (
-              <div
-                id="event-checklist-panel"
-                style={{
-                  background: '#171717',
-                  borderRadius: 28,
-                  padding: '30px 30px 26px',
-                  color: '#FFFFFF',
-                  minWidth: 300,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16 }}>
-                  <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>{V.selectedEventName}</div>
-                  <div style={{ fontFamily: MONO, fontSize: 12, color: '#DDF247' }}>{V.checkedLabel}</div>
-                </div>
-                <div style={{ marginTop: 4, fontSize: 13, color: '#9C9C9C' }}>Categories usually needed for this event</div>
-                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {V.checklist.map((row) => (
-                    <button
-                      key={row.code}
-                      onClick={row.open}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 14,
-                        width: '100%',
-                        textAlign: 'left',
-                        border: 0,
-                        borderTop: '1px solid #2B2B2B',
-                        background: 'transparent',
-                        padding: '11px 2px',
-                        cursor: 'pointer',
-                        color: row.color,
-                      }}
-                    >
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: 18,
-                          height: 18,
-                          border: `1px solid ${row.boxBorder}`,
-                          borderRadius: 5,
-                          background: row.boxBg,
-                          color: '#171717',
-                          fontSize: 11,
-                          fontWeight: 800,
-                        }}
-                      >
-                        {row.mark}
-                      </span>
-                      <span style={{ fontFamily: MONO, fontSize: 12, color: row.codeColor }}>{row.code}</span>
-                      <span style={{ fontSize: 14, fontWeight: 600 }}>{row.name}</span>
-                    </button>
-                  ))}
-                </div>
-                <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid #2B2B2B' }}>
-                  <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E6E' }}>
-                    Planning requirements
-                  </div>
-                  <div style={{ marginTop: 4, fontSize: 12, color: '#6E6E6E' }}>Handled by you, not sourced from a supplier</div>
-                  <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {V.planningRequirements.map((item) => (
-                      <span
-                        key={item}
-                        style={{
-                          border: '1px solid #3B3B3B',
-                          borderRadius: 999,
-                          padding: '5px 12px',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: '#9C9C9C',
-                        }}
-                      >
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          )}
 
           <div id="all-categories" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
