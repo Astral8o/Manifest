@@ -499,9 +499,11 @@ export default function App() {
     isJoin: st.screen === 'join',
     isAccount: st.screen === 'account',
     isAbout: st.screen === 'about',
+    isAllCategories: st.screen === 'allCategories',
     sourcingOpen: st.sourcingOpen,
     goHome: nav('home'),
     goSuppliers: nav('suppliers'),
+    goAllCategories: nav('allCategories'),
     goEventory: nav('eventory'),
     goSourcing: () => patch({ sourcingOpen: true, sourcingSent: false }),
     closeSourcing: () => patch({ sourcingOpen: false, sourcingSent: false }),
@@ -546,6 +548,7 @@ export default function App() {
       .sort((a, b) => b.n - a.n)
       .slice(0, 6)
       .map((x) => catTile(x.c)),
+    allCategoryTiles: CATS.map((c) => catTile(c)),
 
     topSuppliers: SUPPLIERS.slice()
       .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating))
@@ -1209,7 +1212,7 @@ export default function App() {
                   Pick the category that fits your event to see who's available.
                 </p>
                 <button
-                  onClick={V.runHomeSearch}
+                  onClick={V.goAllCategories}
                   style={{
                     marginTop: 8,
                     border: 0,
@@ -1708,6 +1711,63 @@ export default function App() {
             >
               Submit a sourcing request
             </button>
+          </div>
+        </div>
+      )}
+
+      {V.isAllCategories && (
+        <div style={{ padding: '34px 0 0' }}>
+          <button
+            onClick={V.goHome}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← Home
+          </button>
+          <div style={{ marginTop: 18 }}>
+            <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>All Categories</h1>
+            <p style={{ margin: '12px 0 0', maxWidth: 560, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
+              Every kind of vendor on Eventory, in one place.
+            </p>
+          </div>
+          <div style={{ marginTop: 26, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+            {V.allCategoryTiles.map((c) => (
+              <button
+                key={c.code}
+                onClick={c.open}
+                style={{
+                  position: 'relative',
+                  isolation: 'isolate',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-end',
+                  textAlign: 'left',
+                  border: 0,
+                  borderRadius: 20,
+                  padding: 18,
+                  cursor: 'pointer',
+                  minHeight: 148,
+                  background: '#171717',
+                }}
+              >
+                <img
+                  src={c.photo}
+                  alt=""
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.7) 100%)',
+                  }}
+                />
+                <div style={{ position: 'relative' }}>
+                  <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#FFFFFF' }}>{c.name}</div>
+                  <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>{c.supplierLabel}</div>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       )}
