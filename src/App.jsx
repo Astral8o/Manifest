@@ -183,6 +183,7 @@ const initialState = {
   dirPrice: 0,
   dirQuery: '',
   dirVisible: 6,
+  planModalOpen: false,
   planStep: 1,
   planEventType: null,
   planOtherLabel: '',
@@ -529,7 +530,6 @@ export default function App() {
     isJoin: st.screen === 'join',
     isAccount: st.screen === 'account',
     isAbout: st.screen === 'about',
-    isPlan: st.screen === 'plan',
     sourcingOpen: st.sourcingOpen,
     goHome: nav('home'),
     goSuppliers: nav('suppliers'),
@@ -557,7 +557,9 @@ export default function App() {
     navMenuOpen: !!st.navMenuOpen,
     toggleNavMenu: () => patch((s) => ({ navMenuOpen: !s.navMenuOpen })),
     closeNavMenu: () => patch({ navMenuOpen: false }),
-    startPlanning: nav('plan', { planStep: 1, planEventType: null, planOtherLabel: '', planCats: [] }),
+    startPlanning: () => patch({ planModalOpen: true, planStep: 1, planEventType: null, planOtherLabel: '', planCats: [] }),
+    planModalOpen: !!st.planModalOpen,
+    closePlanModal: () => patch({ planModalOpen: false }),
     planStep: st.planStep || 1,
     eventTypeTiles: EVENT_TYPES.map((t) => ({
       key: t.key,
@@ -596,6 +598,7 @@ export default function App() {
           ? st.planOtherLabel.trim() || 'Your event'
           : (EVENT_TYPES.find((t) => t.key === st.planEventType) || {}).label || '';
       patch({
+        planModalOpen: false,
         screen: 'suppliers',
         dirCat: 'ALL',
         dirCats: st.planCats || [],
@@ -1787,170 +1790,6 @@ export default function App() {
               Submit a sourcing request
             </button>
           </div>
-        </div>
-      )}
-
-      {V.isPlan && (
-        <div style={{ padding: '34px 0 0' }}>
-          {V.planStep === 1 ? (
-            <>
-              <button
-                onClick={V.goHome}
-                style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
-              >
-                ← Home
-              </button>
-              <div style={{ marginTop: 18 }}>
-                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                  Step 1 of 2
-                </div>
-                <h1 style={{ margin: '6px 0 0', fontSize: isMobile ? 28 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
-                  What are you planning?
-                </h1>
-              </div>
-              <div
-                style={{
-                  marginTop: 24,
-                  maxWidth: 640,
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
-                  gap: 12,
-                }}
-              >
-                {V.eventTypeTiles.map((t) => (
-                  <button
-                    key={t.key}
-                    onClick={t.pick}
-                    style={{
-                      border: t.on ? '2px solid #171717' : '1px solid #E4E4DF',
-                      borderRadius: 16,
-                      background: t.on ? '#171717' : '#FFFFFF',
-                      color: t.on ? '#FFFFFF' : '#171717',
-                      padding: '18px 16px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      fontSize: 15,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-              {st.planEventType === 'other' && (
-                <div style={{ marginTop: 18, maxWidth: 480, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <input
-                    type="text"
-                    value={V.planOtherLabel}
-                    onChange={V.setPlanOtherLabel}
-                    placeholder="Tell us what you're planning"
-                    style={{
-                      flex: 1,
-                      minWidth: 220,
-                      border: '1px solid #E4E4DF',
-                      borderRadius: 999,
-                      background: '#F7F7F5',
-                      padding: '11px 16px',
-                      fontFamily: SANS,
-                      fontSize: 14,
-                      color: '#171717',
-                    }}
-                  />
-                  <button
-                    onClick={V.confirmOtherEventType}
-                    disabled={!V.planOtherLabel.trim()}
-                    style={{
-                      border: 0,
-                      borderRadius: 999,
-                      background: '#171717',
-                      color: '#FFFFFF',
-                      padding: '11px 22px',
-                      cursor: V.planOtherLabel.trim() ? 'pointer' : 'not-allowed',
-                      opacity: V.planOtherLabel.trim() ? 1 : 0.4,
-                      fontSize: 14,
-                      fontWeight: 700,
-                    }}
-                  >
-                    Continue
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <button
-                onClick={V.planBackToStep1}
-                style={{ marginTop: 18, display: 'block', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
-              >
-                ← Back
-              </button>
-              <div style={{ marginTop: 14 }}>
-                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                  Step 2 of 2
-                </div>
-                <h1 style={{ margin: '6px 0 0', fontSize: isMobile ? 28 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
-                  Which vendors are you looking for?
-                </h1>
-                <p style={{ margin: '10px 0 0', maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
-                  We've pre-picked what people usually book for a {V.planEventLabel.toLowerCase()} — tick or untick anything.
-                </p>
-              </div>
-              <div
-                style={{
-                  marginTop: 22,
-                  maxWidth: 640,
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
-                  gap: 10,
-                }}
-              >
-                {V.planCategoryTiles.map((c) => (
-                  <button
-                    key={c.code}
-                    onClick={c.toggle}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      border: c.on ? '2px solid #171717' : '1px solid #E4E4DF',
-                      borderRadius: 14,
-                      background: c.on ? '#F5F6E9' : '#FFFFFF',
-                      padding: '12px 14px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                  >
-                    <span
-                      style={{
-                        flexShrink: 0,
-                        width: 18,
-                        height: 18,
-                        borderRadius: 5,
-                        border: '2px solid #171717',
-                        background: c.on ? '#171717' : 'transparent',
-                        color: '#FFFFFF',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 12,
-                      }}
-                    >
-                      {c.on ? '✓' : ''}
-                    </span>
-                    <span style={{ fontSize: 14, fontWeight: 600 }}>{c.name}</span>
-                  </button>
-                ))}
-              </div>
-              <div style={{ marginTop: 28, display: 'flex', justifyContent: 'center' }}>
-                <button
-                  onClick={V.finishPlanning}
-                  style={{ border: 0, borderRadius: 999, background: '#DDF247', color: '#171717', padding: '15px 32px', cursor: 'pointer', fontFamily: DISPLAY, fontSize: 15, fontWeight: 600 }}
-                >
-                  See vendors →
-                </button>
-              </div>
-            </>
-          )}
         </div>
       )}
 
@@ -4359,6 +4198,214 @@ export default function App() {
                 <div style={{ marginTop: 12, fontSize: 12, color: '#5B5B5B', textAlign: 'center' }}>
                   No upfront charge. We follow up by email within one business day.
                 </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {V.planModalOpen && (
+        <div
+          onClick={V.closePlanModal}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 50,
+            background: 'rgba(23,23,23,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: isMobile ? 12 : 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 640,
+              maxHeight: '88vh',
+              overflowY: 'auto',
+              background: '#FFFFFF',
+              borderRadius: 28,
+              padding: isMobile ? 20 : 32,
+            }}
+          >
+            {V.planStep === 1 ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                  <div>
+                    <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Step 1 of 2
+                    </div>
+                    <h2 style={{ margin: '6px 0 0', fontSize: isMobile ? 22 : 28, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
+                      What are you planning?
+                    </h2>
+                  </div>
+                  <button
+                    onClick={V.closePlanModal}
+                    aria-label="Close"
+                    style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#6E6E6E', padding: 4, lineHeight: 1, flexShrink: 0 }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div
+                  style={{
+                    marginTop: 22,
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+                    gap: 12,
+                  }}
+                >
+                  {V.eventTypeTiles.map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={t.pick}
+                      style={{
+                        border: t.on ? '2px solid #171717' : '1px solid #E4E4DF',
+                        borderRadius: 16,
+                        background: t.on ? '#171717' : '#FFFFFF',
+                        color: t.on ? '#FFFFFF' : '#171717',
+                        padding: '18px 16px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        fontSize: 15,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+                {st.planEventType === 'other' && (
+                  <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <input
+                      type="text"
+                      value={V.planOtherLabel}
+                      onChange={V.setPlanOtherLabel}
+                      placeholder="Tell us what you're planning"
+                      style={{
+                        flex: 1,
+                        minWidth: 220,
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: '#F7F7F5',
+                        padding: '11px 16px',
+                        fontFamily: SANS,
+                        fontSize: 14,
+                        color: '#171717',
+                      }}
+                    />
+                    <button
+                      onClick={V.confirmOtherEventType}
+                      disabled={!V.planOtherLabel.trim()}
+                      style={{
+                        border: 0,
+                        borderRadius: 999,
+                        background: '#171717',
+                        color: '#FFFFFF',
+                        padding: '11px 22px',
+                        cursor: V.planOtherLabel.trim() ? 'pointer' : 'not-allowed',
+                        opacity: V.planOtherLabel.trim() ? 1 : 0.4,
+                        fontSize: 14,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Continue
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                  <div>
+                    <button
+                      onClick={V.planBackToStep1}
+                      style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+                    >
+                      ← Back
+                    </button>
+                    <div style={{ marginTop: 10, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Step 2 of 2
+                    </div>
+                    <h2 style={{ margin: '6px 0 0', fontSize: isMobile ? 22 : 28, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
+                      Which vendors are you looking for?
+                    </h2>
+                  </div>
+                  <button
+                    onClick={V.closePlanModal}
+                    aria-label="Close"
+                    style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#6E6E6E', padding: 4, lineHeight: 1, flexShrink: 0 }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
+                  We've pre-picked what people usually book for a {V.planEventLabel.toLowerCase()} — tick or untick anything.
+                </p>
+                <div
+                  style={{
+                    marginTop: 18,
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+                    gap: 10,
+                  }}
+                >
+                  {V.planCategoryTiles.map((c) => (
+                    <button
+                      key={c.code}
+                      onClick={c.toggle}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        border: c.on ? '2px solid #171717' : '1px solid #E4E4DF',
+                        borderRadius: 14,
+                        background: c.on ? '#F5F6E9' : '#FFFFFF',
+                        padding: '12px 14px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <span
+                        style={{
+                          flexShrink: 0,
+                          width: 18,
+                          height: 18,
+                          borderRadius: 5,
+                          border: '2px solid #171717',
+                          background: c.on ? '#171717' : 'transparent',
+                          color: '#FFFFFF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 12,
+                        }}
+                      >
+                        {c.on ? '✓' : ''}
+                      </span>
+                      <span style={{ fontSize: 14, fontWeight: 600 }}>{c.name}</span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={V.finishPlanning}
+                  style={{
+                    marginTop: 22,
+                    width: '100%',
+                    border: 0,
+                    borderRadius: 999,
+                    background: '#DDF247',
+                    color: '#171717',
+                    padding: '15px 26px',
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  See vendors →
+                </button>
               </>
             )}
           </div>
