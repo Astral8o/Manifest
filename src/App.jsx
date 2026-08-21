@@ -24,6 +24,32 @@ const PRICE_FILTERS = [
   { label: 'TT$3,000+', test: (v) => v !== null && v > 3000 },
   { label: 'Price on request', test: (v) => v === null },
 ];
+const ABOUT_FAQS = [
+  {
+    q: 'Is Eventory free to use?',
+    a: 'Yes. Browsing suppliers, comparing what they offer and sending inquiries is free for anyone planning an event. Listing a business is also free — paid placement is optional.',
+  },
+  {
+    q: 'Does Eventory process payments?',
+    a: 'No. Eventory never processes payment between you and a supplier. You pay suppliers directly, on their own terms.',
+  },
+  {
+    q: 'How do I request a quote from a supplier?',
+    a: "Add what you need to your Eventory as you browse, then send it. Each supplier gets a separate inquiry with only the items relevant to them.",
+  },
+  {
+    q: "Can't find what you're looking for?",
+    a: "Submit a sourcing request and tell us what you need. We'll help you find options, even if it isn't listed yet.",
+  },
+  {
+    q: 'How do I list my business on Eventory?',
+    a: 'Head to the For Businesses page and submit your details. We review every listing by hand and it goes live within two business days.',
+  },
+  {
+    q: 'Where does Eventory operate?',
+    a: 'We currently cover Trinidad & Tobago, including Port of Spain, San Fernando, Chaguanas, Arima and Tobago.',
+  },
+];
 
 const avatarUrl = (seed) =>
   'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(seed) + '&backgroundColor=171717&textColor=ffffff&fontWeight=700';
@@ -104,6 +130,7 @@ const initialState = {
   joinCats: [],
   joinCatsMenuOpen: false,
   joinSubmitted: false,
+  contactSent: false,
   sourcingOpen: false,
   sourcingSent: false,
   supplierTab: 'services',
@@ -346,6 +373,7 @@ export default function App() {
     isEventory: st.screen === 'eventory',
     isJoin: st.screen === 'join',
     isAccount: st.screen === 'account',
+    isAbout: st.screen === 'about',
     sourcingOpen: st.sourcingOpen,
     goHome: nav('home'),
     goSuppliers: nav('suppliers'),
@@ -357,6 +385,9 @@ export default function App() {
     goJoin: nav('join', { joinSubmitted: false }),
     submitJoin: () => patch({ joinSubmitted: true }),
     joinSubmitted: !!st.joinSubmitted,
+    goAbout: nav('about', { contactSent: false }),
+    submitContact: () => patch({ contactSent: true }),
+    contactSent: !!st.contactSent,
     openPromoPlan: () => patch({ promoPlanOpen: true, promoPlanSent: false }),
     closePromoPlan: () => patch({ promoPlanOpen: false, promoPlanSent: false }),
     submitPromoPlan: () => patch({ promoPlanSent: true }),
@@ -805,6 +836,12 @@ export default function App() {
                 >
                   For Businesses
                 </button>
+                <button
+                  onClick={V.goAbout}
+                  style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
+                >
+                  About
+                </button>
               </div>
             )}
           </div>
@@ -836,6 +873,12 @@ export default function App() {
                 style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
               >
                 For Businesses
+              </button>
+              <button
+                onClick={V.goAbout}
+                style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
+              >
+                About
               </button>
             </div>
           )}
@@ -3195,6 +3238,134 @@ export default function App() {
               Tell me more →
             </button>
             <div style={{ marginTop: 14, fontFamily: MONO, fontSize: 13, fontWeight: 700, color: '#171717' }}>TTD $500/month</div>
+          </div>
+        </div>
+      )}
+
+      {V.isAbout && (
+        <div style={{ padding: '34px 0 0' }}>
+          <button
+            onClick={V.goHome}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← Home
+          </button>
+
+          <div style={{ marginTop: 22, maxWidth: 680 }}>
+            <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>About Eventory</h1>
+            <p style={{ margin: '16px 0 0', fontSize: 17, lineHeight: 1.6, color: '#4A4A4A' }}>
+              Eventory is a discovery and sourcing marketplace for events in Trinidad &amp; Tobago. We connect people
+              planning weddings, corporate functions, birthdays and everything in between with the suppliers who can
+              actually deliver — caterers, venues, decorators, photographers, entertainers and more.
+            </p>
+            <p style={{ margin: '14px 0 0', fontSize: 17, lineHeight: 1.6, color: '#4A4A4A' }}>
+              Browse real profiles, compare pricing, and reach out directly. Eventory never processes payment or
+              takes a cut — you deal with suppliers on their own terms.
+            </p>
+          </div>
+
+          <div style={{ marginTop: isMobile ? 40 : 56 }}>
+            <h2 style={{ margin: 0, fontSize: isMobile ? 24 : 30, letterSpacing: '-0.02em', fontWeight: 800 }}>Frequently asked questions</h2>
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {ABOUT_FAQS.map((f) => (
+                <div key={f.q} style={{ borderTop: '1px solid #ECECEC', padding: '18px 2px' }}>
+                  <div style={{ fontSize: 15, fontWeight: 700 }}>{f.q}</div>
+                  <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>{f.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginTop: isMobile ? 40 : 56, maxWidth: 560, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 18 : 26 }}>
+            {V.contactSent ? (
+              <>
+                <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Thanks — message sent</div>
+                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                  We'll get back to you within one business day.
+                </p>
+                <button
+                  onClick={V.goHome}
+                  style={{
+                    marginTop: 20,
+                    border: 0,
+                    borderRadius: 999,
+                    background: '#171717',
+                    color: '#FFFFFF',
+                    padding: '13px 24px',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 700,
+                  }}
+                >
+                  Back to home
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 style={{ margin: 0, fontSize: isMobile ? 24 : 30, letterSpacing: '-0.02em', fontWeight: 800 }}>Contact us</h2>
+                <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                  Questions, feedback, or something not covered above? Send us a message.
+                </p>
+                <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Name
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Your name"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Email
+                    </span>
+                    <input
+                      type="email"
+                      placeholder="you@example.com"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Message
+                    </span>
+                    <textarea
+                      placeholder="How can we help?"
+                      style={{
+                        minHeight: 120,
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 14,
+                        background: '#F7F7F5',
+                        padding: 14,
+                        fontFamily: SANS,
+                        fontSize: 15,
+                        lineHeight: 1.5,
+                        color: '#171717',
+                        resize: 'vertical',
+                      }}
+                    />
+                  </label>
+                </div>
+                <button
+                  onClick={V.submitContact}
+                  style={{
+                    marginTop: 20,
+                    border: 0,
+                    borderRadius: 999,
+                    background: '#171717',
+                    color: '#FFFFFF',
+                    padding: '15px 26px',
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  Send message
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
