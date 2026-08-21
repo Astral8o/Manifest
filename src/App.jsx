@@ -8,6 +8,21 @@ import {
 } from './data';
 import { fetchCatalog, submitInquiry } from './catalog';
 import heroPhoto from './assets/hero-photo.jpg';
+import cateringPhoto from './assets/categories/catering.jpg';
+import venuesPhoto from './assets/categories/venues.jpg';
+import rentalsPhoto from './assets/categories/rentals.jpg';
+import productionPhoto from './assets/categories/production.jpg';
+import photographyPhoto from './assets/categories/photography.jpg';
+import entertainmentPhoto from './assets/categories/entertainment.jpg';
+
+const CATEGORY_PHOTOS = {
+  'CAT.01': cateringPhoto,
+  'CAT.02': venuesPhoto,
+  'CAT.04': rentalsPhoto,
+  'CAT.06': productionPhoto,
+  'CAT.08': photographyPhoto,
+  'CAT.09': entertainmentPhoto,
+};
 
 const MONO = "'IBM Plex Mono', monospace";
 const SANS = 'Manrope, sans-serif';
@@ -420,7 +435,7 @@ export default function App() {
     return {
       code: c[0],
       name: c[1],
-      photo: photoUrl('category-' + c[0], 400, 300),
+      photo: CATEGORY_PHOTOS[c[0]] || photoUrl('category-' + c[0], 400, 300),
       supplierLabel: n ? n + (n === 1 ? ' vendor' : ' vendors') : 'Coming soon',
       open: openCat(c[0]),
     };
