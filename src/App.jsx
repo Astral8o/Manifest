@@ -24,6 +24,28 @@ const CATEGORY_PHOTOS = {
   'CAT.09': entertainmentPhoto,
 };
 
+const EVENT_TYPES = [
+  { key: 'wedding', label: 'Wedding' },
+  { key: 'corporate', label: 'Corporate Event' },
+  { key: 'launch', label: 'Product Launch' },
+  { key: 'babyShower', label: 'Baby Shower' },
+  { key: 'familyDay', label: 'Family Day' },
+  { key: 'birthday', label: 'Birthday Party' },
+  { key: 'other', label: 'Other' },
+];
+
+// Categories pre-checked in step 2 of the "Plan Your Event" flow, keyed by
+// EVENT_TYPES key. Users can still tick/untick before seeing vendors.
+const EVENT_CATEGORY_DEFAULTS = {
+  wedding: ['CAT.02', 'CAT.01', 'CAT.03', 'CAT.08', 'CAT.15'],
+  corporate: ['CAT.02', 'CAT.06', 'CAT.01'],
+  launch: ['CAT.02', 'CAT.06', 'CAT.01', 'CAT.08'],
+  babyShower: ['CAT.02', 'CAT.01', 'CAT.03', 'CAT.15'],
+  familyDay: ['CAT.02', 'CAT.01', 'CAT.09', 'CAT.04'],
+  birthday: ['CAT.02', 'CAT.01', 'CAT.03', 'CAT.09', 'CAT.15'],
+  other: [],
+};
+
 const MONO = "'IBM Plex Mono', monospace";
 const SANS = 'Manrope, sans-serif';
 const DISPLAY = 'Archivo, Helvetica, sans-serif';
@@ -153,11 +175,17 @@ const initialState = {
   loc: 0,
   grp: 0,
   dirCat: 'ALL',
+  dirCats: [],
+  dirPlanLabel: '',
   dirCatMenuOpen: false,
   dirLoc: 0,
   dirPrice: 0,
   dirQuery: '',
   dirVisible: 6,
+  planStep: 1,
+  planEventType: null,
+  planOtherLabel: '',
+  planCats: [],
   fulfil: 'Delivery',
   spec: {},
   openSpec: {},
@@ -453,6 +481,7 @@ export default function App() {
   const dirQueryLower = (st.dirQuery || '').trim().toLowerCase();
   const dirFiltered = SUPPLIERS.filter((s) => {
     if (st.dirCat !== 'ALL' && s.code !== st.dirCat) return false;
+    if ((st.dirCats || []).length && !st.dirCats.includes(s.code)) return false;
     if (st.dirLoc !== 0 && s.region !== LOCATIONS[st.dirLoc]) return false;
     if (!PRICE_FILTERS[st.dirPrice || 0].test(startPrice(s))) return false;
     if (!dirQueryLower) return true;
@@ -499,6 +528,7 @@ export default function App() {
     isJoin: st.screen === 'join',
     isAccount: st.screen === 'account',
     isAbout: st.screen === 'about',
+    isPlan: st.screen === 'plan',
     sourcingOpen: st.sourcingOpen,
     goHome: nav('home'),
     goSuppliers: nav('suppliers'),
@@ -526,9 +556,56 @@ export default function App() {
     navMenuOpen: !!st.navMenuOpen,
     toggleNavMenu: () => patch((s) => ({ navMenuOpen: !s.navMenuOpen })),
     closeNavMenu: () => patch({ navMenuOpen: false }),
-    startPlanning: () => {
-      document.getElementById('top-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    startPlanning: nav('plan', { planStep: 1, planEventType: null, planOtherLabel: '', planCats: [] }),
+    planStep: st.planStep || 1,
+    eventTypeTiles: EVENT_TYPES.map((t) => ({
+      key: t.key,
+      label: t.label,
+      on: st.planEventType === t.key,
+      pick: () => {
+        if (t.key === 'other') {
+          patch({ planEventType: 'other' });
+          return;
+        }
+        patch({ planEventType: t.key, planCats: EVENT_CATEGORY_DEFAULTS[t.key] || [], planStep: 2 });
+      },
+    })),
+    planOtherLabel: st.planOtherLabel || '',
+    setPlanOtherLabel: (e) => patch({ planOtherLabel: e.target.value }),
+    confirmOtherEventType: () => patch({ planCats: [], planStep: 2 }),
+    planBackToStep1: () => patch({ planStep: 1 }),
+    planEventLabel:
+      st.planEventType === 'other'
+        ? st.planOtherLabel.trim() || 'Your event'
+        : (EVENT_TYPES.find((t) => t.key === st.planEventType) || {}).label || '',
+    planCategoryTiles: CATS.map((c) => ({
+      code: c[0],
+      name: c[1],
+      on: (st.planCats || []).includes(c[0]),
+      toggle: () =>
+        patch((s) => ({
+          planCats: (s.planCats || []).includes(c[0])
+            ? s.planCats.filter((x) => x !== c[0])
+            : s.planCats.concat([c[0]]),
+        })),
+    })),
+    finishPlanning: () => {
+      const label =
+        st.planEventType === 'other'
+          ? st.planOtherLabel.trim() || 'Your event'
+          : (EVENT_TYPES.find((t) => t.key === st.planEventType) || {}).label || '';
+      patch({
+        screen: 'suppliers',
+        dirCat: 'ALL',
+        dirCats: st.planCats || [],
+        dirPlanLabel: label,
+        dirLoc: 0,
+        dirVisible: 6,
+        navMenuOpen: false,
+      });
     },
+    dirPlanLabel: st.dirPlanLabel || '',
+    clearDirPlan: () => patch({ dirCats: [], dirPlanLabel: '' }),
     scrollToJoinForm: () => {
       document.getElementById('join-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     },
@@ -536,9 +613,9 @@ export default function App() {
 
     homeQuery: st.dirQuery || '',
     setHomeQuery: (e) => patch({ dirQuery: e.target.value }),
-    runHomeSearch: () => patch({ screen: 'suppliers', dirCat: 'ALL', dirLoc: 0, dirVisible: 6, navMenuOpen: false }),
+    runHomeSearch: () => patch({ screen: 'suppliers', dirCat: 'ALL', dirCats: [], dirPlanLabel: '', dirLoc: 0, dirVisible: 6, navMenuOpen: false }),
     homeSearchKeyDown: (e) => {
-      if (e.key === 'Enter') patch({ screen: 'suppliers', dirCat: 'ALL', dirLoc: 0, dirVisible: 6, navMenuOpen: false });
+      if (e.key === 'Enter') patch({ screen: 'suppliers', dirCat: 'ALL', dirCats: [], dirPlanLabel: '', dirLoc: 0, dirVisible: 6, navMenuOpen: false });
     },
 
     topCategoryTiles: CATS.map((c) => ({ c, n: SUPPLIERS.filter((s) => s.code === c[0]).length }))
@@ -599,7 +676,7 @@ export default function App() {
         label: c.name,
         countLabel: c.code === 'ALL' ? n + (n === 1 ? ' vendor' : ' vendors') : n ? String(n) : 'None yet',
         on: st.dirCat === c.code,
-        pick: () => patch({ dirCat: c.code, dirCatMenuOpen: false, dirVisible: 6 }),
+        pick: () => patch({ dirCat: c.code, dirCatMenuOpen: false, dirVisible: 6, dirCats: [], dirPlanLabel: '' }),
       };
     }),
     dirCategoryLabel: (CATS.find((c) => c[0] === st.dirCat) || [null, 'All categories'])[1],
@@ -1712,6 +1789,170 @@ export default function App() {
         </div>
       )}
 
+      {V.isPlan && (
+        <div style={{ padding: '34px 0 0' }}>
+          {V.planStep === 1 ? (
+            <>
+              <button
+                onClick={V.goHome}
+                style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+              >
+                ← Home
+              </button>
+              <div style={{ marginTop: 18 }}>
+                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Step 1 of 2
+                </div>
+                <h1 style={{ margin: '6px 0 0', fontSize: isMobile ? 28 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
+                  What are you planning?
+                </h1>
+              </div>
+              <div
+                style={{
+                  marginTop: 24,
+                  maxWidth: 640,
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+                  gap: 12,
+                }}
+              >
+                {V.eventTypeTiles.map((t) => (
+                  <button
+                    key={t.key}
+                    onClick={t.pick}
+                    style={{
+                      border: t.on ? '2px solid #171717' : '1px solid #E4E4DF',
+                      borderRadius: 16,
+                      background: t.on ? '#171717' : '#FFFFFF',
+                      color: t.on ? '#FFFFFF' : '#171717',
+                      padding: '18px 16px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      fontSize: 15,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              {st.planEventType === 'other' && (
+                <div style={{ marginTop: 18, maxWidth: 480, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    value={V.planOtherLabel}
+                    onChange={V.setPlanOtherLabel}
+                    placeholder="Tell us what you're planning"
+                    style={{
+                      flex: 1,
+                      minWidth: 220,
+                      border: '1px solid #E4E4DF',
+                      borderRadius: 999,
+                      background: '#F7F7F5',
+                      padding: '11px 16px',
+                      fontFamily: SANS,
+                      fontSize: 14,
+                      color: '#171717',
+                    }}
+                  />
+                  <button
+                    onClick={V.confirmOtherEventType}
+                    disabled={!V.planOtherLabel.trim()}
+                    style={{
+                      border: 0,
+                      borderRadius: 999,
+                      background: '#171717',
+                      color: '#FFFFFF',
+                      padding: '11px 22px',
+                      cursor: V.planOtherLabel.trim() ? 'pointer' : 'not-allowed',
+                      opacity: V.planOtherLabel.trim() ? 1 : 0.4,
+                      fontSize: 14,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Continue
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <button
+                onClick={V.planBackToStep1}
+                style={{ marginTop: 18, display: 'block', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+              >
+                ← Back
+              </button>
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Step 2 of 2
+                </div>
+                <h1 style={{ margin: '6px 0 0', fontSize: isMobile ? 28 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
+                  Which vendors are you looking for?
+                </h1>
+                <p style={{ margin: '10px 0 0', maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
+                  We've pre-picked what people usually book for a {V.planEventLabel.toLowerCase()} — tick or untick anything.
+                </p>
+              </div>
+              <div
+                style={{
+                  marginTop: 22,
+                  maxWidth: 640,
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+                  gap: 10,
+                }}
+              >
+                {V.planCategoryTiles.map((c) => (
+                  <button
+                    key={c.code}
+                    onClick={c.toggle}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      border: c.on ? '2px solid #171717' : '1px solid #E4E4DF',
+                      borderRadius: 14,
+                      background: c.on ? '#F5F6E9' : '#FFFFFF',
+                      padding: '12px 14px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <span
+                      style={{
+                        flexShrink: 0,
+                        width: 18,
+                        height: 18,
+                        borderRadius: 5,
+                        border: '2px solid #171717',
+                        background: c.on ? '#171717' : 'transparent',
+                        color: '#FFFFFF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 12,
+                      }}
+                    >
+                      {c.on ? '✓' : ''}
+                    </span>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{c.name}</span>
+                  </button>
+                ))}
+              </div>
+              <div style={{ marginTop: 28, display: 'flex', justifyContent: 'center' }}>
+                <button
+                  onClick={V.finishPlanning}
+                  style={{ border: 0, borderRadius: 999, background: '#DDF247', color: '#171717', padding: '15px 32px', cursor: 'pointer', fontFamily: DISPLAY, fontSize: 15, fontWeight: 600 }}
+                >
+                  See vendors →
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {V.isSuppliers && (
         <div style={{ padding: '34px 0 0' }}>
           <button
@@ -1729,6 +1970,44 @@ export default function App() {
             </div>
             <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.dirResultLabel}</div>
           </div>
+
+          {V.dirPlanLabel && (
+            <div style={{ marginTop: 14, display: 'flex' }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  border: '1px solid #171717',
+                  borderRadius: 999,
+                  background: '#171717',
+                  color: '#FFFFFF',
+                  padding: '7px 8px 7px 14px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                Showing vendors for {V.dirPlanLabel}
+                <button
+                  onClick={V.clearDirPlan}
+                  aria-label="Clear planned event filter"
+                  style={{
+                    border: 0,
+                    borderRadius: 999,
+                    background: 'rgba(255,255,255,0.15)',
+                    color: '#FFFFFF',
+                    width: 20,
+                    height: 20,
+                    lineHeight: '20px',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                  }}
+                >
+                  ✕
+                </button>
+              </span>
+            </div>
+          )}
 
           <div
             style={{
