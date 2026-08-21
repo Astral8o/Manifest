@@ -231,6 +231,10 @@ export default function App() {
     st.sent,
   ]);
 
+  useEffect(() => {
+    if (st.sent) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [st.sent]);
+
   const pendingScrollAnchorRef = useRef(null);
 
   useEffect(() => {
