@@ -74,6 +74,9 @@ const initialState = {
   sent: null,
   loc: 0,
   grp: 0,
+  dirCat: 'ALL',
+  dirLoc: 0,
+  dirGrp: 0,
   fulfil: 'Delivery',
   spec: {},
   openSpec: {},
@@ -225,6 +228,21 @@ export default function App() {
   const nav = (screen, extra) => () =>
     patch({ screen, sent: screen === 'manifest' ? st.sent : null, navMenuOpen: false, ...(extra || {}) });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
+  const catTile = (c) => {
+    const on = inSet(c[0]);
+    const n = SUPPLIERS.filter((s) => s.code === c[0]).length;
+    return {
+      code: c[0],
+      name: c[1],
+      mark: on ? '✓' : '',
+      supplierLabel: n ? n + (n === 1 ? ' supplier' : ' suppliers') : 'Coming soon',
+      bg: on ? '#DDF247' : '#F7F7F5',
+      border: on ? '#DDF247' : '#ECECEC',
+      boxBg: on ? '#171717' : 'transparent',
+      boxBorder: on ? '#171717' : '#C8C8C2',
+      open: openCat(c[0]),
+    };
+  };
 
   const cat = CATS.find((c) => c[0] === st.catCode) || CATS[0];
   const catSuppliers = SUPPLIERS.filter((s) => s.code === st.catCode);
@@ -233,6 +251,14 @@ export default function App() {
     (s) =>
       (st.loc === 0 || s.region === LOCATIONS[st.loc]) &&
       (grpMax === 0 || (grpMax === 1000 ? s.minGroup >= 100 : s.minGroup <= grpMax))
+  );
+
+  const dirGrpMax = GROUPS[st.dirGrp][1];
+  const dirFiltered = SUPPLIERS.filter(
+    (s) =>
+      (st.dirCat === 'ALL' || s.code === st.dirCat) &&
+      (st.dirLoc === 0 || s.region === LOCATIONS[st.dirLoc]) &&
+      (dirGrpMax === 0 || (dirGrpMax === 1000 ? s.minGroup >= 100 : s.minGroup <= dirGrpMax))
   );
 
   const sup = supplier(st.supId) || SUPPLIERS[0];
@@ -260,12 +286,14 @@ export default function App() {
     counterBg: itemCount ? '#DDF247' : '#FFFFFF',
     isHome: st.screen === 'home',
     isCategory: st.screen === 'category',
+    isSuppliers: st.screen === 'suppliers',
     isSupplier: st.screen === 'supplier',
     isManifest: st.screen === 'manifest',
     isJoin: st.screen === 'join',
     isAccount: st.screen === 'account',
     sourcingOpen: st.sourcingOpen,
     goHome: nav('home'),
+    goSuppliers: nav('suppliers'),
     goManifest: nav('manifest'),
     goSourcing: () => patch({ sourcingOpen: true, sourcingSent: false }),
     closeSourcing: () => patch({ sourcingOpen: false, sourcingSent: false }),
@@ -291,21 +319,13 @@ export default function App() {
     },
     backToCategory: () => patch({ screen: 'category', catCode: sup.code }),
 
-    categoryTiles: CATS.map((c) => {
-      const on = inSet(c[0]);
-      const n = SUPPLIERS.filter((s) => s.code === c[0]).length;
-      return {
-        code: c[0],
-        name: c[1],
-        mark: on ? '✓' : '',
-        supplierLabel: n ? n + (n === 1 ? ' supplier' : ' suppliers') : 'Coming soon',
-        bg: on ? '#DDF247' : '#F7F7F5',
-        border: on ? '#DDF247' : '#ECECEC',
-        boxBg: on ? '#171717' : 'transparent',
-        boxBorder: on ? '#171717' : '#C8C8C2',
-        open: openCat(c[0]),
-      };
-    }),
+    categoryTiles: CATS.map((c) => catTile(c)),
+
+    topCategoryTiles: CATS.map((c) => ({ c, n: SUPPLIERS.filter((s) => s.code === c[0]).length }))
+      .filter((x) => x.n > 0)
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 6)
+      .map((x) => catTile(x.c)),
 
     featuredProducts: ['s1-1', 's3-1', 's6-12', 's7-1', 's10-1', 's5-1']
       .map((pid) => {
@@ -317,6 +337,7 @@ export default function App() {
           photo: photoUrl(pid, 300, 220),
           name: p.name,
           supplierName: s.name,
+          categoryName: catName(s.code),
           priceLabel: priceLabel(p),
           open: () => patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
         };
@@ -332,6 +353,26 @@ export default function App() {
       logo: avatarUrl(s.name),
       name: s.name,
       location: s.city,
+      description: s.bio,
+      tags: s.tags,
+      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
+    })),
+
+    dirCategoryFilters: [{ code: 'ALL', name: 'All categories' }, ...CATS.map((c) => ({ code: c[0], name: c[1] }))].map((c) => ({
+      label: c.name,
+      ...chip(st.dirCat === c.code),
+      pick: () => patch({ dirCat: c.code }),
+    })),
+    dirLocationFilters: LOCATIONS.map((l, i) => ({ label: l, ...chip(i === st.dirLoc), pick: () => patch({ dirLoc: i }) })),
+    dirGroupFilters: GROUPS.map((g, i) => ({ label: g[0], ...chip(i === st.dirGrp), pick: () => patch({ dirGrp: i }) })),
+    dirResultLabel: dirFiltered.length + ' of ' + SUPPLIERS.length + ' suppliers',
+    dirSupplierRows: dirFiltered.map((s) => ({
+      key: s.id,
+      logo: avatarUrl(s.name),
+      name: s.name,
+      location: s.city,
+      categoryCode: s.code,
+      categoryName: catName(s.code),
       description: s.bio,
       tags: s.tags,
       open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
@@ -664,7 +705,7 @@ export default function App() {
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', columnGap: 22, flexWrap: 'wrap', rowGap: 6 }}>
                 <button
-                  onClick={V.goHome}
+                  onClick={V.goSuppliers}
                   style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
                 >
                   Find Suppliers
@@ -696,7 +737,7 @@ export default function App() {
               }}
             >
               <button
-                onClick={V.goHome}
+                onClick={V.goSuppliers}
                 style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
               >
                 Find Suppliers
@@ -834,6 +875,60 @@ export default function App() {
             </button>
           </div>
 
+          <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Top categories</h2>
+              <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
+                The categories with the most suppliers on Eventory right now.
+              </p>
+            </div>
+            <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+              {V.topCategoryTiles.map((c) => (
+                <button
+                  key={c.code}
+                  onClick={c.open}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: 34,
+                    textAlign: 'left',
+                    border: `1px solid ${c.border}`,
+                    borderRadius: 20,
+                    background: c.bg,
+                    padding: 18,
+                    cursor: 'pointer',
+                    minHeight: 148,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{c.code}</span>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 18,
+                        height: 18,
+                        border: `1px solid ${c.boxBorder}`,
+                        borderRadius: 5,
+                        background: c.boxBg,
+                        fontSize: 11,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {c.mark}
+                    </span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15 }}>{c.name}</div>
+                    <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 11, color: '#6E6E6E' }}>{c.supplierLabel}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div id="all-categories" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>All categories</h2>
@@ -923,6 +1018,22 @@ export default function App() {
                   <div style={{ padding: isMobile ? '12px 14px 16px' : '16px 18px 20px' }}>
                     <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{f.supplierName}</div>
                     <div style={{ marginTop: 4, fontSize: isMobile ? 14 : 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{f.name}</div>
+                    <div style={{ marginTop: 10 }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 999,
+                          background: '#F7F7F5',
+                          padding: '4px 10px',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: '#4A4A4A',
+                        }}
+                      >
+                        {f.categoryName}
+                      </span>
+                    </div>
                     <div style={{ marginTop: 10, fontFamily: MONO, fontSize: isMobile ? 12 : 14, fontWeight: 700 }}>{f.priceLabel}</div>
                   </div>
                 </button>
@@ -1127,6 +1238,232 @@ export default function App() {
                       <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.location}</div>
                     </div>
                     <p style={{ margin: '8px 0 0', maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>{s.description}</p>
+                    <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {s.tags.map((t) => (
+                        <span
+                          key={t}
+                          style={{
+                            border: '1px solid #E4E4DF',
+                            borderRadius: 999,
+                            background: '#F7F7F5',
+                            padding: '5px 12px',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: '#4A4A4A',
+                          }}
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    flex: isMobile ? '1 1 100%' : '0 0 220px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 14,
+                    alignItems: isMobile ? 'stretch' : 'flex-end',
+                  }}
+                >
+                  <button
+                    onClick={s.open}
+                    style={{
+                      border: 0,
+                      borderRadius: 999,
+                      background: '#171717',
+                      color: '#FFFFFF',
+                      padding: '12px 20px',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 700,
+                    }}
+                  >
+                    See Profile
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div
+            style={{
+              marginTop: 28,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 24,
+              flexWrap: 'wrap',
+              borderRadius: 22,
+              background: '#F2F2F0',
+              padding: '22px 26px',
+            }}
+          >
+            <div style={{ fontSize: 15, color: '#4A4A4A' }}>Nothing here fits? Tell us what you need and we will go find it.</div>
+            <button
+              onClick={V.goSourcing}
+              style={{
+                border: '1px solid #171717',
+                borderRadius: 999,
+                background: 'transparent',
+                padding: '11px 20px',
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 700,
+              }}
+            >
+              Submit a sourcing request
+            </button>
+          </div>
+        </div>
+      )}
+
+      {V.isSuppliers && (
+        <div style={{ padding: '34px 0 0' }}>
+          <button
+            onClick={V.goHome}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← Home
+          </button>
+          <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+            <div>
+              <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Find Suppliers</h1>
+              <p style={{ margin: '12px 0 0', maxWidth: 560, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
+                Browse every supplier on Eventory, or narrow down by category, location and group size.
+              </p>
+            </div>
+            <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.dirResultLabel}</div>
+          </div>
+
+          <div
+            style={{
+              marginTop: 26,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 14,
+              borderTop: '1px solid #ECECEC',
+              borderBottom: '1px solid #ECECEC',
+              padding: '16px 0',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                Category
+              </span>
+              {V.dirCategoryFilters.map((f) => (
+                <button
+                  key={f.label}
+                  onClick={f.pick}
+                  style={{
+                    border: `1px solid ${f.border}`,
+                    borderRadius: 999,
+                    background: f.bg,
+                    color: f.fg,
+                    padding: '7px 14px',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Location
+                </span>
+                {V.dirLocationFilters.map((f) => (
+                  <button
+                    key={f.label}
+                    onClick={f.pick}
+                    style={{
+                      border: `1px solid ${f.border}`,
+                      borderRadius: 999,
+                      background: f.bg,
+                      color: f.fg,
+                      padding: '7px 14px',
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Group size
+                </span>
+                {V.dirGroupFilters.map((f) => (
+                  <button
+                    key={f.label}
+                    onClick={f.pick}
+                    style={{
+                      border: `1px solid ${f.border}`,
+                      borderRadius: 999,
+                      background: f.bg,
+                      color: f.fg,
+                      padding: '7px 14px',
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {V.dirSupplierRows.map((s) => (
+              <div
+                key={s.key}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: 28,
+                  flexWrap: 'wrap',
+                  border: '1px solid #ECECEC',
+                  borderRadius: 22,
+                  padding: '22px 24px',
+                }}
+              >
+                <div style={{ flex: '1 1 380px', minWidth: 280, display: 'flex', gap: 16 }}>
+                  <img
+                    src={s.logo}
+                    alt={s.name + ' logo'}
+                    style={{ width: 52, height: 52, borderRadius: 999, flexShrink: 0, background: '#171717' }}
+                  />
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{s.name}</div>
+                      <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.location}</div>
+                    </div>
+                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      <span
+                        style={{
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 999,
+                          background: '#F7F7F5',
+                          padding: '4px 10px',
+                          fontFamily: MONO,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: '#4A4A4A',
+                        }}
+                      >
+                        {s.categoryCode} · {s.categoryName}
+                      </span>
+                    </div>
+                    <p style={{ margin: '10px 0 0', maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>{s.description}</p>
                     <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {s.tags.map((t) => (
                         <span
