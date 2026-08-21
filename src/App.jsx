@@ -17,6 +17,13 @@ const DISPLAY = 'Archivo, Helvetica, sans-serif';
 const DISPLAY_BLACK = "'Archivo Black', Archivo, sans-serif";
 const ACCOUNT_KEY = 'eventoryAccount';
 const PROMO_ACCENT = '#FF5A36';
+const PRICE_FILTERS = [
+  { label: 'Any price', test: () => true },
+  { label: 'Under TT$500', test: (v) => v !== null && v < 500 },
+  { label: 'TT$500–TT$3,000', test: (v) => v !== null && v >= 500 && v <= 3000 },
+  { label: 'TT$3,000+', test: (v) => v !== null && v > 3000 },
+  { label: 'Price on request', test: (v) => v === null },
+];
 
 const avatarUrl = (seed) =>
   'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(seed) + '&backgroundColor=171717&textColor=ffffff&fontWeight=700';
@@ -77,6 +84,7 @@ const initialState = {
   dirCat: 'ALL',
   dirCatMenuOpen: false,
   dirLoc: 0,
+  dirPrice: 0,
   dirQuery: '',
   dirVisible: 6,
   fulfil: 'Delivery',
@@ -163,6 +171,11 @@ export default function App() {
   };
   const priceLabel = (p) =>
     p.priceOnRequest ? 'Inquire for pricing' : money(p.min) + '–' + money(p.max) + (p.unit === 'flat' ? '' : ' ' + p.unit);
+  const startPrice = (s) => (s.priceOnRequest ? null : Math.min(...s.products.map((p) => p[2])));
+  const startPriceLabel = (s) => {
+    const v = startPrice(s);
+    return v === null ? 'Inquire for pricing' : 'From ' + money(v);
+  };
 
   const add = (pid) => {
     patch((s) => {
@@ -259,6 +272,7 @@ export default function App() {
   const dirFiltered = SUPPLIERS.filter((s) => {
     if (st.dirCat !== 'ALL' && s.code !== st.dirCat) return false;
     if (st.dirLoc !== 0 && s.region !== LOCATIONS[st.dirLoc]) return false;
+    if (!PRICE_FILTERS[st.dirPrice || 0].test(startPrice(s))) return false;
     if (!dirQueryLower) return true;
     const inSupplier =
       s.name.toLowerCase().indexOf(dirQueryLower) >= 0 ||
@@ -393,6 +407,7 @@ export default function App() {
     toggleDirCatMenu: () => patch((s) => ({ dirCatMenuOpen: !s.dirCatMenuOpen })),
     closeDirCatMenu: () => patch({ dirCatMenuOpen: false }),
     dirLocationFilters: LOCATIONS.map((l, i) => ({ label: l, ...chip(i === st.dirLoc), pick: () => patch({ dirLoc: i, dirVisible: 6 }) })),
+    dirPriceFilters: PRICE_FILTERS.map((f, i) => ({ label: f.label, ...chip(i === (st.dirPrice || 0)), pick: () => patch({ dirPrice: i, dirVisible: 6 }) })),
     dirQuery: st.dirQuery || '',
     setDirQuery: (e) => patch({ dirQuery: e.target.value, dirVisible: 6 }),
     dirResultLabel: dirFiltered.length + ' of ' + SUPPLIERS.length + ' suppliers',
@@ -405,6 +420,7 @@ export default function App() {
       categoryName: catName(s.code),
       description: s.bio,
       tags: s.tags,
+      priceLabel: startPriceLabel(s),
       open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
     })),
     dirShowSeeAll: dirFiltered.length > (st.dirVisible || 6),
@@ -1362,7 +1378,7 @@ export default function App() {
             <div>
               <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Find Suppliers</h1>
               <p style={{ margin: '12px 0 0', maxWidth: 560, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
-                Browse every supplier on Eventory, or narrow down by category and location.
+                Browse every supplier on Eventory, or narrow down by category, location and price.
               </p>
             </div>
             <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.dirResultLabel}</div>
@@ -1512,6 +1528,44 @@ export default function App() {
                   ))}
                 </div>
               </div>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 8, minWidth: 0 }}>
+                <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Price
+                </span>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    flexWrap: isMobile ? 'nowrap' : 'wrap',
+                    overflowX: isMobile ? 'auto' : 'visible',
+                    WebkitOverflowScrolling: 'touch',
+                    paddingBottom: isMobile ? 2 : 0,
+                    minWidth: 0,
+                  }}
+                >
+                  {V.dirPriceFilters.map((f) => (
+                    <button
+                      key={f.label}
+                      onClick={f.pick}
+                      style={{
+                        border: `1px solid ${f.border}`,
+                        borderRadius: 999,
+                        background: f.bg,
+                        color: f.fg,
+                        padding: isMobile ? '6px 12px' : '7px 14px',
+                        cursor: 'pointer',
+                        fontSize: isMobile ? 12 : 13,
+                        fontWeight: 600,
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1583,10 +1637,11 @@ export default function App() {
                     flex: isMobile ? '1 1 100%' : '0 0 220px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 14,
+                    gap: 10,
                     alignItems: isMobile ? 'stretch' : 'flex-end',
                   }}
                 >
+                  <div style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, color: '#171717' }}>{s.priceLabel}</div>
                   <button
                     onClick={s.open}
                     style={{
