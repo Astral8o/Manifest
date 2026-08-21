@@ -245,12 +245,12 @@ export default function App() {
     return {
       code: c[0],
       name: c[1],
+      photo: photoUrl('category-' + c[0], 400, 300),
       mark: on ? '✓' : '',
       supplierLabel: n ? n + (n === 1 ? ' supplier' : ' suppliers') : 'Coming soon',
-      bg: on ? '#DDF247' : '#F7F7F5',
-      border: on ? '#DDF247' : '#ECECEC',
-      boxBg: on ? '#171717' : 'transparent',
-      boxBorder: on ? '#171717' : '#C8C8C2',
+      boxBg: on ? '#DDF247' : 'rgba(255,255,255,0.15)',
+      boxBorder: on ? '#DDF247' : 'rgba(255,255,255,0.6)',
+      markColor: on ? '#171717' : '#FFFFFF',
       open: openCat(c[0]),
     };
   };
@@ -1022,20 +1022,35 @@ export default function App() {
                   key={c.code}
                   onClick={c.open}
                   style={{
+                    position: 'relative',
+                    isolation: 'isolate',
+                    overflow: 'hidden',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
                     gap: 34,
                     textAlign: 'left',
-                    border: `1px solid ${c.border}`,
+                    border: 0,
                     borderRadius: 20,
-                    background: c.bg,
                     padding: 18,
                     cursor: 'pointer',
                     minHeight: 148,
+                    background: '#171717',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
+                  <img
+                    src={c.photo}
+                    alt=""
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.7) 100%)',
+                    }}
+                  />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
                     <span
                       style={{
                         display: 'inline-flex',
@@ -1048,14 +1063,15 @@ export default function App() {
                         background: c.boxBg,
                         fontSize: 11,
                         fontWeight: 800,
+                        color: c.markColor,
                       }}
                     >
                       {c.mark}
                     </span>
                   </div>
-                  <div>
-                    <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15 }}>{c.name}</div>
-                    <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 11, color: '#6E6E6E' }}>{c.supplierLabel}</div>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#FFFFFF' }}>{c.name}</div>
+                    <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>{c.supplierLabel}</div>
                   </div>
                 </button>
               ))}
