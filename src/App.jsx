@@ -172,10 +172,6 @@ export default function App() {
   const priceLabel = (p) =>
     p.priceOnRequest ? 'Inquire for pricing' : money(p.min) + '–' + money(p.max) + (p.unit === 'flat' ? '' : ' ' + p.unit);
   const startPrice = (s) => (s.priceOnRequest ? null : Math.min(...s.products.map((p) => p[2])));
-  const startPriceLabel = (s) => {
-    const v = startPrice(s);
-    return v === null ? 'Inquire for pricing' : 'From ' + money(v);
-  };
 
   const add = (pid) => {
     patch((s) => {
@@ -419,7 +415,6 @@ export default function App() {
       categoryName: catName(s.code),
       description: s.bio,
       tags: s.tags,
-      priceLabel: startPriceLabel(s),
       open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
     })),
     dirShowSeeAll: dirFiltered.length > (st.dirVisible || 6),
@@ -1640,7 +1635,6 @@ export default function App() {
                     alignItems: isMobile ? 'stretch' : 'flex-end',
                   }}
                 >
-                  <div style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, color: '#171717' }}>{s.priceLabel}</div>
                   <button
                     onClick={s.open}
                     style={{
