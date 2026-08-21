@@ -76,10 +76,22 @@ function useIsMobile() {
   return isMobile;
 }
 
+const emptyCart = {
+  items: [],
+  spec: {},
+  fulfil: 'Delivery',
+  eventDate: '',
+  guestsExpected: '',
+  eventTime: '',
+  venueAddress: '',
+  accessNotes: '',
+  sent: null,
+};
+
 const loadAccount = () => {
   try {
     const raw = localStorage.getItem(ACCOUNT_KEY);
-    if (!raw) return { email: '', signedIn: false, history: [], saved: [], promoOptIn: false };
+    if (!raw) return { email: '', signedIn: false, history: [], saved: [], promoOptIn: false, ...emptyCart };
     const parsed = JSON.parse(raw);
     return {
       email: parsed.email || '',
@@ -87,9 +99,18 @@ const loadAccount = () => {
       history: parsed.history || [],
       saved: parsed.saved || [],
       promoOptIn: !!parsed.promoOptIn,
+      items: parsed.items || [],
+      spec: parsed.spec || {},
+      fulfil: parsed.fulfil || 'Delivery',
+      eventDate: parsed.eventDate || '',
+      guestsExpected: parsed.guestsExpected || '',
+      eventTime: parsed.eventTime || '',
+      venueAddress: parsed.venueAddress || '',
+      accessNotes: parsed.accessNotes || '',
+      sent: parsed.sent || null,
     };
   } catch {
-    return { email: '', signedIn: false, history: [], saved: [], promoOptIn: false };
+    return { email: '', signedIn: false, history: [], saved: [], promoOptIn: false, ...emptyCart };
   }
 };
 
@@ -153,7 +174,18 @@ export default function App() {
   const [st, setSt] = useState(() => {
     const base = { ...initialState, ...loadAccount() };
     const shared = sharedProductFromUrl();
-    return shared ? { ...base, screen: 'supplier', supId: shared.supId, supplierTab: 'services' } : base;
+    if (shared) return { ...base, screen: 'supplier', supId: shared.supId, supplierTab: 'services' };
+    const resumed = history.state;
+    if (resumed && resumed.screen) {
+      return {
+        ...base,
+        screen: resumed.screen,
+        catCode: resumed.catCode ?? base.catCode,
+        supId: resumed.supId ?? base.supId,
+        supplierTab: resumed.supplierTab ?? base.supplierTab,
+      };
+    }
+    return base;
   });
   const patch = (updater) =>
     setSt((prev) => ({ ...prev, ...(typeof updater === 'function' ? updater(prev) : updater) }));
@@ -168,12 +200,36 @@ export default function App() {
           history: st.history,
           saved: st.saved,
           promoOptIn: st.promoOptIn,
+          items: st.items,
+          spec: st.spec,
+          fulfil: st.fulfil,
+          eventDate: st.eventDate,
+          guestsExpected: st.guestsExpected,
+          eventTime: st.eventTime,
+          venueAddress: st.venueAddress,
+          accessNotes: st.accessNotes,
+          sent: st.sent,
         })
       );
     } catch {
       // ignore storage failures (private browsing, quota, etc.)
     }
-  }, [st.email, st.signedIn, st.history, st.saved, st.promoOptIn]);
+  }, [
+    st.email,
+    st.signedIn,
+    st.history,
+    st.saved,
+    st.promoOptIn,
+    st.items,
+    st.spec,
+    st.fulfil,
+    st.eventDate,
+    st.guestsExpected,
+    st.eventTime,
+    st.venueAddress,
+    st.accessNotes,
+    st.sent,
+  ]);
 
   const pendingScrollAnchorRef = useRef(null);
 
@@ -262,6 +318,8 @@ export default function App() {
     patch((s) => ({ items: s.items.map((i) => (i.pid === pid ? { ...i, qty: Math.max(1, i.qty + d) } : i)) }));
   };
   const remove = (pid) => patch((s) => ({ items: s.items.filter((i) => i.pid !== pid) }));
+  const removeSupplier = (supId) =>
+    patch((s) => ({ items: s.items.filter((i) => { const p = product(i.pid); return p && p.supId !== supId; }) }));
   const setSpec = (pid, key, val) => {
     patch((s) => {
       const spec = { ...(s.spec || {}) };
@@ -615,6 +673,7 @@ export default function App() {
       supplierName: g.sup.name,
       location: g.sup.city,
       inquiryLabel: '1 inquiry · ' + g.rows.length + (g.rows.length === 1 ? ' line item' : ' line items'),
+      removeAll: () => removeSupplier(g.sup.id),
       notePlaceholder:
         g.sup.code === 'CAT.01'
           ? 'Two guests need vegetarian plates. Can you hold the pepper on the side?'
@@ -661,6 +720,12 @@ export default function App() {
       { key: 'products', label: 'Products', value: itemCount },
       { key: 'inquiries', label: 'Inquiries to send', value: grp.length },
     ],
+    mobileCartLabel:
+      itemCount + (itemCount === 1 ? ' item · ' : ' items · ') + grp.length + (grp.length === 1 ? ' vendor' : ' vendors'),
+    scrollToSummary: () => {
+      const el = document.getElementById('eventory-summary');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
     fulfilmentOptions: ['Delivery', 'Pickup by us', 'On site at venue'].map((l) => ({
       key: l,
       label: l,
@@ -699,17 +764,7 @@ export default function App() {
     },
     sentSummary: st.sent ? 'One inquiry per vendor, each scoped to their own items.' : '',
     sentList: (st.sent || []).map((n) => ({ key: n, name: n, status: 'Sent' })),
-    reset: () =>
-      patch({
-        items: [],
-        sent: null,
-        screen: 'home',
-        eventDate: '',
-        guestsExpected: '',
-        eventTime: '',
-        venueAddress: '',
-        accessNotes: '',
-      }),
+    reset: () => patch({ ...emptyCart, screen: 'home' }),
 
     joinCategories: CATS.concat([['OTHER', 'Something else']]).map((c) => ({
       key: c[0],
@@ -2379,6 +2434,7 @@ export default function App() {
           )}
 
           {V.notSent && !V.isEmpty && (
+            <>
             <div style={{ marginTop: 26, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
                 <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? '18px 18px' : '24px 26px' }}>
@@ -2494,8 +2550,26 @@ export default function App() {
                         <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{g.supplierName}</div>
                         <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{g.location}</div>
                       </div>
-                      <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                        {g.inquiryLabel}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          {g.inquiryLabel}
+                        </div>
+                        <button
+                          onClick={g.removeAll}
+                          style={{
+                            border: 0,
+                            background: 'transparent',
+                            padding: 0,
+                            cursor: 'pointer',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: '#8A8A8A',
+                            textDecoration: 'underline',
+                            textUnderlineOffset: '3px',
+                          }}
+                        >
+                          Remove vendor
+                        </button>
                       </div>
                     </div>
                     <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -2645,7 +2719,7 @@ export default function App() {
                 ))}
               </div>
 
-              <div style={{ position: isMobile ? 'static' : 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+              <div id="eventory-summary" style={{ position: isMobile ? 'static' : 'sticky', top: 92, scrollMarginTop: 90, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
                 <div style={{ borderRadius: 24, background: '#DDF247', padding: 26 }}>
                   <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>About to send</div>
                   <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -2774,6 +2848,47 @@ export default function App() {
                 </div>
               </div>
             </div>
+            {isMobile && (
+              <>
+                <div style={{ height: 78 }} />
+                <div
+                  style={{
+                    position: 'fixed',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 30,
+                    background: '#FFFFFF',
+                    borderTop: '1px solid #ECECEC',
+                    boxShadow: '0 -8px 24px rgba(0,0,0,0.08)',
+                    padding: '12px 16px calc(12px + env(safe-area-inset-bottom))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 14,
+                  }}
+                >
+                  <div style={{ fontFamily: MONO, fontSize: 12, color: '#5B5B5B' }}>{V.mobileCartLabel}</div>
+                  <button
+                    onClick={V.scrollToSummary}
+                    style={{
+                      border: 0,
+                      borderRadius: 999,
+                      background: '#171717',
+                      color: '#FFFFFF',
+                      padding: '12px 20px',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Review &amp; send →
+                  </button>
+                </div>
+              </>
+            )}
+            </>
           )}
 
           {V.sent && (
