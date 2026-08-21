@@ -142,6 +142,10 @@ export default function App() {
     }
   }, [st.email, st.signedIn, st.history, st.saved, st.promoOptIn]);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [st.screen]);
+
   const allProducts = () => {
     const out = [];
     SUPPLIERS.forEach((s) =>
