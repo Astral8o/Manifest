@@ -989,7 +989,7 @@ export default function App() {
           >
             <img
               src={heroPhoto}
-              alt="Guests laughing and celebrating at an outdoor event"
+              alt="Friends cheering and dancing together under a festival tent"
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 42%' }}
             />
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.32)' }} />
