@@ -2878,6 +2878,68 @@ export default function App() {
               <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Email marketing that puts you in front of buyers actively searching</li>
               <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>A push across our social channels</li>
             </ul>
+
+            <div style={{ marginTop: 24 }}>
+              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                Preview — top placement in your category
+              </div>
+              <div style={{ marginTop: 10, maxWidth: 480, border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', padding: isMobile ? 14 : 18 }}>
+                <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>CAT.01 · Catering</div>
+                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      border: `1.5px solid ${PROMO_ACCENT}`,
+                      borderRadius: 14,
+                      padding: '12px 14px',
+                      background: `${PROMO_ACCENT}0D`,
+                    }}
+                  >
+                    <div style={{ width: 38, height: 38, borderRadius: 999, background: '#171717', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 14, fontWeight: 700 }}>Your Business</span>
+                        <span
+                          style={{
+                            fontFamily: MONO,
+                            fontSize: 9,
+                            fontWeight: 700,
+                            letterSpacing: '0.05em',
+                            textTransform: 'uppercase',
+                            color: PROMO_ACCENT,
+                            border: `1px solid ${PROMO_ACCENT}`,
+                            borderRadius: 999,
+                            padding: '2px 8px',
+                          }}
+                        >
+                          Featured
+                        </span>
+                      </div>
+                      <div style={{ marginTop: 2, fontSize: 12, color: '#6E6E6E' }}>
+                        First thing buyers see when they open Catering.
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 14, padding: '12px 14px', background: '#F7F7F5' }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 999, background: '#D7D7D2', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#9A9A9A' }}>Other business</div>
+                      <div style={{ marginTop: 2, fontSize: 12, color: '#B5B5B0' }}>Standard listing</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 14, padding: '12px 14px', background: '#F7F7F5' }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 999, background: '#D7D7D2', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#9A9A9A' }}>Other business</div>
+                      <div style={{ marginTop: 2, fontSize: 12, color: '#B5B5B0' }}>Standard listing</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <button
               onClick={V.openPromoPlan}
               style={{
