@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   CATS,
   EVENTS,
@@ -144,6 +144,36 @@ export default function App() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, [st.screen]);
+
+  const isPoppingRef = useRef(false);
+  const isFirstScreenRef = useRef(true);
+
+  useEffect(() => {
+    history.replaceState({ screen: st.screen, catCode: st.catCode, supId: st.supId, supplierTab: st.supplierTab }, '');
+    const onPopState = (e) => {
+      if (!e.state) return;
+      isPoppingRef.current = true;
+      patch(e.state);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (isPoppingRef.current) {
+      isPoppingRef.current = false;
+      return;
+    }
+    if (isFirstScreenRef.current) {
+      isFirstScreenRef.current = false;
+      return;
+    }
+    history.pushState({ screen: st.screen, catCode: st.catCode, supId: st.supId, supplierTab: st.supplierTab }, '');
+    // Only push a new history entry when the screen itself changes, not on every
+    // catCode/supId/supplierTab update (e.g. switching tabs shouldn't add a back-button stop).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [st.screen]);
 
   const allProducts = () => {
