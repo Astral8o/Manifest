@@ -310,7 +310,7 @@ export const FIELDS = {
 
 export const TIERS = [
   ["Under TT$10,000", "Usually one or two items, up to about 50 guests", 500],
-  ["TT$10,000 to 50,000", "A few suppliers, roughly 50 to 200 guests", 1500],
+  ["TT$10,000 to 50,000", "A few vendors, roughly 50 to 200 guests", 1500],
   ["TT$50,000 to 150,000", "Most categories covered, 200 to 500 guests", 4000],
   ["Over TT$150,000", "Full event build, 500 guests or more", 8000],
 ];

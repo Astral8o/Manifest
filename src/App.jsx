@@ -27,15 +27,15 @@ const PRICE_FILTERS = [
 const ABOUT_FAQS = [
   {
     q: 'Is Eventory free to use?',
-    a: 'Yes. Browsing suppliers, comparing what they offer and sending inquiries is free for anyone planning an event. Listing a business is also free, and paid placement is optional.',
+    a: 'Yes. Browsing vendors, comparing what they offer and sending inquiries is free for anyone planning an event. Listing a business is also free, and paid placement is optional.',
   },
   {
     q: 'Does Eventory process payments?',
-    a: 'No. Eventory never processes payment between you and a supplier. You pay suppliers directly, on their own terms.',
+    a: 'No. Eventory never processes payment between you and a vendor. You pay vendors directly, on their own terms.',
   },
   {
-    q: 'How do I request a quote from a supplier?',
-    a: "Add what you need to your Eventory as you browse, then send it. Each supplier gets a separate inquiry with only the items relevant to them.",
+    q: 'How do I request a quote from a vendor?',
+    a: "Add what you need to your Eventory as you browse, then send it. Each vendor gets a separate inquiry with only the items relevant to them.",
   },
   {
     q: "Can't find what you're looking for?",
@@ -47,7 +47,7 @@ const ABOUT_FAQS = [
   },
   {
     q: 'What is the Go Further plan?',
-    a: "Go Further is Eventory's paid placement option for suppliers. It puts your business in front of buyers actively sourcing in your category, with top placement, targeted ads and email marketing.",
+    a: "Go Further is Eventory's paid placement option for vendors. It puts your business in front of buyers actively sourcing in your category, with top placement, targeted ads and email marketing.",
     linkTo: 'promo',
     linkLabel: 'See the Go Further plan',
   },
@@ -323,7 +323,7 @@ export default function App() {
       name: c[1],
       photo: photoUrl('category-' + c[0], 400, 300),
       mark: on ? '✓' : '',
-      supplierLabel: n ? n + (n === 1 ? ' supplier' : ' suppliers') : 'Coming soon',
+      supplierLabel: n ? n + (n === 1 ? ' vendor' : ' vendors') : 'Coming soon',
       boxBg: on ? '#DDF247' : 'rgba(255,255,255,0.15)',
       boxBorder: on ? '#DDF247' : 'rgba(255,255,255,0.6)',
       markColor: on ? '#171717' : '#FFFFFF',
@@ -472,7 +472,7 @@ export default function App() {
       .filter(Boolean),
 
     cat: { code: cat[0], name: cat[1], description: cat[2] },
-    resultLabel: filtered.length + ' of ' + catSuppliers.length + ' suppliers',
+    resultLabel: filtered.length + ' of ' + catSuppliers.length + ' vendors',
     locationFilters: LOCATIONS.map((l, i) => ({ label: l, ...chip(i === st.loc), pick: () => patch({ loc: i }) })),
     groupFilters: GROUPS.map((g, i) => ({ label: g[0], ...chip(i === st.grp), pick: () => patch({ grp: i }) })),
     supplierRows: filtered.map((s) => ({
@@ -490,7 +490,7 @@ export default function App() {
       return {
         code: c.code,
         label: c.name,
-        countLabel: c.code === 'ALL' ? n + (n === 1 ? ' supplier' : ' suppliers') : n ? String(n) : 'None yet',
+        countLabel: c.code === 'ALL' ? n + (n === 1 ? ' vendor' : ' vendors') : n ? String(n) : 'None yet',
         on: st.dirCat === c.code,
         pick: () => patch({ dirCat: c.code, dirCatMenuOpen: false, dirVisible: 6 }),
       };
@@ -503,7 +503,7 @@ export default function App() {
     dirPriceFilters: PRICE_FILTERS.map((f, i) => ({ label: f.label, ...chip(i === (st.dirPrice || 0)), pick: () => patch({ dirPrice: i, dirVisible: 6 }) })),
     dirQuery: st.dirQuery || '',
     setDirQuery: (e) => patch({ dirQuery: e.target.value, dirVisible: 6 }),
-    dirResultLabel: dirFiltered.length + ' of ' + SUPPLIERS.length + ' suppliers',
+    dirResultLabel: dirFiltered.length + ' of ' + SUPPLIERS.length + ' vendors',
     dirSupplierRows: dirFiltered.slice(0, st.dirVisible || 6).map((s) => ({
       key: s.id,
       logo: avatarUrl(s.name),
@@ -515,7 +515,7 @@ export default function App() {
       open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
     })),
     dirShowSeeAll: dirFiltered.length > (st.dirVisible || 6),
-    dirSeeAllLabel: 'See all ' + dirFiltered.length + ' suppliers',
+    dirSeeAllLabel: 'See all ' + dirFiltered.length + ' vendors',
     seeAllDir: () => patch({ dirVisible: dirFiltered.length }),
 
     sup: {
@@ -596,7 +596,7 @@ export default function App() {
       itemCount +
       (itemCount === 1 ? ' product · ' : ' products · ') +
       grp.length +
-      (grp.length === 1 ? ' supplier' : ' suppliers'),
+      (grp.length === 1 ? ' vendor' : ' vendors'),
     eventoryBrief: grp.map((g) => ({
       key: g.sup.id,
       supplierName: g.sup.name,
@@ -606,7 +606,7 @@ export default function App() {
     eventoryHeading: st.sent ? 'Inquiries are out' : 'Your Eventory',
     eventorySub: st.sent
       ? 'Sent ' + st.sent.length + (st.sent.length === 1 ? ' inquiry' : ' separate inquiries')
-      : itemCount + ' products across ' + grp.length + (grp.length === 1 ? ' supplier' : ' suppliers'),
+      : itemCount + ' products across ' + grp.length + (grp.length === 1 ? ' vendor' : ' vendors'),
     isEmpty: st.items.length === 0,
     notSent: !st.sent,
     sent: !!st.sent,
@@ -618,7 +618,7 @@ export default function App() {
       notePlaceholder:
         g.sup.code === 'CAT.01'
           ? 'Two guests need vegetarian plates. Can you hold the pepper on the side?'
-          : 'Anything this supplier should know about your setup or timing.',
+          : 'Anything this vendor should know about your setup or timing.',
       items: g.rows.map((r) => {
         const defs = FIELDS[g.sup.code] || FIELDS_DEFAULT;
         const spec = (st.spec || {})[r.pid] || {};
@@ -657,7 +657,7 @@ export default function App() {
       }),
     })),
     sendStats: [
-      { key: 'suppliers', label: 'Suppliers', value: grp.length },
+      { key: 'suppliers', label: 'Vendors', value: grp.length },
       { key: 'products', label: 'Products', value: itemCount },
       { key: 'inquiries', label: 'Inquiries to send', value: grp.length },
     ],
@@ -697,7 +697,7 @@ export default function App() {
         ],
       }));
     },
-    sentSummary: st.sent ? 'One inquiry per supplier, each scoped to their own items.' : '',
+    sentSummary: st.sent ? 'One inquiry per vendor, each scoped to their own items.' : '',
     sentList: (st.sent || []).map((n) => ({ key: n, name: n, status: 'Sent' })),
     reset: () =>
       patch({
@@ -755,7 +755,7 @@ export default function App() {
         h.itemCount +
         (h.itemCount === 1 ? ' product · ' : ' products · ') +
         h.suppliers.length +
-        (h.suppliers.length === 1 ? ' supplier' : ' suppliers'),
+        (h.suppliers.length === 1 ? ' vendor' : ' vendors'),
     })),
     hasHistory: (st.history || []).length > 0,
 
@@ -1041,7 +1041,7 @@ export default function App() {
                 value={V.homeQuery}
                 onChange={V.setHomeQuery}
                 onKeyDown={V.homeSearchKeyDown}
-                placeholder="Search suppliers or products..."
+                placeholder="Search vendors or products..."
                 style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', padding: '9px 0', fontFamily: SANS, fontSize: 14, color: '#171717' }}
               />
               <button
@@ -1177,9 +1177,9 @@ export default function App() {
 
           <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-              <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Featured Suppliers</h2>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Featured Vendors</h2>
               <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
-                Find suppliers for your next event.
+                Find vendors for your next event.
               </p>
             </div>
             <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
@@ -1241,7 +1241,7 @@ export default function App() {
                 color: '#171717',
               }}
             >
-              See more suppliers
+              See more vendors
             </button>
           </div>
 
@@ -1249,7 +1249,7 @@ export default function App() {
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Featured Offerings</h2>
               <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
-                Explore products, packages, rentals and services from event suppliers.
+                Explore products, packages, rentals and services from event vendors.
               </p>
             </div>
             <div
@@ -1341,7 +1341,7 @@ export default function App() {
                 <div style={{ maxWidth: 720 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Discover</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#3B4200' }}>
-                    Choose your event and browse suppliers and what they offer.
+                    Choose your event and browse vendors and what they offer.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#A9BB3A' }}>01</div>
@@ -1362,7 +1362,7 @@ export default function App() {
                 <div style={{ maxWidth: 720 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Request</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#A8A8A8' }}>
-                    Build your request as you browse, adding what you need from multiple suppliers.
+                    Build your request as you browse, adding what you need from multiple vendors.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#4A4A4A' }}>02</div>
@@ -1382,7 +1382,7 @@ export default function App() {
                 <div style={{ maxWidth: 720 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Connect</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#4A4A4A' }}>
-                    Send your request directly to each supplier. They'll reach out to you with availability, pricing
+                    Send your request directly to each vendor. They'll reach out to you with availability, pricing
                     and details.
                   </div>
                 </div>
@@ -1428,7 +1428,7 @@ export default function App() {
               <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                 Note
               </span>
-              Eventory does not process payments. You deal directly with each supplier.
+              Eventory does not process payments. You deal directly with each vendor.
             </div>
           </div>
         </div>
@@ -1629,7 +1629,7 @@ export default function App() {
             <div>
               <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Discover Vendors</h1>
               <p style={{ margin: '12px 0 0', maxWidth: 560, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
-                Browse every supplier on Eventory, or narrow down by category, location and price.
+                Browse every vendor on Eventory, or narrow down by category, location and price.
               </p>
             </div>
             <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.dirResultLabel}</div>
@@ -1650,7 +1650,7 @@ export default function App() {
               type="search"
               value={V.dirQuery}
               onChange={V.setDirQuery}
-              placeholder="Search suppliers or products..."
+              placeholder="Search vendors or products..."
               style={{
                 border: '1px solid #E4E4DF',
                 borderRadius: 999,
@@ -1911,7 +1911,7 @@ export default function App() {
               </div>
             ))}
             {V.dirSupplierRows.length === 0 && (
-              <div style={{ padding: '28px 2px', fontSize: 14, color: '#9A9A9A' }}>No suppliers match your search.</div>
+              <div style={{ padding: '28px 2px', fontSize: 14, color: '#9A9A9A' }}>No vendors match your search.</div>
             )}
           </div>
 
@@ -2357,7 +2357,7 @@ export default function App() {
             <div style={{ marginTop: 26, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '44px 28px', textAlign: 'center' }}>
               <div style={{ fontSize: 20, fontWeight: 700 }}>Nothing in your Eventory yet</div>
               <div style={{ marginTop: 8, fontSize: 15, color: '#5B5B5B' }}>
-                Add products from any category and they will collect here, grouped by supplier.
+                Add products from any category and they will collect here, grouped by vendor.
               </div>
               <button
                 onClick={V.goHome}
@@ -2389,7 +2389,7 @@ export default function App() {
                     </div>
                   </div>
                   <div style={{ marginTop: 4, fontSize: 14, color: '#5B5B5B' }}>
-                    Suppliers need these to quote you. Fill them once and they go out with each inquiry.
+                    Vendors need these to quote you. Fill them once and they go out with each inquiry.
                   </div>
                   <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -2715,7 +2715,7 @@ export default function App() {
                           {V.promoOptIn ? '✓' : ''}
                         </span>
                         <span style={{ fontSize: 13, lineHeight: 1.4, color: '#3B4200' }}>
-                          Send me promos and offers from suppliers
+                          Send me promos and offers from vendors
                         </span>
                       </button>
                       <button
@@ -2768,8 +2768,8 @@ export default function App() {
                     Send all inquiries
                   </button>
                   <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5, color: '#3B4200' }}>
-                    Each supplier receives one inquiry with your event details, their own line items and their own
-                    note. No supplier sees the rest of your Eventory, and no payment is taken here.
+                    Each vendor receives one inquiry with your event details, their own line items and their own
+                    note. No vendor sees the rest of your Eventory, and no payment is taken here.
                   </div>
                 </div>
               </div>
@@ -2793,7 +2793,7 @@ export default function App() {
                   ))}
                 </div>
                 <div style={{ marginTop: 16, fontSize: 13, lineHeight: 1.55, color: '#A8A8A8' }}>
-                  Suppliers reply by email or phone, usually within their listed response time. Quotes and payment
+                  Vendors reply by email or phone, usually within their listed response time. Quotes and payment
                   happen directly with them.
                 </div>
                 <button
@@ -3319,18 +3319,18 @@ export default function App() {
               </h2>
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3B4200' }}>
-                  You have an event to plan and suppliers to find.
+                  You have an event to plan and vendors to find.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3B4200' }}>
                   Eventory puts caterers, venues, DJs, photographers, decorators, and more in one place across
                   Trinidad &amp; Tobago.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3B4200' }}>
-                  Browse what you need, add suppliers to your Request, and send everything together when you're
+                  Browse what you need, add vendors to your Request, and send everything together when you're
                   ready.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3B4200' }}>
-                  Each supplier receives their own request with only the details that apply to them, then reaches
+                  Each vendor receives their own request with only the details that apply to them, then reaches
                   out to you directly.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, fontWeight: 700, lineHeight: 1.6, color: '#171717' }}>
@@ -3367,10 +3367,10 @@ export default function App() {
             </div>
             <div style={{ position: 'relative', maxWidth: 600 }}>
               <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROMO_ACCENT }}>
-                For suppliers
+                For vendors
               </div>
               <h2 style={{ margin: '8px 0 0', fontSize: isMobile ? 24 : 32, letterSpacing: '-0.02em', fontWeight: 800, color: '#FFFFFF' }}>
-                For Suppliers
+                For Vendors
               </h2>
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#D7D7D2' }}>
@@ -3670,7 +3670,7 @@ export default function App() {
                   {V.promoOptIn ? '✓' : ''}
                 </span>
                 <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>
-                  Send me promos and offers from suppliers
+                  Send me promos and offers from vendors
                 </span>
               </button>
               <button
@@ -3733,7 +3733,7 @@ export default function App() {
                     {V.promoOptIn ? '✓' : ''}
                   </span>
                   <span style={{ fontSize: 13, lineHeight: 1.4, color: '#A8A8A8' }}>
-                    Send me promos and offers from suppliers
+                    Send me promos and offers from vendors
                   </span>
                 </button>
                 <button
@@ -4059,7 +4059,7 @@ export default function App() {
           <div>
             <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.02em' }}>Eventory</div>
             <p style={{ margin: '10px 0 0', maxWidth: 320, fontSize: 14, lineHeight: 1.55, color: '#A8A8A8' }}>
-              Discovery and sourcing for events in Trinidad &amp; Tobago. Browse suppliers, compare what they offer,
+              Discovery and sourcing for events in Trinidad &amp; Tobago. Browse vendors, compare what they offer,
               and reach out directly.
             </p>
             <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -4188,7 +4188,7 @@ export default function App() {
             © {new Date().getFullYear()} Eventory. All rights reserved.
           </div>
           <div style={{ fontSize: 12, color: '#6E6E6E' }}>
-            Eventory never processes payment. You deal directly with each supplier.
+            Eventory never processes payment. You deal directly with each vendor.
           </div>
         </div>
       </div>
