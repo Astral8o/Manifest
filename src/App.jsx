@@ -77,7 +77,7 @@ const initialState = {
   dirCat: 'ALL',
   dirCatMenuOpen: false,
   dirLoc: 0,
-  dirGrp: 0,
+  dirVisible: 6,
   fulfil: 'Delivery',
   spec: {},
   openSpec: {},
@@ -254,12 +254,8 @@ export default function App() {
       (grpMax === 0 || (grpMax === 1000 ? s.minGroup >= 100 : s.minGroup <= grpMax))
   );
 
-  const dirGrpMax = GROUPS[st.dirGrp][1];
   const dirFiltered = SUPPLIERS.filter(
-    (s) =>
-      (st.dirCat === 'ALL' || s.code === st.dirCat) &&
-      (st.dirLoc === 0 || s.region === LOCATIONS[st.dirLoc]) &&
-      (dirGrpMax === 0 || (dirGrpMax === 1000 ? s.minGroup >= 100 : s.minGroup <= dirGrpMax))
+    (s) => (st.dirCat === 'ALL' || s.code === st.dirCat) && (st.dirLoc === 0 || s.region === LOCATIONS[st.dirLoc])
   );
 
   const sup = supplier(st.supId) || SUPPLIERS[0];
@@ -364,17 +360,16 @@ export default function App() {
         label: c.name,
         countLabel: c.code === 'ALL' ? n + (n === 1 ? ' supplier' : ' suppliers') : n ? String(n) : 'None yet',
         on: st.dirCat === c.code,
-        pick: () => patch({ dirCat: c.code, dirCatMenuOpen: false }),
+        pick: () => patch({ dirCat: c.code, dirCatMenuOpen: false, dirVisible: 6 }),
       };
     }),
     dirCategoryLabel: (CATS.find((c) => c[0] === st.dirCat) || [null, 'All categories'])[1],
     dirCatMenuOpen: !!st.dirCatMenuOpen,
     toggleDirCatMenu: () => patch((s) => ({ dirCatMenuOpen: !s.dirCatMenuOpen })),
     closeDirCatMenu: () => patch({ dirCatMenuOpen: false }),
-    dirLocationFilters: LOCATIONS.map((l, i) => ({ label: l, ...chip(i === st.dirLoc), pick: () => patch({ dirLoc: i }) })),
-    dirGroupFilters: GROUPS.map((g, i) => ({ label: g[0], ...chip(i === st.dirGrp), pick: () => patch({ dirGrp: i }) })),
+    dirLocationFilters: LOCATIONS.map((l, i) => ({ label: l, ...chip(i === st.dirLoc), pick: () => patch({ dirLoc: i, dirVisible: 6 }) })),
     dirResultLabel: dirFiltered.length + ' of ' + SUPPLIERS.length + ' suppliers',
-    dirSupplierRows: dirFiltered.map((s) => ({
+    dirSupplierRows: dirFiltered.slice(0, st.dirVisible || 6).map((s) => ({
       key: s.id,
       logo: avatarUrl(s.name),
       name: s.name,
@@ -385,6 +380,9 @@ export default function App() {
       tags: s.tags,
       open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
     })),
+    dirShowSeeAll: dirFiltered.length > (st.dirVisible || 6),
+    dirSeeAllLabel: 'See all ' + dirFiltered.length + ' suppliers',
+    seeAllDir: () => patch({ dirVisible: dirFiltered.length }),
 
     sup: {
       logo: avatarUrl(sup.name),
@@ -1284,7 +1282,7 @@ export default function App() {
             <div>
               <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Find Suppliers</h1>
               <p style={{ margin: '12px 0 0', maxWidth: 560, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
-                Browse every supplier on Eventory, or narrow down by category, location and group size.
+                Browse every supplier on Eventory, or narrow down by category and location.
               </p>
             </div>
             <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.dirResultLabel}</div>
@@ -1419,44 +1417,6 @@ export default function App() {
                   ))}
                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 8, minWidth: 0 }}>
-                <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                  Group size
-                </span>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    flexWrap: isMobile ? 'nowrap' : 'wrap',
-                    overflowX: isMobile ? 'auto' : 'visible',
-                    WebkitOverflowScrolling: 'touch',
-                    paddingBottom: isMobile ? 2 : 0,
-                    minWidth: 0,
-                  }}
-                >
-                  {V.dirGroupFilters.map((f) => (
-                    <button
-                      key={f.label}
-                      onClick={f.pick}
-                      style={{
-                        border: `1px solid ${f.border}`,
-                        borderRadius: 999,
-                        background: f.bg,
-                        color: f.fg,
-                        padding: isMobile ? '6px 12px' : '7px 14px',
-                        cursor: 'pointer',
-                        fontSize: isMobile ? 12 : 13,
-                        fontWeight: 600,
-                        flexShrink: 0,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -1551,6 +1511,25 @@ export default function App() {
               </div>
             ))}
           </div>
+
+          {V.dirShowSeeAll && (
+            <button
+              onClick={V.seeAllDir}
+              style={{
+                marginTop: 16,
+                border: '1px solid #D7D7D2',
+                borderRadius: 999,
+                background: 'transparent',
+                padding: '11px 20px',
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 700,
+                color: '#171717',
+              }}
+            >
+              {V.dirSeeAllLabel}
+            </button>
+          )}
 
           <div
             style={{
