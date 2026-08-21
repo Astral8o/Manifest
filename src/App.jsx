@@ -43,7 +43,7 @@ const ABOUT_FAQS = [
   },
   {
     q: 'How do I list my business on Eventory?',
-    a: 'Head to the For Businesses page and submit your details. We review every listing by hand and it goes live within two business days.',
+    a: 'Head to the For Vendors page and submit your details. We review every listing by hand and it goes live within two business days.',
   },
   {
     q: 'What is the Go Further plan?',
@@ -769,6 +769,7 @@ export default function App() {
   };
 
   return (
+    <>
     <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0 16px 64px' : '0 28px 96px' }}>
       <div
         style={{
@@ -840,7 +841,7 @@ export default function App() {
                   onClick={V.goJoin}
                   style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
                 >
-                  For Businesses
+                  For Vendors
                 </button>
                 <button
                   onClick={V.goAbout}
@@ -878,7 +879,7 @@ export default function App() {
                 onClick={V.goJoin}
                 style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
               >
-                For Businesses
+                For Vendors
               </button>
               <button
                 onClick={V.goAbout}
@@ -2815,7 +2816,7 @@ export default function App() {
           </button>
 
           <div style={{ marginTop: 22, maxWidth: 640 }}>
-            <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>For Businesses</h1>
+            <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>For Vendors</h1>
             <p style={{ margin: '16px 0 0', fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
               Somewhere out there, someone needs exactly what you offer. Let's make sure they find you.
             </p>
@@ -3898,5 +3899,83 @@ export default function App() {
         </div>
       )}
     </div>
+
+    <footer style={{ marginTop: isMobile ? 56 : 80, background: '#171717', color: '#FFFFFF' }}>
+      <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '40px 16px 28px' : '56px 28px 32px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr 1fr', gap: isMobile ? 32 : 40 }}>
+          <div>
+            <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.02em' }}>Eventory</div>
+            <p style={{ margin: '10px 0 0', maxWidth: 320, fontSize: 14, lineHeight: 1.55, color: '#A8A8A8' }}>
+              Discovery and sourcing for events in Trinidad &amp; Tobago. Browse suppliers, compare what they offer,
+              and reach out directly.
+            </p>
+          </div>
+          <div>
+            <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E6E' }}>
+              Explore
+            </div>
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={V.goSuppliers}
+                style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
+              >
+                Find Suppliers
+              </button>
+              <button
+                onClick={V.goAbout}
+                style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
+              >
+                About
+              </button>
+              <button
+                onClick={V.goEventory}
+                style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
+              >
+                Your Eventory
+              </button>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E6E' }}>
+              Vendors
+            </div>
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={V.goJoin}
+                style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
+              >
+                For Vendors
+              </button>
+              <button
+                onClick={V.openPromoPlan}
+                style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
+              >
+                Go Further
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            marginTop: isMobile ? 32 : 44,
+            paddingTop: 20,
+            borderTop: '1px solid #2B2B2B',
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+          }}
+        >
+          <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
+            © {new Date().getFullYear()} Eventory. All rights reserved.
+          </div>
+          <div style={{ fontSize: 12, color: '#6E6E6E' }}>
+            Eventory never processes payment. You deal directly with each supplier.
+          </div>
+        </div>
+      </div>
+    </footer>
+    </>
   );
 }
