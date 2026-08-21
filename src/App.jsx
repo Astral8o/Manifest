@@ -543,9 +543,9 @@ export default function App() {
       { label: 'Wedding', cats: ['CAT.01', 'CAT.02', 'CAT.03', 'CAT.08', 'CAT.09', 'CAT.15'] },
       { label: 'Corporate', cats: ['CAT.01', 'CAT.02', 'CAT.06', 'CAT.10'] },
       { label: 'Birthday', cats: ['CAT.01', 'CAT.04', 'CAT.09', 'CAT.15'] },
-      { label: 'Catering', cats: ['CAT.01'] },
-      { label: 'Photography', cats: ['CAT.08'] },
-      { label: 'Venue', cats: ['CAT.02'] },
+      { label: 'Fete', cats: ['CAT.01', 'CAT.06', 'CAT.07', 'CAT.09', 'CAT.14'] },
+      { label: 'Fundraiser', cats: ['CAT.01', 'CAT.02', 'CAT.10', 'CAT.11'] },
+      { label: 'Graduation', cats: ['CAT.01', 'CAT.02', 'CAT.08', 'CAT.11'] },
     ].map((t) => ({
       label: t.label,
       pick: () =>
