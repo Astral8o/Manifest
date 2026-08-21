@@ -144,6 +144,8 @@ const initialState = {
   dirLoc: 0,
   dirPrice: 0,
   dirQuery: '',
+  dirEventLabel: '',
+  dirEventCats: null,
   dirVisible: 6,
   fulfil: 'Delivery',
   spec: {},
@@ -417,7 +419,7 @@ export default function App() {
   const evt = EVENTS[st.eventIdx];
   const inSet = (code) => evt[1].indexOf(code) >= 0;
   const nav = (screen, extra) => () =>
-    patch({ screen, sent: screen === 'eventory' ? st.sent : null, navMenuOpen: false, ...(extra || {}) });
+    patch({ screen, sent: screen === 'eventory' ? st.sent : null, navMenuOpen: false, dirEventLabel: '', dirEventCats: null, ...(extra || {}) });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
   const catTile = (c) => {
     const on = inSet(c[0]);
@@ -446,6 +448,7 @@ export default function App() {
 
   const dirQueryLower = (st.dirQuery || '').trim().toLowerCase();
   const dirFiltered = SUPPLIERS.filter((s) => {
+    if (st.dirEventCats && st.dirEventCats.length && st.dirEventCats.indexOf(s.code) < 0) return false;
     if (st.dirCat !== 'ALL' && s.code !== st.dirCat) return false;
     if (st.dirLoc !== 0 && s.region !== LOCATIONS[st.dirLoc]) return false;
     if (!PRICE_FILTERS[st.dirPrice || 0].test(startPrice(s))) return false;
@@ -530,13 +533,32 @@ export default function App() {
 
     homeQuery: st.dirQuery || '',
     setHomeQuery: (e) => patch({ dirQuery: e.target.value }),
-    runHomeSearch: () => patch({ screen: 'suppliers', dirCat: 'ALL', dirLoc: 0, dirVisible: 6, navMenuOpen: false }),
+    runHomeSearch: () =>
+      patch({ screen: 'suppliers', dirCat: 'ALL', dirLoc: 0, dirVisible: 6, navMenuOpen: false, dirEventLabel: '', dirEventCats: null }),
     homeSearchKeyDown: (e) => {
-      if (e.key === 'Enter') patch({ screen: 'suppliers', dirCat: 'ALL', dirLoc: 0, dirVisible: 6, navMenuOpen: false });
+      if (e.key === 'Enter')
+        patch({ screen: 'suppliers', dirCat: 'ALL', dirLoc: 0, dirVisible: 6, navMenuOpen: false, dirEventLabel: '', dirEventCats: null });
     },
-    popularSearchTags: ['Wedding', 'Corporate', 'Birthday', 'Catering', 'Photography', 'Venue'].map((t) => ({
-      label: t,
-      pick: () => patch({ screen: 'suppliers', dirCat: 'ALL', dirLoc: 0, dirQuery: t, dirVisible: 6, navMenuOpen: false }),
+    popularSearchTags: [
+      { label: 'Wedding', cats: ['CAT.01', 'CAT.02', 'CAT.03', 'CAT.08', 'CAT.09', 'CAT.15'] },
+      { label: 'Corporate', cats: ['CAT.01', 'CAT.02', 'CAT.06', 'CAT.10'] },
+      { label: 'Birthday', cats: ['CAT.01', 'CAT.04', 'CAT.09', 'CAT.15'] },
+      { label: 'Catering', cats: ['CAT.01'] },
+      { label: 'Photography', cats: ['CAT.08'] },
+      { label: 'Venue', cats: ['CAT.02'] },
+    ].map((t) => ({
+      label: t.label,
+      pick: () =>
+        patch({
+          screen: 'suppliers',
+          dirCat: 'ALL',
+          dirLoc: 0,
+          dirQuery: '',
+          dirEventLabel: t.label,
+          dirEventCats: t.cats,
+          dirVisible: 6,
+          navMenuOpen: false,
+        }),
     })),
 
     topCategoryTiles: CATS.map((c) => ({ c, n: SUPPLIERS.filter((s) => s.code === c[0]).length }))
@@ -597,7 +619,7 @@ export default function App() {
         label: c.name,
         countLabel: c.code === 'ALL' ? n + (n === 1 ? ' vendor' : ' vendors') : n ? String(n) : 'None yet',
         on: st.dirCat === c.code,
-        pick: () => patch({ dirCat: c.code, dirCatMenuOpen: false, dirVisible: 6 }),
+        pick: () => patch({ dirCat: c.code, dirCatMenuOpen: false, dirVisible: 6, dirEventLabel: '', dirEventCats: null }),
       };
     }),
     dirCategoryLabel: (CATS.find((c) => c[0] === st.dirCat) || [null, 'All categories'])[1],
@@ -607,7 +629,9 @@ export default function App() {
     dirLocationFilters: LOCATIONS.map((l, i) => ({ label: l, ...chip(i === st.dirLoc), pick: () => patch({ dirLoc: i, dirVisible: 6 }) })),
     dirPriceFilters: PRICE_FILTERS.map((f, i) => ({ label: f.label, ...chip(i === (st.dirPrice || 0)), pick: () => patch({ dirPrice: i, dirVisible: 6 }) })),
     dirQuery: st.dirQuery || '',
-    setDirQuery: (e) => patch({ dirQuery: e.target.value, dirVisible: 6 }),
+    setDirQuery: (e) => patch({ dirQuery: e.target.value, dirVisible: 6, dirEventLabel: '', dirEventCats: null }),
+    dirEventLabel: st.dirEventLabel || '',
+    clearDirEvent: () => patch({ dirEventLabel: '', dirEventCats: null, dirVisible: 6 }),
     dirResultLabel: dirFiltered.length + ' of ' + SUPPLIERS.length + ' vendors',
     dirSupplierRows: dirFiltered.slice(0, st.dirVisible || 6).map((s) => ({
       key: s.id,
@@ -1770,6 +1794,46 @@ export default function App() {
             </div>
             <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.dirResultLabel}</div>
           </div>
+
+          {V.dirEventLabel && (
+            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  border: '1px solid #171717',
+                  borderRadius: 999,
+                  background: '#171717',
+                  color: '#FFFFFF',
+                  padding: '8px 8px 8px 16px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                Showing vendors for {V.dirEventLabel}
+                <button
+                  onClick={V.clearDirEvent}
+                  aria-label="Clear event filter"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 22,
+                    height: 22,
+                    border: 0,
+                    borderRadius: 999,
+                    background: 'rgba(255,255,255,0.16)',
+                    color: '#FFFFFF',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
 
           <div
             style={{
