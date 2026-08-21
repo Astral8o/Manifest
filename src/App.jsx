@@ -3261,13 +3261,18 @@ export default function App() {
           <div style={{ marginTop: 22, maxWidth: 680 }}>
             <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>About Eventory</h1>
             <p style={{ margin: '16px 0 0', fontSize: 17, lineHeight: 1.6, color: '#4A4A4A' }}>
-              Eventory is a discovery and sourcing marketplace for events in Trinidad &amp; Tobago. We connect people
-              planning weddings, corporate functions, birthdays and everything in between with the suppliers who can
-              actually deliver: caterers, venues, decorators, photographers, entertainers and more.
+              Eventory is where people planning an event find the suppliers who can actually help them: caterers,
+              venues, decorators, photographers, entertainers and more, across Trinidad &amp; Tobago. Every profile
+              is real, and every inquiry lands directly with the person who can act on it.
             </p>
             <p style={{ margin: '14px 0 0', fontSize: 17, lineHeight: 1.6, color: '#4A4A4A' }}>
-              Browse real profiles, compare pricing, and reach out directly. Eventory never processes payment or
-              takes a cut, so you deal with suppliers on their own terms.
+              Add what you need as you browse: a caterer, a DJ, a venue you like the look of. When you're ready, send
+              it all at once. Each supplier receives their own request with only what applies to them, for free.
+            </p>
+            <p style={{ margin: '14px 0 0', fontSize: 17, lineHeight: 1.6, color: '#4A4A4A' }}>
+              Suppliers receive requests from people with a real event and a genuine interest in what they offer,
+              which makes each one worth answering. Eventory never processes payment or takes a cut, so you and the
+              supplier settle everything directly, on your own terms.
             </p>
           </div>
 
