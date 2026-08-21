@@ -154,8 +154,6 @@ const initialState = {
   dirLoc: 0,
   dirPrice: 0,
   dirQuery: '',
-  dirEventLabel: '',
-  dirEventCats: null,
   dirVisible: 6,
   fulfil: 'Delivery',
   spec: {},
@@ -429,7 +427,7 @@ export default function App() {
   const myEventCats = st.myEventCats || [];
   const inSet = (code) => myEventCats.indexOf(code) >= 0;
   const nav = (screen, extra) => () =>
-    patch({ screen, sent: screen === 'eventory' ? st.sent : null, navMenuOpen: false, dirEventLabel: '', dirEventCats: null, ...(extra || {}) });
+    patch({ screen, sent: screen === 'eventory' ? st.sent : null, navMenuOpen: false, ...(extra || {}) });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
   const catTile = (c) => {
     const on = inSet(c[0]);
@@ -458,7 +456,6 @@ export default function App() {
 
   const dirQueryLower = (st.dirQuery || '').trim().toLowerCase();
   const dirFiltered = SUPPLIERS.filter((s) => {
-    if (st.dirEventCats && st.dirEventCats.length && st.dirEventCats.indexOf(s.code) < 0) return false;
     if (st.dirCat !== 'ALL' && s.code !== st.dirCat) return false;
     if (st.dirLoc !== 0 && s.region !== LOCATIONS[st.dirLoc]) return false;
     if (!PRICE_FILTERS[st.dirPrice || 0].test(startPrice(s))) return false;
@@ -562,26 +559,10 @@ export default function App() {
 
     homeQuery: st.dirQuery || '',
     setHomeQuery: (e) => patch({ dirQuery: e.target.value }),
-    runHomeSearch: () =>
-      patch({ screen: 'suppliers', dirCat: 'ALL', dirLoc: 0, dirVisible: 6, navMenuOpen: false, dirEventLabel: '', dirEventCats: null }),
+    runHomeSearch: () => patch({ screen: 'suppliers', dirCat: 'ALL', dirLoc: 0, dirVisible: 6, navMenuOpen: false }),
     homeSearchKeyDown: (e) => {
-      if (e.key === 'Enter')
-        patch({ screen: 'suppliers', dirCat: 'ALL', dirLoc: 0, dirVisible: 6, navMenuOpen: false, dirEventLabel: '', dirEventCats: null });
+      if (e.key === 'Enter') patch({ screen: 'suppliers', dirCat: 'ALL', dirLoc: 0, dirVisible: 6, navMenuOpen: false });
     },
-    popularSearchTags: EVENT_TYPES.map((t) => ({
-      label: t.label,
-      pick: () =>
-        patch({
-          screen: 'suppliers',
-          dirCat: 'ALL',
-          dirLoc: 0,
-          dirQuery: '',
-          dirEventLabel: t.label,
-          dirEventCats: t.cats,
-          dirVisible: 6,
-          navMenuOpen: false,
-        }),
-    })),
 
     topCategoryTiles: CATS.map((c) => ({ c, n: SUPPLIERS.filter((s) => s.code === c[0]).length }))
       .filter((x) => x.n > 0)
@@ -641,7 +622,7 @@ export default function App() {
         label: c.name,
         countLabel: c.code === 'ALL' ? n + (n === 1 ? ' vendor' : ' vendors') : n ? String(n) : 'None yet',
         on: st.dirCat === c.code,
-        pick: () => patch({ dirCat: c.code, dirCatMenuOpen: false, dirVisible: 6, dirEventLabel: '', dirEventCats: null }),
+        pick: () => patch({ dirCat: c.code, dirCatMenuOpen: false, dirVisible: 6 }),
       };
     }),
     dirCategoryLabel: (CATS.find((c) => c[0] === st.dirCat) || [null, 'All categories'])[1],
@@ -651,9 +632,7 @@ export default function App() {
     dirLocationFilters: LOCATIONS.map((l, i) => ({ label: l, ...chip(i === st.dirLoc), pick: () => patch({ dirLoc: i, dirVisible: 6 }) })),
     dirPriceFilters: PRICE_FILTERS.map((f, i) => ({ label: f.label, ...chip(i === (st.dirPrice || 0)), pick: () => patch({ dirPrice: i, dirVisible: 6 }) })),
     dirQuery: st.dirQuery || '',
-    setDirQuery: (e) => patch({ dirQuery: e.target.value, dirVisible: 6, dirEventLabel: '', dirEventCats: null }),
-    dirEventLabel: st.dirEventLabel || '',
-    clearDirEvent: () => patch({ dirEventLabel: '', dirEventCats: null, dirVisible: 6 }),
+    setDirQuery: (e) => patch({ dirQuery: e.target.value, dirVisible: 6 }),
     dirResultLabel: dirFiltered.length + ' of ' + SUPPLIERS.length + ' vendors',
     dirSupplierRows: dirFiltered.slice(0, st.dirVisible || 6).map((s) => ({
       key: s.id,
@@ -1371,29 +1350,6 @@ export default function App() {
                 Search
               </button>
             </div>
-            <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
-              <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                Popular
-              </span>
-              {V.popularSearchTags.map((t) => (
-                <button
-                  key={t.label}
-                  onClick={t.pick}
-                  style={{
-                    border: '1px solid #D7D7D2',
-                    borderRadius: 999,
-                    background: '#FFFFFF',
-                    color: '#171717',
-                    padding: '6px 14px',
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div id="top-categories" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
@@ -1951,46 +1907,6 @@ export default function App() {
             </div>
             <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.dirResultLabel}</div>
           </div>
-
-          {V.dirEventLabel && (
-            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  border: '1px solid #171717',
-                  borderRadius: 999,
-                  background: '#171717',
-                  color: '#FFFFFF',
-                  padding: '8px 8px 8px 16px',
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
-              >
-                Showing vendors for {V.dirEventLabel}
-                <button
-                  onClick={V.clearDirEvent}
-                  aria-label="Clear event filter"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 22,
-                    height: 22,
-                    border: 0,
-                    borderRadius: 999,
-                    background: 'rgba(255,255,255,0.16)',
-                    color: '#FFFFFF',
-                    cursor: 'pointer',
-                    fontSize: 13,
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-          )}
 
           <div
             style={{
