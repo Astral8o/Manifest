@@ -77,6 +77,7 @@ const initialState = {
   dirCat: 'ALL',
   dirCatMenuOpen: false,
   dirLoc: 0,
+  dirQuery: '',
   dirVisible: 6,
   fulfil: 'Delivery',
   spec: {},
@@ -254,9 +255,22 @@ export default function App() {
       (grpMax === 0 || (grpMax === 1000 ? s.minGroup >= 100 : s.minGroup <= grpMax))
   );
 
-  const dirFiltered = SUPPLIERS.filter(
-    (s) => (st.dirCat === 'ALL' || s.code === st.dirCat) && (st.dirLoc === 0 || s.region === LOCATIONS[st.dirLoc])
-  );
+  const dirQueryLower = (st.dirQuery || '').trim().toLowerCase();
+  const dirFiltered = SUPPLIERS.filter((s) => {
+    if (st.dirCat !== 'ALL' && s.code !== st.dirCat) return false;
+    if (st.dirLoc !== 0 && s.region !== LOCATIONS[st.dirLoc]) return false;
+    if (!dirQueryLower) return true;
+    const inSupplier =
+      s.name.toLowerCase().indexOf(dirQueryLower) >= 0 ||
+      s.bio.toLowerCase().indexOf(dirQueryLower) >= 0 ||
+      s.desc.toLowerCase().indexOf(dirQueryLower) >= 0 ||
+      catName(s.code).toLowerCase().indexOf(dirQueryLower) >= 0 ||
+      s.tags.some((t) => t.toLowerCase().indexOf(dirQueryLower) >= 0);
+    const inProducts = allProducts().some(
+      (p) => p.supId === s.id && (p.name.toLowerCase().indexOf(dirQueryLower) >= 0 || p.description.toLowerCase().indexOf(dirQueryLower) >= 0)
+    );
+    return inSupplier || inProducts;
+  });
 
   const sup = supplier(st.supId) || SUPPLIERS[0];
   const supProducts = allProducts().filter((p) => p.supId === sup.id);
@@ -316,6 +330,17 @@ export default function App() {
     },
     backToCategory: () => patch({ screen: 'category', catCode: sup.code }),
 
+    homeQuery: st.dirQuery || '',
+    setHomeQuery: (e) => patch({ dirQuery: e.target.value }),
+    runHomeSearch: () => patch({ screen: 'suppliers', dirCat: 'ALL', dirLoc: 0, dirVisible: 6, navMenuOpen: false }),
+    homeSearchKeyDown: (e) => {
+      if (e.key === 'Enter') patch({ screen: 'suppliers', dirCat: 'ALL', dirLoc: 0, dirVisible: 6, navMenuOpen: false });
+    },
+    popularSearchTags: ['Wedding', 'Corporate', 'Birthday', 'Catering', 'Photography', 'Venue'].map((t) => ({
+      label: t,
+      pick: () => patch({ screen: 'suppliers', dirCat: 'ALL', dirLoc: 0, dirQuery: t, dirVisible: 6, navMenuOpen: false }),
+    })),
+
     topCategoryTiles: CATS.map((c) => ({ c, n: SUPPLIERS.filter((s) => s.code === c[0]).length }))
       .filter((x) => x.n > 0)
       .sort((a, b) => b.n - a.n)
@@ -368,6 +393,8 @@ export default function App() {
     toggleDirCatMenu: () => patch((s) => ({ dirCatMenuOpen: !s.dirCatMenuOpen })),
     closeDirCatMenu: () => patch({ dirCatMenuOpen: false }),
     dirLocationFilters: LOCATIONS.map((l, i) => ({ label: l, ...chip(i === st.dirLoc), pick: () => patch({ dirLoc: i, dirVisible: 6 }) })),
+    dirQuery: st.dirQuery || '',
+    setDirQuery: (e) => patch({ dirQuery: e.target.value, dirVisible: 6 }),
     dirResultLabel: dirFiltered.length + ' of ' + SUPPLIERS.length + ' suppliers',
     dirSupplierRows: dirFiltered.slice(0, st.dirVisible || 6).map((s) => ({
       key: s.id,
@@ -881,6 +908,59 @@ export default function App() {
             </button>
           </div>
 
+          <div style={{ marginTop: 22, maxWidth: 560, marginLeft: 'auto', marginRight: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #E4E4DF', borderRadius: 999, background: '#F7F7F5', padding: '6px 8px 6px 18px' }}>
+              <span style={{ fontSize: 15, color: '#9A9A9A', flexShrink: 0 }}>🔍</span>
+              <input
+                type="search"
+                value={V.homeQuery}
+                onChange={V.setHomeQuery}
+                onKeyDown={V.homeSearchKeyDown}
+                placeholder="Search suppliers or products..."
+                style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', padding: '9px 0', fontFamily: SANS, fontSize: 14, color: '#171717' }}
+              />
+              <button
+                onClick={V.runHomeSearch}
+                style={{
+                  flexShrink: 0,
+                  border: 0,
+                  borderRadius: 999,
+                  background: '#171717',
+                  color: '#FFFFFF',
+                  padding: '10px 18px',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+              >
+                Search
+              </button>
+            </div>
+            <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                Popular
+              </span>
+              {V.popularSearchTags.map((t) => (
+                <button
+                  key={t.label}
+                  onClick={t.pick}
+                  style={{
+                    border: '1px solid #D7D7D2',
+                    borderRadius: 999,
+                    background: '#FFFFFF',
+                    color: '#171717',
+                    padding: '6px 14px',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div id="top-categories" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Top categories</h2>
@@ -1299,6 +1379,21 @@ export default function App() {
               padding: '16px 0',
             }}
           >
+            <input
+              type="search"
+              value={V.dirQuery}
+              onChange={V.setDirQuery}
+              placeholder="Search suppliers or products..."
+              style={{
+                border: '1px solid #E4E4DF',
+                borderRadius: 999,
+                background: '#F7F7F5',
+                padding: '11px 16px',
+                fontFamily: SANS,
+                fontSize: 14,
+                color: '#171717',
+              }}
+            />
             <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 8, minWidth: 0 }}>
               <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                 Category
@@ -1510,6 +1605,9 @@ export default function App() {
                 </div>
               </div>
             ))}
+            {V.dirSupplierRows.length === 0 && (
+              <div style={{ padding: '28px 2px', fontSize: 14, color: '#9A9A9A' }}>No suppliers match your search.</div>
+            )}
           </div>
 
           {V.dirShowSeeAll && (
