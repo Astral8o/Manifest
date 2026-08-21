@@ -22,14 +22,6 @@ const PRICE_FILTERS = [
   { label: 'TT$3,000+', test: (v) => v !== null && v > 3000 },
   { label: 'Price on request', test: (v) => v === null },
 ];
-const EVENT_TYPES = [
-  { label: 'Wedding', cats: ['CAT.01', 'CAT.02', 'CAT.03', 'CAT.08', 'CAT.09', 'CAT.15'] },
-  { label: 'Corporate', cats: ['CAT.01', 'CAT.02', 'CAT.06', 'CAT.10'] },
-  { label: 'Birthday', cats: ['CAT.01', 'CAT.04', 'CAT.09', 'CAT.15'] },
-  { label: 'Fete', cats: ['CAT.01', 'CAT.06', 'CAT.07', 'CAT.09', 'CAT.14'] },
-  { label: 'Fundraiser', cats: ['CAT.01', 'CAT.02', 'CAT.10', 'CAT.11'] },
-  { label: 'Graduation', cats: ['CAT.01', 'CAT.02', 'CAT.08', 'CAT.11'] },
-];
 const ABOUT_FAQS = [
   {
     q: 'Is Eventory free to use?',
@@ -136,10 +128,6 @@ const sharedProductFromUrl = () => {
 
 const initialState = {
   screen: 'home',
-  myEventLabel: '',
-  myEventCats: null,
-  planPickerOpen: false,
-  planPickerStep: 'event',
   catCode: 'CAT.01',
   supId: null,
   items: [],
@@ -424,23 +412,16 @@ export default function App() {
   // ---- derived view-model ----
   const grp = groups();
   const itemCount = st.items.reduce((n, i) => n + i.qty, 0);
-  const myEventCats = st.myEventCats || [];
-  const inSet = (code) => myEventCats.indexOf(code) >= 0;
   const nav = (screen, extra) => () =>
     patch({ screen, sent: screen === 'eventory' ? st.sent : null, navMenuOpen: false, ...(extra || {}) });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
   const catTile = (c) => {
-    const on = inSet(c[0]);
     const n = SUPPLIERS.filter((s) => s.code === c[0]).length;
     return {
       code: c[0],
       name: c[1],
       photo: photoUrl('category-' + c[0], 400, 300),
-      mark: on ? '✓' : '',
       supplierLabel: n ? n + (n === 1 ? ' vendor' : ' vendors') : 'Coming soon',
-      boxBg: on ? '#DDF247' : 'rgba(255,255,255,0.15)',
-      boxBorder: on ? '#DDF247' : 'rgba(255,255,255,0.6)',
-      markColor: on ? '#171717' : '#FFFFFF',
       open: openCat(c[0]),
     };
   };
@@ -530,28 +511,9 @@ export default function App() {
     navMenuOpen: !!st.navMenuOpen,
     toggleNavMenu: () => patch((s) => ({ navMenuOpen: !s.navMenuOpen })),
     closeNavMenu: () => patch({ navMenuOpen: false }),
-    planButtonLabel: st.myEventLabel ? 'Planning: ' + st.myEventLabel : 'Plan Your Event',
-    planPickerOpen: !!st.planPickerOpen,
-    togglePlanPicker: () => patch((s) => ({ planPickerOpen: !s.planPickerOpen, planPickerStep: 'event' })),
-    closePlanPicker: () => patch({ planPickerOpen: false }),
-    planPickerStep: st.planPickerStep || 'event',
-    planEventOptions: EVENT_TYPES.map((t) => ({
-      label: t.label,
-      on: st.myEventLabel === t.label,
-      pick: () => patch({ myEventLabel: t.label, myEventCats: t.cats, planPickerStep: 'guests' }),
-    })),
-    planGuests: st.guestsExpected || '',
-    setPlanGuests: (e) => patch({ guestsExpected: e.target.value }),
-    skipPlanGuests: () => {
-      patch({ planPickerOpen: false });
+    startPlanning: () => {
       document.getElementById('top-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     },
-    finishPlanPicker: () => {
-      patch({ planPickerOpen: false });
-      document.getElementById('top-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    },
-    clearPlan: () =>
-      patch({ myEventLabel: '', myEventCats: null, planPickerOpen: false, planPickerStep: 'event' }),
     scrollToJoinForm: () => {
       document.getElementById('join-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     },
@@ -1175,174 +1137,23 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 26, position: 'relative' }}>
-            <div
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 26 }}>
+            <button
+              onClick={V.startPlanning}
               style={{
-                display: 'flex',
-                alignItems: 'stretch',
+                border: 0,
                 borderRadius: 999,
                 background: '#DDF247',
-                overflow: 'hidden',
+                color: '#171717',
+                padding: '15px 32px',
+                cursor: 'pointer',
+                fontFamily: DISPLAY,
+                fontSize: 15,
+                fontWeight: 600,
               }}
             >
-              <button
-                onClick={V.togglePlanPicker}
-                style={{
-                  border: 0,
-                  borderRadius: st.myEventLabel ? '999px 0 0 999px' : 999,
-                  background: 'transparent',
-                  color: '#171717',
-                  padding: '15px 32px',
-                  cursor: 'pointer',
-                  fontFamily: DISPLAY,
-                  fontSize: 15,
-                  fontWeight: 600,
-                }}
-              >
-                {V.planButtonLabel}
-              </button>
-              {st.myEventLabel && (
-                <button
-                  onClick={V.clearPlan}
-                  aria-label="Clear your planned event"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: 0,
-                    borderLeft: '1px solid rgba(23,23,23,0.15)',
-                    background: 'transparent',
-                    color: '#171717',
-                    padding: '0 20px',
-                    cursor: 'pointer',
-                    fontSize: 16,
-                    fontWeight: 700,
-                  }}
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            {V.planPickerOpen && (
-              <>
-                <div
-                  onClick={V.closePlanPicker}
-                  style={{ position: 'fixed', inset: 0, zIndex: 19, background: 'transparent' }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 10px)',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: isMobile ? 'calc(100vw - 48px)' : 360,
-                    maxWidth: 360,
-                    border: '1px solid #ECECEC',
-                    borderRadius: 20,
-                    background: '#FFFFFF',
-                    boxShadow: '0 16px 36px rgba(0,0,0,0.14)',
-                    padding: 20,
-                    zIndex: 22,
-                    textAlign: 'left',
-                  }}
-                >
-                  {V.planPickerStep === 'event' ? (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
-                        <div style={{ fontSize: 15, fontWeight: 700 }}>What are you planning?</div>
-                      </div>
-                      <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {V.planEventOptions.map((o) => (
-                          <button
-                            key={o.label}
-                            onClick={o.pick}
-                            style={{
-                              border: `1px solid ${o.on ? '#171717' : '#D7D7D2'}`,
-                              borderRadius: 999,
-                              background: o.on ? '#171717' : 'transparent',
-                              color: o.on ? '#FFFFFF' : '#171717',
-                              padding: '9px 16px',
-                              cursor: 'pointer',
-                              fontSize: 13,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {o.label}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
-                        <div style={{ fontSize: 15, fontWeight: 700 }}>Roughly how many guests?</div>
-                        <button
-                          onClick={() => patch({ planPickerStep: 'event' })}
-                          style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 12, color: '#9A9A9A', textDecoration: 'underline' }}
-                        >
-                          Back
-                        </button>
-                      </div>
-                      <input
-                        type="number"
-                        value={V.planGuests}
-                        onChange={V.setPlanGuests}
-                        placeholder="120"
-                        style={{
-                          marginTop: 12,
-                          width: '100%',
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 14,
-                          background: '#F7F7F5',
-                          padding: '12px 14px',
-                          fontFamily: SANS,
-                          fontSize: 15,
-                          color: '#171717',
-                        }}
-                      />
-                      <div style={{ marginTop: 6, fontSize: 12, color: '#9A9A9A' }}>
-                        We'll carry this into your request when you're ready to send it.
-                      </div>
-                      <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
-                        <button
-                          onClick={V.skipPlanGuests}
-                          style={{
-                            flex: 1,
-                            border: '1px solid #D7D7D2',
-                            borderRadius: 999,
-                            background: 'transparent',
-                            color: '#171717',
-                            padding: '11px 16px',
-                            cursor: 'pointer',
-                            fontSize: 13,
-                            fontWeight: 600,
-                          }}
-                        >
-                          Skip
-                        </button>
-                        <button
-                          onClick={V.finishPlanPicker}
-                          style={{
-                            flex: 1,
-                            border: 0,
-                            borderRadius: 999,
-                            background: '#171717',
-                            color: '#FFFFFF',
-                            padding: '11px 16px',
-                            cursor: 'pointer',
-                            fontSize: 13,
-                            fontWeight: 700,
-                          }}
-                        >
-                          Done
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </>
-            )}
+              Plan Your Event
+            </button>
           </div>
 
           <div style={{ marginTop: 22, maxWidth: 560, marginLeft: 'auto', marginRight: 'auto' }}>
@@ -1377,14 +1188,7 @@ export default function App() {
 
           <div id="top-categories" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>What are you looking for?</h2>
-                {st.myEventLabel && (
-                  <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 12, letterSpacing: '0.04em', color: '#6E6E6E' }}>
-                    ✓ marks what people usually book for a {st.myEventLabel.toLowerCase()}
-                  </div>
-                )}
-              </div>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>What are you looking for?</h2>
               <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
                 <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
                   Pick the category that fits your event to see who's available.
@@ -1420,8 +1224,7 @@ export default function App() {
                     overflow: 'hidden',
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: 34,
+                    justifyContent: 'flex-end',
                     textAlign: 'left',
                     border: 0,
                     borderRadius: 20,
@@ -1443,25 +1246,6 @@ export default function App() {
                       background: 'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.7) 100%)',
                     }}
                   />
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 18,
-                        height: 18,
-                        border: `1px solid ${c.boxBorder}`,
-                        borderRadius: 5,
-                        background: c.boxBg,
-                        fontSize: 11,
-                        fontWeight: 800,
-                        color: c.markColor,
-                      }}
-                    >
-                      {c.mark}
-                    </span>
-                  </div>
                   <div style={{ position: 'relative' }}>
                     <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#FFFFFF' }}>{c.name}</div>
                     <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>{c.supplierLabel}</div>
