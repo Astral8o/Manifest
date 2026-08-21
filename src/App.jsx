@@ -6,7 +6,6 @@ import {
   LOCATIONS,
   GROUPS,
   FIELDS,
-  TIERS,
   FIELDS_DEFAULT,
   money,
 } from './data';
@@ -75,8 +74,6 @@ const initialState = {
   sent: null,
   loc: 0,
   grp: 0,
-  srcTag: null,
-  tier: null,
   fulfil: 'Delivery',
   spec: {},
   openSpec: {},
@@ -310,6 +307,22 @@ export default function App() {
       };
     }),
 
+    featuredProducts: ['s1-1', 's3-1', 's6-12', 's7-1', 's10-1', 's5-1']
+      .map((pid) => {
+        const p = product(pid);
+        if (!p) return null;
+        const s = supplier(p.supId);
+        return {
+          key: pid,
+          photo: photoUrl(pid, 300, 220),
+          name: p.name,
+          supplierName: s.name,
+          priceLabel: priceLabel(p),
+          open: () => patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
+        };
+      })
+      .filter(Boolean),
+
     cat: { code: cat[0], name: cat[1], description: cat[2] },
     resultLabel: filtered.length + ' of ' + catSuppliers.length + ' suppliers',
     locationFilters: LOCATIONS.map((l, i) => ({ label: l, ...chip(i === st.loc), pick: () => patch({ loc: i }) })),
@@ -517,27 +530,6 @@ export default function App() {
         venueAddress: '',
         accessNotes: '',
       }),
-
-    sourcingTags: CATS.map((c) => ({
-      key: c[0],
-      name: c[1],
-      ...chip(st.srcTag === c[0]),
-      pick: () => patch({ srcTag: c[0] }),
-    })),
-
-    feeTiers: TIERS.map((t, i) => {
-      const on = st.tier === i;
-      return {
-        key: t[0],
-        range: t[0],
-        note: t[1],
-        bg: on ? '#171717' : '#FFFFFF',
-        fg: on ? '#FFFFFF' : '#171717',
-        noteColor: on ? '#A8A8A8' : '#6E6E6E',
-        border: on ? '#171717' : '#E4E4DF',
-        pick: () => patch({ tier: i }),
-      };
-    }),
 
     joinCategories: CATS.concat([['OTHER', 'Something else']]).map((c) => ({
       key: c[0],
@@ -898,7 +890,49 @@ export default function App() {
           </div>
 
           <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Featured products</h2>
+            <div
+              style={{
+                marginTop: 24,
+                display: 'grid',
+                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: 16,
+              }}
+            >
+              {V.featuredProducts.map((f) => (
+                <button
+                  key={f.key}
+                  onClick={f.open}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    textAlign: 'left',
+                    border: '1px solid #ECECEC',
+                    borderRadius: 20,
+                    overflow: 'hidden',
+                    background: '#FFFFFF',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  <img
+                    src={f.photo}
+                    alt={f.name}
+                    style={{ width: '100%', height: isMobile ? 110 : 150, objectFit: 'cover', display: 'block' }}
+                  />
+                  <div style={{ padding: isMobile ? '12px 14px 16px' : '16px 18px 20px' }}>
+                    <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{f.supplierName}</div>
+                    <div style={{ marginTop: 4, fontSize: isMobile ? 14 : 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{f.name}</div>
+                    <div style={{ marginTop: 10, fontFamily: MONO, fontSize: isMobile ? 12 : 14, fontWeight: 700 }}>{f.priceLabel}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
+            <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>How Eventory works</h2>
+            <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div
                 style={{
                   display: 'flex',
@@ -914,8 +948,8 @@ export default function App() {
                 <div style={{ maxWidth: 720 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Discover</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#3B4200' }}>
-                    Pick your event type, see the categories it needs, and browse suppliers with real price ranges,
-                    group minimums and lead times.
+                    Choose your event type and see what you need, then browse suppliers with real price ranges,
+                    minimums and lead times.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#A9BB3A' }}>01</div>
@@ -936,8 +970,8 @@ export default function App() {
                 <div style={{ maxWidth: 720 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Inquire</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#A8A8A8' }}>
-                    Add products to your manifest as you go. One button sends a separate inquiry to each supplier,
-                    with only their own line items. Nobody sees your full list.
+                    Add what you need to your manifest as you browse. When you're ready, send each supplier a
+                    separate inquiry with only the items relevant to them.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#4A4A4A' }}>02</div>
@@ -957,8 +991,8 @@ export default function App() {
                 <div style={{ maxWidth: 720 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Source</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#4A4A4A' }}>
-                    Still missing something? Describe it and we find options for you. Nothing is charged unless you
-                    approve what we bring back, and then it is one fee, set by the size of the job.
+                    Can't find what you need? Tell us what you're looking for and we'll find options for you. You
+                    only pay if you approve what we source.
                   </div>
                   <button
                     onClick={V.goSourcing}
@@ -974,11 +1008,8 @@ export default function App() {
                       fontWeight: 700,
                     }}
                   >
-                    Tell us what you need sourced
+                    Source
                   </button>
-                  <div style={{ marginTop: 10, fontFamily: MONO, fontSize: 11, letterSpacing: '0.04em', color: '#9A9A9A' }}>
-                    This is a paid service — a fee applies only if you approve what we find.
-                  </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#C2C2BC' }}>03</div>
               </div>
@@ -2666,8 +2697,8 @@ export default function App() {
             {V.sourcingSent ? (
               <>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
-                  Got it. We look for options that match what you described and follow up by email within one
-                  business day. Nothing is charged unless you approve one of the options we bring back.
+                  Got it. We'll look for options that match what you described and follow up by email within one
+                  business day. You only pay if you approve one of the options we bring back.
                 </p>
                 <button
                   onClick={V.closeSourcing}
@@ -2690,43 +2721,16 @@ export default function App() {
             ) : (
               <>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
-                  Describe it in your own words. We look for options and send them back to you. Nothing is charged
-                  unless you approve one, then there is a sourcing fee based on size, quoted with the options.
+                  Describe what you're looking for in your own words. We'll find options and send them back to you.
+                  You only pay if you approve one, quoted with the options.
                 </p>
 
-                <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                  Closest category
-                </div>
-                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {V.sourcingTags.map((t) => (
-                    <button
-                      key={t.key}
-                      onClick={t.pick}
-                      style={{
-                        border: `1px solid ${t.border}`,
-                        borderRadius: 999,
-                        background: t.bg,
-                        color: t.fg,
-                        padding: '8px 14px',
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {t.name}
-                    </button>
-                  ))}
-                </div>
-
-                <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                  What you need
-                </div>
                 <textarea
                   placeholder="e.g. A 20x30 tent with sidewalls for 120 people on the church grounds in Arima, first Saturday in November"
                   style={{
-                    marginTop: 10,
+                    marginTop: 18,
                     width: '100%',
-                    minHeight: 110,
+                    minHeight: 140,
                     border: '1px solid #E4E4DF',
                     borderRadius: 16,
                     background: '#F7F7F5',
@@ -2738,27 +2742,6 @@ export default function App() {
                     resize: 'vertical',
                   }}
                 />
-
-                <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                  Roughly how big is this?
-                </div>
-                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {V.feeTiers.map((t) => (
-                    <button
-                      key={t.key}
-                      onClick={t.pick}
-                      style={{ textAlign: 'left', border: `1px solid ${t.border}`, borderRadius: 18, background: t.bg, color: t.fg, padding: '14px 16px', cursor: 'pointer' }}
-                    >
-                      <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{t.range}</span>
-                      <span style={{ display: 'block', marginTop: 4, fontSize: 12, lineHeight: 1.4, color: t.noteColor }}>{t.note}</span>
-                    </button>
-                  ))}
-                </div>
-
-                <div style={{ marginTop: 18, borderRadius: 18, background: '#F7F7F5', padding: 16, fontSize: 13, lineHeight: 1.55, color: '#5B5B5B' }}>
-                  The fee is based on the size of what you are sourcing and is quoted with the options we bring back.
-                  You only pay if you approve them, and suppliers still quote and invoice you directly.
-                </div>
 
                 <button
                   onClick={V.submitSourcing}
