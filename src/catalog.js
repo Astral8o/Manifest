@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient';
+import { supabase, supabaseConfigured } from './supabaseClient';
 
 function formatExpiry(dateStr) {
   if (!dateStr) return '';
@@ -68,6 +68,9 @@ function reshapeVendor(v) {
 }
 
 export async function fetchCatalog() {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
   const [{ data: categories, error: catError }, { data: vendors, error: venError }] = await Promise.all([
     supabase.from('categories').select('code, name, description').order('sort_order'),
     supabase
@@ -91,6 +94,9 @@ export async function fetchCatalog() {
 // Submits a buyer's cart as one inquiry row plus one inquiry_vendor_groups row
 // per vendor (matching the "one inquiry per vendor" model), each with its items.
 export async function submitInquiry({ buyer, groups }) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
   const { data: inquiry, error: inquiryError } = await supabase
     .from('inquiries')
     .insert({
