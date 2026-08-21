@@ -34,18 +34,6 @@ const EVENT_TYPES = [
   { key: 'other', label: 'Other' },
 ];
 
-// Categories pre-checked in step 2 of the "Plan Your Event" flow, keyed by
-// EVENT_TYPES key. Users can still tick/untick before seeing vendors.
-const EVENT_CATEGORY_DEFAULTS = {
-  wedding: ['CAT.02', 'CAT.01', 'CAT.03', 'CAT.08', 'CAT.15'],
-  corporate: ['CAT.02', 'CAT.06', 'CAT.01'],
-  launch: ['CAT.02', 'CAT.06', 'CAT.01', 'CAT.08'],
-  babyShower: ['CAT.02', 'CAT.01', 'CAT.03', 'CAT.15'],
-  familyDay: ['CAT.02', 'CAT.01', 'CAT.09', 'CAT.04'],
-  birthday: ['CAT.02', 'CAT.01', 'CAT.03', 'CAT.09', 'CAT.15'],
-  other: [],
-};
-
 const MONO = "'IBM Plex Mono', monospace";
 const SANS = 'Manrope, sans-serif';
 const DISPLAY = 'Archivo, Helvetica, sans-serif';
@@ -570,7 +558,7 @@ export default function App() {
           patch({ planEventType: 'other' });
           return;
         }
-        patch({ planEventType: t.key, planCats: EVENT_CATEGORY_DEFAULTS[t.key] || [], planStep: 2 });
+        patch({ planEventType: t.key, planCats: [], planStep: 2 });
       },
     })),
     planOtherLabel: st.planOtherLabel || '',
@@ -4342,7 +4330,7 @@ export default function App() {
                   </button>
                 </div>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
-                  We've pre-picked what people usually book for a {V.planEventLabel.toLowerCase()} — tick or untick anything.
+                  Tell us what you need for your {V.planEventLabel.toLowerCase()} — tick everything that applies.
                 </p>
                 <div
                   style={{
