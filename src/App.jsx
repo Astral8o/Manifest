@@ -3260,20 +3260,112 @@ export default function App() {
 
           <div style={{ marginTop: 22, maxWidth: 680 }}>
             <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>About Eventory</h1>
-            <p style={{ margin: '16px 0 0', fontSize: 17, lineHeight: 1.6, color: '#4A4A4A' }}>
-              Eventory is where people planning an event find the suppliers who can actually help them: caterers,
-              venues, decorators, photographers, entertainers and more, across Trinidad &amp; Tobago. Every profile
-              is real, and every inquiry lands directly with the person who can act on it.
-            </p>
-            <p style={{ margin: '14px 0 0', fontSize: 17, lineHeight: 1.6, color: '#4A4A4A' }}>
-              Add what you need as you browse: a caterer, a DJ, a venue you like the look of. When you're ready, send
-              it all at once. Each supplier receives their own request with only what applies to them, for free.
-            </p>
-            <p style={{ margin: '14px 0 0', fontSize: 17, lineHeight: 1.6, color: '#4A4A4A' }}>
-              Suppliers receive requests from people with a real event and a genuine interest in what they offer,
-              which makes each one worth answering. Eventory never processes payment or takes a cut, so you and the
-              supplier settle everything directly, on your own terms.
-            </p>
+          </div>
+
+          <div
+            style={{
+              marginTop: isMobile ? 32 : 44,
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: 24,
+              background: '#DDF247',
+              padding: isMobile ? 22 : 34,
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                right: isMobile ? -20 : -10,
+                top: isMobile ? -30 : -40,
+                fontFamily: MONO,
+                fontSize: isMobile ? 100 : 160,
+                fontWeight: 700,
+                color: '#C7DB2E',
+                lineHeight: 1,
+                userSelect: 'none',
+              }}
+            >
+              01
+            </div>
+            <div style={{ position: 'relative', maxWidth: 600 }}>
+              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#3B4200' }}>
+                For buyers
+              </div>
+              <h2 style={{ margin: '8px 0 0', fontSize: isMobile ? 24 : 32, letterSpacing: '-0.02em', fontWeight: 800, color: '#171717' }}>
+                Planning an Event?
+              </h2>
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3B4200' }}>
+                  You have an event to plan and suppliers to find.
+                </p>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3B4200' }}>
+                  Eventory puts caterers, venues, DJs, photographers, decorators, and more in one place across
+                  Trinidad &amp; Tobago.
+                </p>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3B4200' }}>
+                  Browse what you need, add suppliers to your Request, and send everything together when you're
+                  ready.
+                </p>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3B4200' }}>
+                  Each supplier receives their own request with only the details that apply to them, then reaches
+                  out to you directly.
+                </p>
+                <p style={{ margin: 0, fontSize: 16, fontWeight: 700, lineHeight: 1.6, color: '#171717' }}>
+                  You find the people you need. They take it from there.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: isMobile ? 24 : 32,
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: 24,
+              background: '#171717',
+              padding: isMobile ? 22 : 34,
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                right: isMobile ? -20 : -10,
+                top: isMobile ? -30 : -40,
+                fontFamily: MONO,
+                fontSize: isMobile ? 100 : 160,
+                fontWeight: 700,
+                color: '#262626',
+                lineHeight: 1,
+                userSelect: 'none',
+              }}
+            >
+              02
+            </div>
+            <div style={{ position: 'relative', maxWidth: 600 }}>
+              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROMO_ACCENT }}>
+                For suppliers
+              </div>
+              <h2 style={{ margin: '8px 0 0', fontSize: isMobile ? 24 : 32, letterSpacing: '-0.02em', fontWeight: 800, color: '#FFFFFF' }}>
+                For Suppliers
+              </h2>
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#D7D7D2' }}>
+                  People are already looking for what you offer.
+                </p>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#D7D7D2' }}>
+                  Eventory helps them find your business when they're planning an event. They can browse your
+                  profile, see what you offer, and add you to their Request.
+                </p>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#D7D7D2' }}>
+                  When they're ready, you receive their request directly, with the event details and what they're
+                  interested in.
+                </p>
+                <p style={{ margin: 0, fontSize: 16, fontWeight: 700, lineHeight: 1.6, color: '#FFFFFF' }}>
+                  You reach out, discuss the details, and take it from there.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div style={{ marginTop: isMobile ? 40 : 56 }}>
