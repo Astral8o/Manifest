@@ -529,7 +529,6 @@ export default function App() {
     eventoryGroups: grp.map((g) => ({
       key: g.sup.id,
       supplierName: g.sup.name,
-      code: g.sup.code,
       location: g.sup.city,
       inquiryLabel: '1 inquiry · ' + g.rows.length + (g.rows.length === 1 ? ' line item' : ' line items'),
       notePlaceholder:
@@ -544,7 +543,7 @@ export default function App() {
           key: r.pid,
           name: r.p.name,
           qty: r.qty,
-          termsLabel: g.sup.code + ' · min ' + r.p.minQty + ' · ' + r.p.lead + ' day lead',
+          termsLabel: 'Min ' + r.p.minQty + ' · ' + r.p.lead + ' day lead',
           priceLabel: priceLabel(r.p),
           inc: () => bump(r.pid, 1),
           dec: () => bump(r.pid, -1),
@@ -1036,8 +1035,7 @@ export default function App() {
                     minHeight: 148,
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{c.code}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
                     <span
                       style={{
                         display: 'inline-flex',
@@ -1301,8 +1299,7 @@ export default function App() {
           </button>
           <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
             <div>
-              <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.cat.code}</div>
-              <h1 style={{ margin: '8px 0 0', fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.cat.name}</h1>
+              <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.cat.name}</h1>
               <p style={{ margin: '12px 0 0', maxWidth: 560, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>{V.cat.description}</p>
             </div>
             <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.resultLabel}</div>
@@ -2350,9 +2347,7 @@ export default function App() {
                     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
                         <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{g.supplierName}</div>
-                        <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
-                          {g.code} · {g.location}
-                        </div>
+                        <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{g.location}</div>
                       </div>
                       <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                         {g.inquiryLabel}
@@ -2908,7 +2903,6 @@ export default function App() {
                               fontWeight: 600,
                             }}
                           >
-                            <span style={{ fontFamily: MONO, fontSize: 11, opacity: 0.65 }}>{c.code}</span>
                             {c.name}
                           </button>
                         ))}
@@ -3046,7 +3040,7 @@ export default function App() {
                 Preview — top placement in your category
               </div>
               <div style={{ marginTop: 10, maxWidth: 480, border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', padding: isMobile ? 14 : 18 }}>
-                <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>CAT.01 · Catering</div>
+                <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>Catering</div>
                 <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div
                     style={{
