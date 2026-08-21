@@ -796,20 +796,26 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
             onClick={V.goAccount}
+            aria-label={V.accountLabel}
+            title={V.accountLabel}
             style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 36,
+              height: 36,
               border: 0,
+              borderRadius: 999,
               background: 'transparent',
               padding: 0,
               cursor: 'pointer',
-              fontFamily: MONO,
-              fontSize: 11,
               color: V.isSignedIn ? '#6E6E6E' : '#171717',
-              fontWeight: V.isSignedIn ? 400 : 700,
-              textDecoration: V.isSignedIn ? 'none' : 'underline',
-              textUnderlineOffset: '3px',
             }}
           >
-            {V.accountLabel}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
           </button>
           <button
             onClick={V.goEventory}
