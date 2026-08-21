@@ -1168,7 +1168,7 @@ export default function App() {
                 fontWeight: 600,
               }}
             >
-              Browse Categories
+              Plan Your Event
             </button>
           </div>
 
