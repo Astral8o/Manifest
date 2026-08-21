@@ -75,6 +75,7 @@ const initialState = {
   loc: 0,
   grp: 0,
   dirCat: 'ALL',
+  dirCatMenuOpen: false,
   dirLoc: 0,
   dirGrp: 0,
   fulfil: 'Delivery',
@@ -356,11 +357,20 @@ export default function App() {
       open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
     })),
 
-    dirCategoryFilters: [{ code: 'ALL', name: 'All categories' }, ...CATS.map((c) => ({ code: c[0], name: c[1] }))].map((c) => ({
-      label: c.name,
-      ...chip(st.dirCat === c.code),
-      pick: () => patch({ dirCat: c.code }),
-    })),
+    dirCategoryFilters: [{ code: 'ALL', name: 'All categories' }, ...CATS.map((c) => ({ code: c[0], name: c[1] }))].map((c) => {
+      const n = c.code === 'ALL' ? SUPPLIERS.length : SUPPLIERS.filter((s) => s.code === c.code).length;
+      return {
+        code: c.code,
+        label: c.name,
+        countLabel: c.code === 'ALL' ? n + (n === 1 ? ' supplier' : ' suppliers') : n ? String(n) : 'None yet',
+        on: st.dirCat === c.code,
+        pick: () => patch({ dirCat: c.code, dirCatMenuOpen: false }),
+      };
+    }),
+    dirCategoryLabel: (CATS.find((c) => c[0] === st.dirCat) || [null, 'All categories'])[1],
+    dirCatMenuOpen: !!st.dirCatMenuOpen,
+    toggleDirCatMenu: () => patch((s) => ({ dirCatMenuOpen: !s.dirCatMenuOpen })),
+    closeDirCatMenu: () => patch({ dirCatMenuOpen: false }),
     dirLocationFilters: LOCATIONS.map((l, i) => ({ label: l, ...chip(i === st.dirLoc), pick: () => patch({ dirLoc: i }) })),
     dirGroupFilters: GROUPS.map((g, i) => ({ label: g[0], ...chip(i === st.dirGrp), pick: () => patch({ dirGrp: i }) })),
     dirResultLabel: dirFiltered.length + ' of ' + SUPPLIERS.length + ' suppliers',
@@ -1295,38 +1305,79 @@ export default function App() {
               <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                 Category
               </span>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  flexWrap: isMobile ? 'nowrap' : 'wrap',
-                  overflowX: isMobile ? 'auto' : 'visible',
-                  WebkitOverflowScrolling: 'touch',
-                  paddingBottom: isMobile ? 2 : 0,
-                  minWidth: 0,
-                }}
-              >
-                {V.dirCategoryFilters.map((f) => (
-                  <button
-                    key={f.label}
-                    onClick={f.pick}
-                    style={{
-                      border: `1px solid ${f.border}`,
-                      borderRadius: 999,
-                      background: f.bg,
-                      color: f.fg,
-                      padding: isMobile ? '6px 12px' : '7px 14px',
-                      cursor: 'pointer',
-                      fontSize: isMobile ? 12 : 13,
-                      fontWeight: 600,
-                      flexShrink: 0,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {f.label}
-                  </button>
-                ))}
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={V.toggleDirCatMenu}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    border: `1px solid ${V.dirCatMenuOpen || st.dirCat !== 'ALL' ? '#171717' : '#D7D7D2'}`,
+                    borderRadius: 999,
+                    background: st.dirCat !== 'ALL' ? '#171717' : '#FFFFFF',
+                    color: st.dirCat !== 'ALL' ? '#FFFFFF' : '#171717',
+                    padding: isMobile ? '9px 14px' : '9px 16px',
+                    cursor: 'pointer',
+                    fontSize: isMobile ? 13 : 14,
+                    fontWeight: 600,
+                    width: isMobile ? '100%' : 'auto',
+                    justifyContent: isMobile ? 'space-between' : 'flex-start',
+                  }}
+                >
+                  {V.dirCategoryLabel}
+                  <span style={{ fontSize: 11, opacity: 0.7 }}>{V.dirCatMenuOpen ? '▲' : '▼'}</span>
+                </button>
+                {V.dirCatMenuOpen && (
+                  <>
+                    <div
+                      onClick={V.closeDirCatMenu}
+                      style={{ position: 'fixed', inset: 0, zIndex: 19, background: 'transparent' }}
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 8px)',
+                        left: 0,
+                        width: isMobile ? '100%' : 320,
+                        maxHeight: 360,
+                        overflowY: 'auto',
+                        border: '1px solid #ECECEC',
+                        borderRadius: 16,
+                        background: '#FFFFFF',
+                        boxShadow: '0 12px 28px rgba(0,0,0,0.12)',
+                        padding: 6,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        zIndex: 22,
+                      }}
+                    >
+                      {V.dirCategoryFilters.map((f) => (
+                        <button
+                          key={f.code}
+                          onClick={f.pick}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 12,
+                            border: 0,
+                            borderRadius: 10,
+                            background: f.on ? '#F7F7F5' : 'transparent',
+                            padding: '11px 14px',
+                            cursor: 'pointer',
+                            fontSize: 14,
+                            fontWeight: f.on ? 700 : 500,
+                            color: '#171717',
+                            textAlign: 'left',
+                          }}
+                        >
+                          <span>{f.label}</span>
+                          <span style={{ fontFamily: MONO, fontSize: 11, color: f.on ? '#171717' : '#9A9A9A' }}>{f.countLabel}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', flexWrap: isMobile ? 'nowrap' : 'wrap', gap: isMobile ? 16 : 20, minWidth: 0 }}>
