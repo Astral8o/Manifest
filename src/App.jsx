@@ -312,14 +312,12 @@ export default function App() {
     toggleNavMenu: () => patch((s) => ({ navMenuOpen: !s.navMenuOpen })),
     closeNavMenu: () => patch({ navMenuOpen: false }),
     startPlanning: () => {
-      document.getElementById('all-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('top-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     },
     scrollToJoinForm: () => {
       document.getElementById('join-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     },
     backToCategory: () => patch({ screen: 'category', catCode: sup.code }),
-
-    categoryTiles: CATS.map((c) => catTile(c)),
 
     topCategoryTiles: CATS.map((c) => ({ c, n: SUPPLIERS.filter((s) => s.code === c[0]).length }))
       .filter((x) => x.n > 0)
@@ -875,7 +873,7 @@ export default function App() {
             </button>
           </div>
 
-          <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
+          <div id="top-categories" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Top categories</h2>
               <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
@@ -884,61 +882,6 @@ export default function App() {
             </div>
             <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
               {V.topCategoryTiles.map((c) => (
-                <button
-                  key={c.code}
-                  onClick={c.open}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: 34,
-                    textAlign: 'left',
-                    border: `1px solid ${c.border}`,
-                    borderRadius: 20,
-                    background: c.bg,
-                    padding: 18,
-                    cursor: 'pointer',
-                    minHeight: 148,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{c.code}</span>
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 18,
-                        height: 18,
-                        border: `1px solid ${c.boxBorder}`,
-                        borderRadius: 5,
-                        background: c.boxBg,
-                        fontSize: 11,
-                        fontWeight: 800,
-                      }}
-                    >
-                      {c.mark}
-                    </span>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15 }}>{c.name}</div>
-                    <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 11, color: '#6E6E6E' }}>{c.supplierLabel}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div id="all-categories" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-              <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>All categories</h2>
-              <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
-                Explore any category to discover suppliers, products, and services for your event. View what they
-                offer and send an inquiry to get the details you need.
-              </p>
-            </div>
-            <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
-              {V.categoryTiles.map((c) => (
                 <button
                   key={c.code}
                   onClick={c.open}
@@ -1342,41 +1285,29 @@ export default function App() {
               marginTop: 26,
               display: 'flex',
               flexDirection: 'column',
-              gap: 14,
+              gap: isMobile ? 16 : 14,
               borderTop: '1px solid #ECECEC',
               borderBottom: '1px solid #ECECEC',
               padding: '16px 0',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 8, minWidth: 0 }}>
               <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                 Category
               </span>
-              {V.dirCategoryFilters.map((f) => (
-                <button
-                  key={f.label}
-                  onClick={f.pick}
-                  style={{
-                    border: `1px solid ${f.border}`,
-                    borderRadius: 999,
-                    background: f.bg,
-                    color: f.fg,
-                    padding: '7px 14px',
-                    cursor: 'pointer',
-                    fontSize: 13,
-                    fontWeight: 600,
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                  Location
-                </span>
-                {V.dirLocationFilters.map((f) => (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  flexWrap: isMobile ? 'nowrap' : 'wrap',
+                  overflowX: isMobile ? 'auto' : 'visible',
+                  WebkitOverflowScrolling: 'touch',
+                  paddingBottom: isMobile ? 2 : 0,
+                  minWidth: 0,
+                }}
+              >
+                {V.dirCategoryFilters.map((f) => (
                   <button
                     key={f.label}
                     onClick={f.pick}
@@ -1385,38 +1316,95 @@ export default function App() {
                       borderRadius: 999,
                       background: f.bg,
                       color: f.fg,
-                      padding: '7px 14px',
+                      padding: isMobile ? '6px 12px' : '7px 14px',
                       cursor: 'pointer',
-                      fontSize: 13,
+                      fontSize: isMobile ? 12 : 13,
                       fontWeight: 600,
+                      flexShrink: 0,
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     {f.label}
                   </button>
                 ))}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            </div>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', flexWrap: isMobile ? 'nowrap' : 'wrap', gap: isMobile ? 16 : 20, minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 8, minWidth: 0 }}>
+                <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Location
+                </span>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    flexWrap: isMobile ? 'nowrap' : 'wrap',
+                    overflowX: isMobile ? 'auto' : 'visible',
+                    WebkitOverflowScrolling: 'touch',
+                    paddingBottom: isMobile ? 2 : 0,
+                    minWidth: 0,
+                  }}
+                >
+                  {V.dirLocationFilters.map((f) => (
+                    <button
+                      key={f.label}
+                      onClick={f.pick}
+                      style={{
+                        border: `1px solid ${f.border}`,
+                        borderRadius: 999,
+                        background: f.bg,
+                        color: f.fg,
+                        padding: isMobile ? '6px 12px' : '7px 14px',
+                        cursor: 'pointer',
+                        fontSize: isMobile ? 12 : 13,
+                        fontWeight: 600,
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 8, minWidth: 0 }}>
                 <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                   Group size
                 </span>
-                {V.dirGroupFilters.map((f) => (
-                  <button
-                    key={f.label}
-                    onClick={f.pick}
-                    style={{
-                      border: `1px solid ${f.border}`,
-                      borderRadius: 999,
-                      background: f.bg,
-                      color: f.fg,
-                      padding: '7px 14px',
-                      cursor: 'pointer',
-                      fontSize: 13,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {f.label}
-                  </button>
-                ))}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    flexWrap: isMobile ? 'nowrap' : 'wrap',
+                    overflowX: isMobile ? 'auto' : 'visible',
+                    WebkitOverflowScrolling: 'touch',
+                    paddingBottom: isMobile ? 2 : 0,
+                    minWidth: 0,
+                  }}
+                >
+                  {V.dirGroupFilters.map((f) => (
+                    <button
+                      key={f.label}
+                      onClick={f.pick}
+                      style={{
+                        border: `1px solid ${f.border}`,
+                        borderRadius: 999,
+                        background: f.bg,
+                        color: f.fg,
+                        padding: isMobile ? '6px 12px' : '7px 14px',
+                        cursor: 'pointer',
+                        fontSize: isMobile ? 12 : 13,
+                        fontWeight: 600,
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
