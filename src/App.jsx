@@ -43,7 +43,7 @@ const ABOUT_FAQS = [
   },
   {
     q: 'How do I list my business on Eventory?',
-    a: 'Head to the For Vendors page and submit your details. We review every listing by hand and it goes live within two business days.',
+    a: 'Head to the For Vendors page and submit your details. We\'ll get back to you to build your profile.',
   },
   {
     q: 'What is the Go Further plan?',
@@ -2861,7 +2861,7 @@ export default function App() {
               Get Listed →
             </button>
             <div style={{ marginTop: 14, fontSize: 13, color: '#3B4200' }}>
-              We review every listing by hand — live within two business days.
+              We review every submission by hand and reach out to help build your profile.
             </div>
           </div>
 
@@ -2896,7 +2896,7 @@ export default function App() {
                   flexWrap: 'wrap',
                 }}
               >
-                <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>We review it and get you live</div>
+                <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>We get back to you to build your profile</div>
                 <div style={{ fontFamily: MONO, fontSize: 30, color: '#4A4A4A' }}>02</div>
               </div>
               <div
@@ -2922,7 +2922,7 @@ export default function App() {
               <>
                 <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Thanks — you're in the queue</div>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-                  We check the listing and publish it within two business days. We'll email you once it's live.
+                  We'll reach out to help build your profile. You'll hear from us by email.
                 </p>
                 <button
                   onClick={V.goHome}
@@ -3162,7 +3162,7 @@ export default function App() {
                 >
                   Submit for review
                 </button>
-                <div style={{ marginTop: 12, fontSize: 13, color: '#5B5B5B' }}>We check the listing and publish it within two business days.</div>
+                <div style={{ marginTop: 12, fontSize: 13, color: '#5B5B5B' }}>We'll reach out to help build your profile.</div>
               </>
             )}
           </div>
