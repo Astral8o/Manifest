@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  CATS,
   EVENTS,
-  SUPPLIERS,
   LOCATIONS,
   GROUPS,
   FIELDS,
   FIELDS_DEFAULT,
   money,
 } from './data';
+import { fetchCatalog, submitInquiry } from './catalog';
 import heroPhoto from './assets/hero-photo.jpg';
 
 const MONO = "'IBM Plex Mono', monospace";
@@ -118,8 +117,11 @@ const sharedProductFromUrl = () => {
   try {
     const pid = new URLSearchParams(window.location.search).get('product');
     if (!pid) return null;
-    const supId = pid.split('-')[0];
-    return SUPPLIERS.some((s) => s.id === supId) ? { pid, supId } : null;
+    // Product ids are "<vendor uuid>-<index>" — split on the last hyphen since
+    // the uuid itself contains hyphens. Existence against real vendors is
+    // checked later, once the catalog has loaded from Supabase.
+    const supId = pid.slice(0, pid.lastIndexOf('-'));
+    return supId ? { pid, supId } : null;
   } catch {
     return null;
   }
@@ -129,9 +131,12 @@ const initialState = {
   screen: 'home',
   eventIdx: 0,
   catCode: 'CAT.01',
-  supId: 's1',
+  supId: null,
   items: [],
   sent: null,
+  sending: false,
+  sendError: null,
+  noteByVendor: {},
   loc: 0,
   grp: 0,
   dirCat: 'ALL',
@@ -189,6 +194,20 @@ export default function App() {
   });
   const patch = (updater) =>
     setSt((prev) => ({ ...prev, ...(typeof updater === 'function' ? updater(prev) : updater) }));
+
+  const [catalog, setCatalog] = useState({ ready: false, error: null, cats: [], suppliers: [] });
+  const loadCatalog = () => {
+    setCatalog((c) => ({ ...c, ready: false, error: null }));
+    fetchCatalog()
+      .then(({ cats, suppliers }) => setCatalog({ ready: true, error: null, cats, suppliers }))
+      .catch((err) => setCatalog({ ready: false, error: err.message || 'Failed to load', cats: [], suppliers: [] }));
+  };
+  useEffect(() => {
+    loadCatalog();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const CATS = catalog.cats;
+  const SUPPLIERS = catalog.suppliers;
 
   useEffect(() => {
     try {
@@ -277,6 +296,29 @@ export default function App() {
     // catCode/supId/supplierTab update (e.g. switching tabs shouldn't add a back-button stop).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [st.screen]);
+
+  if (catalog.error) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, fontFamily: SANS, textAlign: 'center', padding: 24 }}>
+        <div style={{ fontFamily: DISPLAY_BLACK, fontSize: 22, fontWeight: 800 }}>Eventory</div>
+        <div style={{ fontSize: 15, color: '#5B5B5B', maxWidth: 360 }}>Could not load the catalog. {catalog.error}</div>
+        <button
+          onClick={loadCatalog}
+          style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '11px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  if (!catalog.ready) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 13, color: '#9A9A9A', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        Loading Eventory…
+      </div>
+    );
+  }
 
   const allProducts = () => {
     const out = [];
@@ -508,7 +550,7 @@ export default function App() {
       .slice(0, 6)
       .map((s) => ({
         key: s.id,
-        logo: avatarUrl(s.name),
+        logo: s.logoUrl || avatarUrl(s.name),
         name: s.name,
         location: s.city,
         categoryName: catName(s.code),
@@ -516,14 +558,15 @@ export default function App() {
         open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
       })),
 
-    featuredProducts: ['s1-1', 's3-1', 's6-12', 's7-1', 's10-1', 's5-1']
-      .map((pid) => {
-        const p = product(pid);
+    featuredProducts: SUPPLIERS.slice()
+      .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating))
+      .slice(0, 6)
+      .map((s) => {
+        const p = allProducts().find((pr) => pr.supId === s.id);
         if (!p) return null;
-        const s = supplier(p.supId);
         return {
-          key: pid,
-          photo: photoUrl(pid, 300, 220),
+          key: p.id,
+          photo: photoUrl(p.id, 300, 220),
           name: p.name,
           supplierName: s.name,
           categoryName: catName(s.code),
@@ -539,7 +582,7 @@ export default function App() {
     groupFilters: GROUPS.map((g, i) => ({ label: g[0], ...chip(i === st.grp), pick: () => patch({ grp: i }) })),
     supplierRows: filtered.map((s) => ({
       key: s.id,
-      logo: avatarUrl(s.name),
+      logo: s.logoUrl || avatarUrl(s.name),
       name: s.name,
       location: s.city,
       description: s.bio,
@@ -568,7 +611,7 @@ export default function App() {
     dirResultLabel: dirFiltered.length + ' of ' + SUPPLIERS.length + ' vendors',
     dirSupplierRows: dirFiltered.slice(0, st.dirVisible || 6).map((s) => ({
       key: s.id,
-      logo: avatarUrl(s.name),
+      logo: s.logoUrl || avatarUrl(s.name),
       name: s.name,
       location: s.city,
       categoryName: catName(s.code),
@@ -581,8 +624,8 @@ export default function App() {
     seeAllDir: () => patch({ dirVisible: dirFiltered.length }),
 
     sup: {
-      logo: avatarUrl(sup.name),
-      cover: photoUrl(sup.id + '-cover', 960, 360),
+      logo: sup.logoUrl || avatarUrl(sup.name),
+      cover: sup.coverUrl || photoUrl(sup.id + '-cover', 960, 360),
       name: sup.name,
       code: sup.code,
       description: sup.bio,
@@ -682,6 +725,9 @@ export default function App() {
         g.sup.code === 'CAT.01'
           ? 'Two guests need vegetarian plates. Can you hold the pepper on the side?'
           : 'Anything this vendor should know about your setup or timing.',
+      note: (st.noteByVendor || {})[g.sup.id] || '',
+      setNote: (e) =>
+        patch((s) => ({ noteByVendor: { ...(s.noteByVendor || {}), [g.sup.id]: e.target.value } })),
       items: g.rows.map((r) => {
         const defs = FIELDS[g.sup.code] || FIELDS_DEFAULT;
         const spec = (st.spec || {})[r.pid] || {};
@@ -748,23 +794,54 @@ export default function App() {
     accessNotes: st.accessNotes || '',
     setAccessNotes: (e) => patch({ accessNotes: e.target.value }),
 
-    sendOpacity: st.items.length && st.signedIn ? 1 : 0.4,
+    sendOpacity: st.items.length && st.signedIn && !st.sending ? 1 : 0.4,
+    sending: !!st.sending,
+    sendError: st.sendError || '',
     signInDisabled: !(st.email && st.email.indexOf('@') > 0),
-    send: () => {
-      if (!st.signedIn || !st.items.length) return;
-      const sentNames = groups().map((g) => g.sup.name);
-      patch((s) => ({
-        sent: sentNames,
-        history: [
-          {
-            id: Date.now(),
-            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            suppliers: sentNames,
-            itemCount: s.items.reduce((n, i) => n + i.qty, 0),
+    send: async () => {
+      if (!st.signedIn || !st.items.length || st.sending) return;
+      const grpNow = groups();
+      const sentNames = grpNow.map((g) => g.sup.name);
+      patch({ sending: true, sendError: null });
+      try {
+        await submitInquiry({
+          buyer: {
+            email: st.email,
+            eventDate: st.eventDate,
+            guestsExpected: st.guestsExpected,
+            eventTime: st.eventTime,
+            fulfilment: st.fulfil,
+            venueAddress: st.venueAddress,
+            accessNotes: st.accessNotes,
+            promoOptIn: st.promoOptIn,
           },
-          ...(s.history || []),
-        ],
-      }));
+          groups: grpNow.map((g) => ({
+            vendorId: g.sup.id,
+            note: (st.noteByVendor || {})[g.sup.id] || '',
+            items: g.rows.map((r) => ({
+              productId: null,
+              name: r.p.name,
+              qty: r.qty,
+              specAnswers: (st.spec || {})[r.pid] || {},
+            })),
+          })),
+        });
+        patch((s) => ({
+          sending: false,
+          sent: sentNames,
+          history: [
+            {
+              id: Date.now(),
+              date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              suppliers: sentNames,
+              itemCount: s.items.reduce((n, i) => n + i.qty, 0),
+            },
+            ...(s.history || []),
+          ],
+        }));
+      } catch (err) {
+        patch({ sending: false, sendError: err.message || 'Something went wrong sending your inquiries. Please try again.' });
+      }
     },
     sentSummary: st.sent ? 'One inquiry per vendor, each scoped to their own items.' : '',
     sentList: (st.sent || []).map((n) => ({ key: n, name: n, status: 'Sent' })),
@@ -2704,6 +2781,8 @@ export default function App() {
                       </span>
                       <textarea
                         placeholder={g.notePlaceholder}
+                        value={g.note}
+                        onChange={g.setNote}
                         style={{
                           minHeight: 68,
                           border: '1px solid #E4E4DF',
@@ -2828,7 +2907,7 @@ export default function App() {
                   )}
                   <button
                     onClick={V.send}
-                    disabled={V.isEmpty || !V.signedIn}
+                    disabled={V.isEmpty || !V.signedIn || V.sending}
                     style={{
                       marginTop: 20,
                       width: '100%',
@@ -2843,8 +2922,11 @@ export default function App() {
                       opacity: V.sendOpacity,
                     }}
                   >
-                    Send all inquiries
+                    {V.sending ? 'Sending…' : 'Send all inquiries'}
                   </button>
+                  {V.sendError && (
+                    <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.sendError}</div>
+                  )}
                   <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5, color: '#3B4200' }}>
                     Each vendor receives one inquiry with your event details, their own line items and their own
                     note. No vendor sees the rest of your Eventory, and no payment is taken here.
