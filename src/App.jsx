@@ -416,7 +416,6 @@ export default function App() {
       logo: avatarUrl(s.name),
       name: s.name,
       location: s.city,
-      categoryCode: s.code,
       categoryName: catName(s.code),
       description: s.bio,
       tags: s.tags,
@@ -1608,7 +1607,7 @@ export default function App() {
                           color: '#4A4A4A',
                         }}
                       >
-                        {s.categoryCode} · {s.categoryName}
+                        {s.categoryName}
                       </span>
                     </div>
                     <p style={{ margin: '10px 0 0', maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>{s.description}</p>
