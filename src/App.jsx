@@ -357,6 +357,19 @@ export default function App() {
       .slice(0, 6)
       .map((x) => catTile(x.c)),
 
+    topSuppliers: SUPPLIERS.slice()
+      .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating))
+      .slice(0, 6)
+      .map((s) => ({
+        key: s.id,
+        logo: avatarUrl(s.name),
+        name: s.name,
+        location: s.city,
+        categoryName: catName(s.code),
+        rating: s.rating,
+        open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
+      })),
+
     featuredProducts: ['s1-1', 's3-1', 's6-12', 's7-1', 's10-1', 's5-1']
       .map((pid) => {
         const p = product(pid);
@@ -1032,7 +1045,66 @@ export default function App() {
           </div>
 
           <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
-            <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Featured products</h2>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Top Suppliers</h2>
+              <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
+                Find suppliers for your next event.
+              </p>
+            </div>
+            <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+              {V.topSuppliers.map((s) => (
+                <button
+                  key={s.key}
+                  onClick={s.open}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    textAlign: 'left',
+                    gap: 10,
+                    border: '1px solid #ECECEC',
+                    borderRadius: 20,
+                    background: '#FFFFFF',
+                    cursor: 'pointer',
+                    padding: isMobile ? '16px 14px' : '20px 18px',
+                  }}
+                >
+                  <img
+                    src={s.logo}
+                    alt={s.name + ' logo'}
+                    style={{ width: 52, height: 52, borderRadius: 999, background: '#171717' }}
+                  />
+                  <div>
+                    <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 700, letterSpacing: '-0.01em' }}>{s.name}</div>
+                    <div style={{ marginTop: 2, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.location}</div>
+                  </div>
+                  <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                    <span
+                      style={{
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: '#F7F7F5',
+                        padding: '4px 10px',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#4A4A4A',
+                      }}
+                    >
+                      {s.categoryName}
+                    </span>
+                    <span style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>★ {s.rating}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Top Offerings</h2>
+              <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
+                Explore products, packages, rentals and services from event suppliers.
+              </p>
+            </div>
             <div
               style={{
                 marginTop: 24,
@@ -1089,7 +1161,7 @@ export default function App() {
           </div>
 
           <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
-            <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>How Eventory works</h2>
+            <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>How Eventory Works</h2>
             <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div
                 style={{
@@ -1106,8 +1178,7 @@ export default function App() {
                 <div style={{ maxWidth: 720 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Discover</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#3B4200' }}>
-                    Choose your event type and see what you need, then browse suppliers with real price ranges,
-                    minimums and lead times.
+                    Choose your event and browse suppliers and what they offer.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#A9BB3A' }}>01</div>
@@ -1126,10 +1197,9 @@ export default function App() {
                 }}
               >
                 <div style={{ maxWidth: 720 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Inquire</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Request</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#A8A8A8' }}>
-                    Add what you need to your Eventory as you browse. When you're ready, send each supplier a
-                    separate inquiry with only the items relevant to them.
+                    Build your request as you browse, adding what you need from multiple suppliers.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#4A4A4A' }}>02</div>
@@ -1147,10 +1217,30 @@ export default function App() {
                 }}
               >
                 <div style={{ maxWidth: 720 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Source</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Connect</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#4A4A4A' }}>
-                    Can't find what you need? Tell us what you're looking for and we'll find options for you. You
-                    only pay if you approve what we source.
+                    Send your request directly to each supplier. They'll reach out to you with availability, pricing
+                    and details.
+                  </div>
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 34, color: '#C2C2BC' }}>03</div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 28,
+                  borderRadius: 24,
+                  border: '1px solid #ECECEC',
+                  padding: isMobile ? '20px 22px' : '28px 32px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ maxWidth: 720 }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Can't find what you need?</div>
+                  <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#4A4A4A' }}>
+                    Tell us what you're looking for and we'll help you find it.
                   </div>
                   <button
                     onClick={V.goSourcing}
@@ -1169,14 +1259,13 @@ export default function App() {
                     Source
                   </button>
                 </div>
-                <div style={{ fontFamily: MONO, fontSize: 34, color: '#C2C2BC' }}>03</div>
               </div>
             </div>
             <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 14, fontSize: 14, color: '#5B5B5B' }}>
               <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                 Note
               </span>
-              Eventory never processes payment between you and a supplier. You pay suppliers directly, on their terms.
+              Eventory does not process payments. You deal directly with each supplier.
             </div>
           </div>
         </div>
