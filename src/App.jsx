@@ -4348,8 +4348,8 @@ export default function App() {
                   style={{
                     marginTop: 18,
                     display: 'grid',
-                    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
-                    gap: 10,
+                    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+                    gap: 8,
                   }}
                 >
                   {V.planCategoryTiles.map((c) => (
@@ -4359,11 +4359,11 @@ export default function App() {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 10,
+                        gap: 7,
                         border: c.on ? '2px solid #171717' : '1px solid #E4E4DF',
-                        borderRadius: 14,
+                        borderRadius: 11,
                         background: c.on ? '#F5F6E9' : '#FFFFFF',
-                        padding: '12px 14px',
+                        padding: '8px 10px',
                         cursor: 'pointer',
                         textAlign: 'left',
                       }}
@@ -4371,21 +4371,21 @@ export default function App() {
                       <span
                         style={{
                           flexShrink: 0,
-                          width: 18,
-                          height: 18,
-                          borderRadius: 5,
+                          width: 14,
+                          height: 14,
+                          borderRadius: 4,
                           border: '2px solid #171717',
                           background: c.on ? '#171717' : 'transparent',
                           color: '#FFFFFF',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: 12,
+                          fontSize: 10,
                         }}
                       >
                         {c.on ? '✓' : ''}
                       </span>
-                      <span style={{ fontSize: 14, fontWeight: 600 }}>{c.name}</span>
+                      <span style={{ fontSize: 12.5, fontWeight: 600 }}>{c.name}</span>
                     </button>
                   ))}
                 </div>
