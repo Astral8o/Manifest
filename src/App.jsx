@@ -1130,6 +1130,22 @@ export default function App() {
                 </button>
               ))}
             </div>
+            <button
+              onClick={V.runHomeSearch}
+              style={{
+                marginTop: 16,
+                border: '1px solid #D7D7D2',
+                borderRadius: 999,
+                background: 'transparent',
+                padding: '11px 20px',
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 700,
+                color: '#171717',
+              }}
+            >
+              See more suppliers
+            </button>
           </div>
 
           <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
@@ -1192,6 +1208,22 @@ export default function App() {
                 </button>
               ))}
             </div>
+            <button
+              onClick={V.runHomeSearch}
+              style={{
+                marginTop: 16,
+                border: '1px solid #D7D7D2',
+                borderRadius: 999,
+                background: 'transparent',
+                padding: '11px 20px',
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 700,
+                color: '#171717',
+              }}
+            >
+              See more offerings
+            </button>
           </div>
 
           <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
