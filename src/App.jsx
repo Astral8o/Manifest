@@ -747,7 +747,7 @@ export default function App() {
                   onClick={V.goJoin}
                   style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
                 >
-                  Get Promoted
+                  For Businesses
                 </button>
               </div>
             )}
@@ -779,7 +779,7 @@ export default function App() {
                 onClick={V.goJoin}
                 style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
               >
-                Get Promoted
+                For Businesses
               </button>
             </div>
           )}
@@ -2525,41 +2525,124 @@ export default function App() {
           >
             ← Back
           </button>
-          <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.5fr 1fr', gap: 20, alignItems: 'start' }}>
-            <div style={{ minWidth: 0, order: isMobile ? 2 : 0 }}>
-              <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Join Eventory</h1>
-              <p style={{ margin: '16px 0 0', maxWidth: 600, fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
-                Get discovered by buyers looking for the suppliers, products, and services they need for their
-                events.
-              </p>
 
-              <div id="join-form" style={{ marginTop: 28, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 18 : 26, scrollMarginTop: 100 }}>
-                {V.joinSubmitted ? (
-                  <>
-                    <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Thanks — you're in the queue</div>
-                    <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-                      We check the listing and publish it within two business days. We'll email you once it's live.
-                    </p>
-                    <button
-                      onClick={V.goHome}
-                      style={{
-                        marginTop: 20,
-                        border: 0,
-                        borderRadius: 999,
-                        background: '#171717',
-                        color: '#FFFFFF',
-                        padding: '13px 24px',
-                        cursor: 'pointer',
-                        fontSize: 14,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Back to home
-                    </button>
-                  </>
-                ) : (
-                  <>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+          <div style={{ marginTop: 22, maxWidth: 640 }}>
+            <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>For Businesses</h1>
+            <p style={{ margin: '16px 0 0', fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
+              Somewhere out there, someone needs exactly what you offer. Let's make sure they find you.
+            </p>
+          </div>
+
+          <div style={{ marginTop: isMobile ? 32 : 44, borderRadius: 24, background: '#DDF247', padding: isMobile ? 22 : 34 }}>
+            <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Get Listed</div>
+            <p style={{ margin: '12px 0 0', maxWidth: 520, fontSize: 15, lineHeight: 1.55, color: '#3B4200' }}>
+              Tell us what you do, we'll build you a profile buyers can actually find. No design skills needed, no
+              catch.
+            </p>
+            <p style={{ margin: '10px 0 0', maxWidth: 520, fontSize: 15, fontWeight: 700, lineHeight: 1.55, color: '#3B4200' }}>
+              Free to list. Free to receive inquiries. That's the whole deal.
+            </p>
+            <button
+              onClick={V.scrollToJoinForm}
+              style={{
+                marginTop: 20,
+                border: 0,
+                borderRadius: 999,
+                background: '#171717',
+                color: '#FFFFFF',
+                padding: '14px 26px',
+                cursor: 'pointer',
+                fontSize: 15,
+                fontWeight: 700,
+              }}
+            >
+              Get Listed →
+            </button>
+            <div style={{ marginTop: 14, fontSize: 13, color: '#3B4200' }}>
+              We review every listing by hand — live within two business days.
+            </div>
+          </div>
+
+          <div style={{ marginTop: isMobile ? 40 : 56 }}>
+            <h2 style={{ margin: 0, fontSize: isMobile ? 24 : 30, letterSpacing: '-0.02em', fontWeight: 800 }}>How it works</h2>
+            <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 28,
+                  borderRadius: 24,
+                  background: '#DDF247',
+                  padding: isMobile ? '20px 22px' : '26px 30px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>Tell us about your business</div>
+                <div style={{ fontFamily: MONO, fontSize: 30, color: '#A9BB3A' }}>01</div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 28,
+                  borderRadius: 24,
+                  background: '#171717',
+                  padding: isMobile ? '20px 22px' : '26px 30px',
+                  color: '#FFFFFF',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>We review it and get you live</div>
+                <div style={{ fontFamily: MONO, fontSize: 30, color: '#4A4A4A' }}>02</div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 28,
+                  borderRadius: 24,
+                  background: '#F2F2F0',
+                  padding: isMobile ? '20px 22px' : '26px 30px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>Buyers find you and reach out — directly</div>
+                <div style={{ fontFamily: MONO, fontSize: 30, color: '#C2C2BC' }}>03</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="join-form" style={{ marginTop: isMobile ? 40 : 56, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 18 : 26, scrollMarginTop: 100 }}>
+            {V.joinSubmitted ? (
+              <>
+                <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Thanks — you're in the queue</div>
+                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                  We check the listing and publish it within two business days. We'll email you once it's live.
+                </p>
+                <button
+                  onClick={V.goHome}
+                  style={{
+                    marginTop: 20,
+                    border: 0,
+                    borderRadius: 999,
+                    background: '#171717',
+                    color: '#FFFFFF',
+                    padding: '13px 24px',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 700,
+                  }}
+                >
+                  Back to home
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Tell us about your business</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginTop: 18 }}>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                       Business name
@@ -2779,70 +2862,39 @@ export default function App() {
                   Submit for review
                 </button>
                 <div style={{ marginTop: 12, fontSize: 13, color: '#5B5B5B' }}>We check the listing and publish it within two business days.</div>
-                  </>
-                )}
-              </div>
-            </div>
+              </>
+            )}
+          </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, position: isMobile ? 'static' : 'sticky', top: 92, minWidth: 0, order: isMobile ? 1 : 0, marginBottom: isMobile ? 22 : 0 }}>
-              <div style={{ borderRadius: 24, background: '#DDF247', padding: 26 }}>
-                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Get Listed</div>
-                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#3B4200' }}>
-                  Tell us about your business. We'll build your profile and get you in front of buyers looking for
-                  what you offer.
-                </p>
-                <div style={{ marginTop: 14, fontSize: 13, fontWeight: 600, color: '#3B4200' }}>
-                  Free to list. Free to receive inquiries.
-                </div>
-                <button
-                  onClick={V.scrollToJoinForm}
-                  style={{
-                    marginTop: 18,
-                    width: '100%',
-                    border: 0,
-                    borderRadius: 999,
-                    background: '#171717',
-                    color: '#FFFFFF',
-                    padding: '14px 20px',
-                    cursor: 'pointer',
-                    fontSize: 15,
-                    fontWeight: 700,
-                  }}
-                >
-                  Join Eventory
-                </button>
-              </div>
-              <div style={{ borderRadius: 24, border: `1px solid ${PROMO_ACCENT}`, background: `${PROMO_ACCENT}0D`, padding: 26 }}>
-                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Get Promoted</div>
-                <div style={{ marginTop: 8, fontSize: 14, fontWeight: 700, color: '#171717' }}>Want more visibility?</div>
-                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
-                  For TTD $500/month, get your business and offers in front of more buyers through:
-                </p>
-                <ul style={{ margin: '10px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <li style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>Targeted email marketing</li>
-                  <li style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>Featured placement on the Promotions page</li>
-                  <li style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>Featured placement in relevant event categories</li>
-                  <li style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>Social media promotion</li>
-                </ul>
-                <button
-                  onClick={V.openPromoPlan}
-                  style={{
-                    marginTop: 18,
-                    width: '100%',
-                    border: 0,
-                    borderRadius: 999,
-                    background: PROMO_ACCENT,
-                    color: '#FFFFFF',
-                    padding: '14px 20px',
-                    cursor: 'pointer',
-                    fontSize: 15,
-                    fontWeight: 700,
-                  }}
-                >
-                  Get Started
-                </button>
-              </div>
-            </div>
+          <div style={{ marginTop: isMobile ? 40 : 56, borderRadius: 24, border: `1px solid ${PROMO_ACCENT}`, background: `${PROMO_ACCENT}0D`, padding: isMobile ? 22 : 34 }}>
+            <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Go Further</div>
+            <p style={{ margin: '12px 0 0', maxWidth: 520, fontSize: 15, lineHeight: 1.55, color: '#4A4A4A' }}>
+              We push you further, straight in front of buyers actively looking to hire, wherever they are.
+            </p>
+            <ul style={{ margin: '14px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 520 }}>
+              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Direct access to buyers actively sourcing in your category</li>
+              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Targeted ads that reach the right audience</li>
+              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Top placement in your category</li>
+              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Email marketing that puts you in front of buyers actively searching</li>
+              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>A push across our social channels</li>
+            </ul>
+            <button
+              onClick={V.openPromoPlan}
+              style={{
+                marginTop: 20,
+                border: 0,
+                borderRadius: 999,
+                background: PROMO_ACCENT,
+                color: '#FFFFFF',
+                padding: '14px 26px',
+                cursor: 'pointer',
+                fontSize: 15,
+                fontWeight: 700,
+              }}
+            >
+              Tell me more →
+            </button>
+            <div style={{ marginTop: 14, fontFamily: MONO, fontSize: 13, fontWeight: 700, color: '#171717' }}>TTD $500/month</div>
           </div>
         </div>
       )}
