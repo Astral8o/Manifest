@@ -27,7 +27,7 @@ const PRICE_FILTERS = [
 const ABOUT_FAQS = [
   {
     q: 'Is Eventory free to use?',
-    a: 'Yes. Browsing suppliers, comparing what they offer and sending inquiries is free for anyone planning an event. Listing a business is also free — paid placement is optional.',
+    a: 'Yes. Browsing suppliers, comparing what they offer and sending inquiries is free for anyone planning an event. Listing a business is also free, and paid placement is optional.',
   },
   {
     q: 'Does Eventory process payments?',
@@ -44,6 +44,12 @@ const ABOUT_FAQS = [
   {
     q: 'How do I list my business on Eventory?',
     a: 'Head to the For Businesses page and submit your details. We review every listing by hand and it goes live within two business days.',
+  },
+  {
+    q: 'What is the Go Further plan?',
+    a: "Go Further is Eventory's paid placement option for suppliers. It puts your business in front of buyers actively sourcing in your category, with top placement, targeted ads and email marketing.",
+    linkTo: 'promo',
+    linkLabel: 'See the Go Further plan',
   },
   {
     q: 'Where does Eventory operate?',
@@ -3256,11 +3262,11 @@ export default function App() {
             <p style={{ margin: '16px 0 0', fontSize: 17, lineHeight: 1.6, color: '#4A4A4A' }}>
               Eventory is a discovery and sourcing marketplace for events in Trinidad &amp; Tobago. We connect people
               planning weddings, corporate functions, birthdays and everything in between with the suppliers who can
-              actually deliver — caterers, venues, decorators, photographers, entertainers and more.
+              actually deliver: caterers, venues, decorators, photographers, entertainers and more.
             </p>
             <p style={{ margin: '14px 0 0', fontSize: 17, lineHeight: 1.6, color: '#4A4A4A' }}>
               Browse real profiles, compare pricing, and reach out directly. Eventory never processes payment or
-              takes a cut — you deal with suppliers on their own terms.
+              takes a cut, so you deal with suppliers on their own terms.
             </p>
           </div>
 
@@ -3271,6 +3277,26 @@ export default function App() {
                 <div key={f.q} style={{ borderTop: '1px solid #ECECEC', padding: '18px 2px' }}>
                   <div style={{ fontSize: 15, fontWeight: 700 }}>{f.q}</div>
                   <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>{f.a}</p>
+                  {f.linkTo === 'promo' && (
+                    <button
+                      onClick={V.openPromoPlan}
+                      style={{
+                        marginTop: 10,
+                        border: 0,
+                        background: 'transparent',
+                        padding: 0,
+                        cursor: 'pointer',
+                        fontFamily: MONO,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: PROMO_ACCENT,
+                        textDecoration: 'underline',
+                        textUnderlineOffset: '3px',
+                      }}
+                    >
+                      {f.linkLabel} →
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -3279,7 +3305,7 @@ export default function App() {
           <div style={{ marginTop: isMobile ? 40 : 56, maxWidth: 560, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 18 : 26 }}>
             {V.contactSent ? (
               <>
-                <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Thanks — message sent</div>
+                <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Thanks, message sent</div>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
                   We'll get back to you within one business day.
                 </p>
