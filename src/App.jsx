@@ -175,8 +175,17 @@ export default function App() {
     }
   }, [st.email, st.signedIn, st.history, st.saved, st.promoOptIn]);
 
+  const pendingScrollAnchorRef = useRef(null);
+
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const anchor = pendingScrollAnchorRef.current;
+    pendingScrollAnchorRef.current = null;
+    const el = anchor && document.getElementById(anchor);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo(0, 0);
+    }
   }, [st.screen]);
 
   const isPoppingRef = useRef(false);
@@ -389,6 +398,10 @@ export default function App() {
     submitSourcing: () => patch({ sourcingSent: true }),
     sourcingSent: !!st.sourcingSent,
     goJoin: nav('join', { joinSubmitted: false }),
+    goGoFurther: () => {
+      pendingScrollAnchorRef.current = 'go-further';
+      patch({ screen: 'join', joinSubmitted: false, navMenuOpen: false });
+    },
     submitJoin: () => patch({ joinSubmitted: true }),
     joinSubmitted: !!st.joinSubmitted,
     goAbout: nav('about', { contactSent: false }),
@@ -3154,7 +3167,17 @@ export default function App() {
             )}
           </div>
 
-          <div style={{ marginTop: isMobile ? 40 : 56, borderRadius: 24, border: `1px solid ${PROMO_ACCENT}`, background: `${PROMO_ACCENT}0D`, padding: isMobile ? 22 : 34 }}>
+          <div
+            id="go-further"
+            style={{
+              marginTop: isMobile ? 40 : 56,
+              borderRadius: 24,
+              border: `1px solid ${PROMO_ACCENT}`,
+              background: `${PROMO_ACCENT}0D`,
+              padding: isMobile ? 22 : 34,
+              scrollMarginTop: 100,
+            }}
+          >
             <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Go Further</div>
             <p style={{ margin: '12px 0 0', maxWidth: 520, fontSize: 15, lineHeight: 1.55, color: '#4A4A4A' }}>
               We push you further, straight in front of buyers actively looking to hire, wherever they are.
@@ -3377,7 +3400,7 @@ export default function App() {
                   <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>{f.a}</p>
                   {f.linkTo === 'promo' && (
                     <button
-                      onClick={V.openPromoPlan}
+                      onClick={V.goGoFurther}
                       style={{
                         marginTop: 10,
                         border: 0,
@@ -4044,7 +4067,7 @@ export default function App() {
                 For Vendors
               </button>
               <button
-                onClick={V.openPromoPlan}
+                onClick={V.goGoFurther}
                 style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
               >
                 Go Further
