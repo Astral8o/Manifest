@@ -43,7 +43,7 @@ const ABOUT_FAQS = [
   },
   {
     q: 'How do I list my business on Eventory?',
-    a: 'Head to the For Vendors page and submit your details. We\'ll get back to you to build your profile.',
+    a: 'Head to the Join Eventory page and submit your details. We\'ll get back to you to build your profile.',
   },
   {
     q: 'What is the Go Further plan?',
@@ -848,13 +848,13 @@ export default function App() {
                   onClick={V.goSuppliers}
                   style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
                 >
-                  Find Suppliers
+                  Discover Vendors
                 </button>
                 <button
                   onClick={V.goJoin}
                   style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
                 >
-                  For Vendors
+                  Join Eventory
                 </button>
                 <button
                   onClick={V.goAbout}
@@ -886,13 +886,13 @@ export default function App() {
                 onClick={V.goSuppliers}
                 style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
               >
-                Find Suppliers
+                Discover Vendors
               </button>
               <button
                 onClick={V.goJoin}
                 style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
               >
-                For Vendors
+                Join Eventory
               </button>
               <button
                 onClick={V.goAbout}
@@ -1627,7 +1627,7 @@ export default function App() {
           </button>
           <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Find Suppliers</h1>
+              <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Discover Vendors</h1>
               <p style={{ margin: '12px 0 0', maxWidth: 560, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
                 Browse every supplier on Eventory, or narrow down by category, location and price.
               </p>
@@ -2373,7 +2373,7 @@ export default function App() {
                   fontWeight: 700,
                 }}
               >
-                Find Suppliers
+                Discover Vendors
               </button>
             </div>
           )}
@@ -2829,7 +2829,7 @@ export default function App() {
           </button>
 
           <div style={{ marginTop: 22, maxWidth: 640 }}>
-            <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>For Vendors</h1>
+            <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Join Eventory</h1>
             <p style={{ margin: '16px 0 0', fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
               Somewhere out there, someone needs exactly what you offer. Let's make sure they find you.
             </p>
@@ -4136,7 +4136,7 @@ export default function App() {
                 onClick={V.goSuppliers}
                 style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
               >
-                Find Suppliers
+                Discover Vendors
               </button>
               <button
                 onClick={V.goAbout}
@@ -4161,7 +4161,7 @@ export default function App() {
                 onClick={V.goJoin}
                 style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
               >
-                For Vendors
+                Join Eventory
               </button>
               <button
                 onClick={V.goGoFurther}
