@@ -1176,22 +1176,53 @@ export default function App() {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 26, position: 'relative' }}>
-            <button
-              onClick={V.togglePlanPicker}
+            <div
               style={{
-                border: 0,
+                display: 'flex',
+                alignItems: 'stretch',
                 borderRadius: 999,
                 background: '#DDF247',
-                color: '#171717',
-                padding: '15px 32px',
-                cursor: 'pointer',
-                fontFamily: DISPLAY,
-                fontSize: 15,
-                fontWeight: 600,
+                overflow: 'hidden',
               }}
             >
-              {V.planButtonLabel}
-            </button>
+              <button
+                onClick={V.togglePlanPicker}
+                style={{
+                  border: 0,
+                  borderRadius: st.myEventLabel ? '999px 0 0 999px' : 999,
+                  background: 'transparent',
+                  color: '#171717',
+                  padding: '15px 32px',
+                  cursor: 'pointer',
+                  fontFamily: DISPLAY,
+                  fontSize: 15,
+                  fontWeight: 600,
+                }}
+              >
+                {V.planButtonLabel}
+              </button>
+              {st.myEventLabel && (
+                <button
+                  onClick={V.clearPlan}
+                  aria-label="Clear your planned event"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: 0,
+                    borderLeft: '1px solid rgba(23,23,23,0.15)',
+                    background: 'transparent',
+                    color: '#171717',
+                    padding: '0 20px',
+                    cursor: 'pointer',
+                    fontSize: 16,
+                    fontWeight: 700,
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
 
             {V.planPickerOpen && (
               <>
@@ -1220,14 +1251,6 @@ export default function App() {
                     <>
                       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
                         <div style={{ fontSize: 15, fontWeight: 700 }}>What are you planning?</div>
-                        {st.myEventLabel && (
-                          <button
-                            onClick={V.clearPlan}
-                            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 12, color: '#9A9A9A', textDecoration: 'underline' }}
-                          >
-                            Clear
-                          </button>
-                        )}
                       </div>
                       <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                         {V.planEventOptions.map((o) => (
