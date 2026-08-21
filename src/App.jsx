@@ -4029,6 +4029,70 @@ export default function App() {
               Discovery and sourcing for events in Trinidad &amp; Tobago. Browse suppliers, compare what they offer,
               and reach out directly.
             </p>
+            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                aria-label="Instagram"
+                title="Instagram"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 34,
+                  height: 34,
+                  border: '1px solid #2B2B2B',
+                  borderRadius: 999,
+                  background: 'transparent',
+                  color: '#D7D7D2',
+                  cursor: 'pointer',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                </svg>
+              </button>
+              <button
+                aria-label="Facebook"
+                title="Facebook"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 34,
+                  height: 34,
+                  border: '1px solid #2B2B2B',
+                  borderRadius: 999,
+                  background: 'transparent',
+                  color: '#D7D7D2',
+                  cursor: 'pointer',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+                </svg>
+              </button>
+              <button
+                aria-label="X"
+                title="X"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 34,
+                  height: 34,
+                  border: '1px solid #2B2B2B',
+                  borderRadius: 999,
+                  background: 'transparent',
+                  color: '#D7D7D2',
+                  cursor: 'pointer',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 4l16 16M20 4L4 20" />
+                </svg>
+              </button>
+            </div>
           </div>
           <div>
             <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E6E6E' }}>
