@@ -15,7 +15,7 @@ const MONO = "'IBM Plex Mono', monospace";
 const SANS = 'Manrope, sans-serif';
 const DISPLAY = 'Archivo, Helvetica, sans-serif';
 const DISPLAY_BLACK = "'Archivo Black', Archivo, sans-serif";
-const ACCOUNT_KEY = 'manifestAccount';
+const ACCOUNT_KEY = 'eventoryAccount';
 const PROMO_ACCENT = '#FF5A36';
 
 const avatarUrl = (seed) =>
@@ -226,7 +226,7 @@ export default function App() {
   const evt = EVENTS[st.eventIdx];
   const inSet = (code) => evt[1].indexOf(code) >= 0;
   const nav = (screen, extra) => () =>
-    patch({ screen, sent: screen === 'manifest' ? st.sent : null, navMenuOpen: false, ...(extra || {}) });
+    patch({ screen, sent: screen === 'eventory' ? st.sent : null, navMenuOpen: false, ...(extra || {}) });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
   const catTile = (c) => {
     const on = inSet(c[0]);
@@ -288,13 +288,13 @@ export default function App() {
     isCategory: st.screen === 'category',
     isSuppliers: st.screen === 'suppliers',
     isSupplier: st.screen === 'supplier',
-    isManifest: st.screen === 'manifest',
+    isEventory: st.screen === 'eventory',
     isJoin: st.screen === 'join',
     isAccount: st.screen === 'account',
     sourcingOpen: st.sourcingOpen,
     goHome: nav('home'),
     goSuppliers: nav('suppliers'),
-    goManifest: nav('manifest'),
+    goEventory: nav('eventory'),
     goSourcing: () => patch({ sourcingOpen: true, sourcingSent: false }),
     closeSourcing: () => patch({ sourcingOpen: false, sourcingSent: false }),
     submitSourcing: () => patch({ sourcingSent: true }),
@@ -455,20 +455,20 @@ export default function App() {
       (itemCount === 1 ? ' product · ' : ' products · ') +
       grp.length +
       (grp.length === 1 ? ' supplier' : ' suppliers'),
-    manifestBrief: grp.map((g) => ({
+    eventoryBrief: grp.map((g) => ({
       key: g.sup.id,
       supplierName: g.sup.name,
       itemLabel: g.rows.length + (g.rows.length === 1 ? ' item' : ' items'),
     })),
 
-    manifestHeading: st.sent ? 'Inquiries are out' : 'Your manifest',
-    manifestSub: st.sent
+    eventoryHeading: st.sent ? 'Inquiries are out' : 'Your Eventory',
+    eventorySub: st.sent
       ? 'Sent ' + st.sent.length + (st.sent.length === 1 ? ' inquiry' : ' separate inquiries')
       : itemCount + ' products across ' + grp.length + (grp.length === 1 ? ' supplier' : ' suppliers'),
     isEmpty: st.items.length === 0,
     notSent: !st.sent,
     sent: !!st.sent,
-    manifestGroups: grp.map((g) => ({
+    eventoryGroups: grp.map((g) => ({
       key: g.sup.id,
       supplierName: g.sup.name,
       code: g.sup.code,
@@ -767,7 +767,7 @@ export default function App() {
             {V.accountLabel}
           </button>
           <button
-            onClick={V.goManifest}
+            onClick={V.goEventory}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -1024,7 +1024,7 @@ export default function App() {
                 <div style={{ maxWidth: 720 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Inquire</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#A8A8A8' }}>
-                    Add what you need to your manifest as you browse. When you're ready, send each supplier a
+                    Add what you need to your Eventory as you browse. When you're ready, send each supplier a
                     separate inquiry with only the items relevant to them.
                   </div>
                 </div>
@@ -1872,10 +1872,10 @@ export default function App() {
 
             <div style={{ position: isMobile ? 'static' : 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
               <div style={{ borderRadius: 24, background: '#171717', color: '#FFFFFF', padding: 26 }}>
-                <div style={{ fontSize: 18, fontWeight: 700 }}>Your manifest</div>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>Your Eventory</div>
                 <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#DDF247' }}>{V.summaryLine}</div>
                 <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {V.manifestBrief.map((g) => (
+                  {V.eventoryBrief.map((g) => (
                     <div key={g.key} style={{ borderTop: '1px solid #2B2B2B', paddingTop: 10 }}>
                       <div style={{ fontSize: 14, fontWeight: 600 }}>{g.supplierName}</div>
                       <div style={{ marginTop: 2, fontFamily: MONO, fontSize: 11, color: '#9C9C9C' }}>{g.itemLabel}</div>
@@ -1883,7 +1883,7 @@ export default function App() {
                   ))}
                 </div>
                 <button
-                  onClick={V.goManifest}
+                  onClick={V.goEventory}
                   style={{
                     marginTop: 22,
                     width: '100%',
@@ -1897,18 +1897,18 @@ export default function App() {
                     fontWeight: 700,
                   }}
                 >
-                  Review manifest and send
+                  Review Eventory and send
                 </button>
               </div>
               <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: '20px 22px', fontSize: 13, lineHeight: 1.55, color: '#5B5B5B' }}>
-                Manifest does not process payment. {V.sup.name} will quote you directly and invoice you on their own terms.
+                Eventory does not process payment. {V.sup.name} will quote you directly and invoice you on their own terms.
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {V.isManifest && (
+      {V.isEventory && (
         <div style={{ padding: '34px 0 0' }}>
           <button
             onClick={V.goHome}
@@ -1917,13 +1917,13 @@ export default function App() {
             ← Keep browsing
           </button>
           <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.manifestHeading}</h1>
-            <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.manifestSub}</div>
+            <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.eventoryHeading}</h1>
+            <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.eventorySub}</div>
           </div>
 
           {V.notSent && V.isEmpty && (
             <div style={{ marginTop: 26, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '44px 28px', textAlign: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 700 }}>Nothing on the manifest yet</div>
+              <div style={{ fontSize: 20, fontWeight: 700 }}>Nothing in your Eventory yet</div>
               <div style={{ marginTop: 8, fontSize: 15, color: '#5B5B5B' }}>
                 Add products from any category and they will collect here, grouped by supplier.
               </div>
@@ -2055,7 +2055,7 @@ export default function App() {
                   </label>
                 </div>
 
-                {V.manifestGroups.map((g) => (
+                {V.eventoryGroups.map((g) => (
                   <div key={g.key} style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: '24px 26px' }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
@@ -2309,13 +2309,13 @@ export default function App() {
                       </button>
                       <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: '#3B4200' }}>
                         No password, we email you a sign-in link. Signing in is required to send your inquiries and
-                        saves this manifest to your account.
+                        saves this Eventory to your account.
                       </div>
                     </div>
                   )}
                   {V.signedIn && (
                     <div style={{ marginTop: 18, borderTop: '1px solid #C6D93C', paddingTop: 14, fontSize: 13, color: '#3B4200' }}>
-                      Saved to {V.email}. You can come back to this manifest any time.
+                      Saved to {V.email}. You can come back to this Eventory any time.
                     </div>
                   )}
                   <button
@@ -2339,7 +2339,7 @@ export default function App() {
                   </button>
                   <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5, color: '#3B4200' }}>
                     Each supplier receives one inquiry with your event details, their own line items and their own
-                    note. No supplier sees the rest of your manifest, and no payment is taken here.
+                    note. No supplier sees the rest of your Eventory, and no payment is taken here.
                   </div>
                 </div>
               </div>
@@ -2381,7 +2381,7 @@ export default function App() {
                     fontWeight: 700,
                   }}
                 >
-                  Start a new manifest
+                  Start a new Eventory
                 </button>
               </div>
             </div>
@@ -2816,7 +2816,7 @@ export default function App() {
             <div style={{ marginTop: 26, border: '1px solid #ECECEC', borderRadius: 24, padding: 26 }}>
               <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Sign in</div>
               <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-                No password, we email you a sign-in link. Signing in saves your manifests so you can find them again.
+                No password, we email you a sign-in link. Signing in saves your Eventories so you can find them again.
               </p>
               <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
@@ -2957,10 +2957,10 @@ export default function App() {
               </div>
 
               <div style={{ marginTop: 24 }}>
-                <h2 style={{ margin: 0, fontSize: 22, letterSpacing: '-0.02em', fontWeight: 800 }}>Past manifests</h2>
+                <h2 style={{ margin: 0, fontSize: 22, letterSpacing: '-0.02em', fontWeight: 800 }}>Past Eventories</h2>
                 {!V.hasHistory && (
                   <div style={{ marginTop: 12, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '32px 24px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 15, color: '#5B5B5B' }}>Nothing sent yet. Manifests you send while signed in will show up here.</div>
+                    <div style={{ fontSize: 15, color: '#5B5B5B' }}>Nothing sent yet. Eventories you send while signed in will show up here.</div>
                   </div>
                 )}
                 <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
