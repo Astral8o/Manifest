@@ -30,6 +30,7 @@ const DISPLAY = 'Archivo, Helvetica, sans-serif';
 const DISPLAY_BLACK = "'Archivo Black', Archivo, sans-serif";
 const ACCOUNT_KEY = 'eventoryAccount';
 const PROMO_ACCENT = '#FF5A36';
+const CTA_ACCENT = '#5C6B14';
 const PRICE_FILTERS = [
   { label: 'Any price', test: () => true },
   { label: 'Under TT$500', test: (v) => v !== null && v < 500 },
@@ -1219,7 +1220,7 @@ export default function App() {
                     fontFamily: MONO,
                     fontSize: 13,
                     fontWeight: 700,
-                    color: '#171717',
+                    color: CTA_ACCENT,
                     textDecoration: 'underline',
                     textUnderlineOffset: '3px',
                   }}
@@ -1326,14 +1327,14 @@ export default function App() {
               onClick={V.runHomeSearch}
               style={{
                 marginTop: 16,
-                border: '1px solid #D7D7D2',
+                border: `1px solid ${CTA_ACCENT}55`,
                 borderRadius: 999,
                 background: 'transparent',
                 padding: '11px 20px',
                 cursor: 'pointer',
                 fontSize: 14,
                 fontWeight: 700,
-                color: '#171717',
+                color: CTA_ACCENT,
               }}
             >
               See more vendors
@@ -1404,14 +1405,14 @@ export default function App() {
               onClick={V.runHomeSearch}
               style={{
                 marginTop: 16,
-                border: '1px solid #D7D7D2',
+                border: `1px solid ${CTA_ACCENT}55`,
                 borderRadius: 999,
                 background: 'transparent',
                 padding: '11px 20px',
                 cursor: 'pointer',
                 fontSize: 14,
                 fontWeight: 700,
-                color: '#171717',
+                color: CTA_ACCENT,
               }}
             >
               See more offerings
