@@ -204,7 +204,6 @@ const initialState = {
   joinEmail: '',
   joinBasedIn: '',
   joinTravelRadius: '',
-  joinLeadTime: '',
   joinPricing: '',
   joinOtherText: '',
   contactSent: false,
@@ -385,7 +384,6 @@ export default function App() {
           max: p[3],
           unit: p[4],
           minQty: p[5],
-          lead: p[6],
           group: p[7] || 'General',
           priceOnRequest: !!s.priceOnRequest,
         })
@@ -569,8 +567,6 @@ export default function App() {
     setJoinBasedIn: (e) => patch({ joinBasedIn: e.target.value }),
     joinTravelRadius: st.joinTravelRadius || '',
     setJoinTravelRadius: (e) => patch({ joinTravelRadius: e.target.value }),
-    joinLeadTime: st.joinLeadTime || '',
-    setJoinLeadTime: (e) => patch({ joinLeadTime: e.target.value }),
     joinPricing: st.joinPricing || '',
     setJoinPricing: (e) => patch({ joinPricing: e.target.value }),
     joinOtherText: st.joinOtherText || '',
@@ -755,7 +751,6 @@ export default function App() {
         { label: 'Based in', value: sup.city },
         { label: 'Service radius', value: sup.radius ? sup.radius + ' km' : 'On site only' },
         { label: 'Min group', value: sup.minGroup + ' guests' },
-        { label: 'Lead time', value: sup.lead + ' days' },
         { label: 'Rating', value: sup.rating },
         { label: 'Response time', value: sup.response },
       ],
@@ -860,7 +855,7 @@ export default function App() {
       photo: photoUrl(p.id, 300, 220),
       name: p.name,
       description: p.description,
-      termsLabel: 'Min ' + p.minQty + ' ' + (p.unit === 'flat' ? 'booking' : 'units') + ' · ' + p.lead + ' day lead',
+      termsLabel: 'Min ' + p.minQty + ' ' + (p.unit === 'flat' ? 'booking' : 'units'),
       priceLabel: priceLabel(p),
       btnLabel: has(p.id) ? 'Added' : '+ Add',
       btnBg: has(p.id) ? '#DDF247' : '#171717',
@@ -911,7 +906,7 @@ export default function App() {
           key: r.pid,
           name: r.p.name,
           qty: r.qty,
-          termsLabel: 'Min ' + r.p.minQty + ' · ' + r.p.lead + ' day lead',
+          termsLabel: 'Min ' + r.p.minQty,
           priceLabel: priceLabel(r.p),
           inc: () => bump(r.pid, 1),
           dec: () => bump(r.pid, -1),
@@ -2834,9 +2829,6 @@ export default function App() {
                   Review Eventory and send
                 </button>
               </div>
-              <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: '20px 22px', fontSize: 13, lineHeight: 1.55, color: '#5B5B5B' }}>
-                Eventory does not process payment. {V.sup.name} will quote you directly and invoice you on their own terms.
-              </div>
             </div>
           </div>
         </div>
@@ -3797,19 +3789,6 @@ export default function App() {
                       />
                     </label>
                     <div style={{ marginTop: 8, fontSize: 13, color: '#5B5B5B' }}>Ranges are fine. Planners use them to shortlist, then you send the real quote.</div>
-
-                    <label style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: isMobile ? '100%' : 220 }}>
-                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                        Lead time needed
-                      </span>
-                      <input
-                        type="text"
-                        placeholder="10 days"
-                        value={V.joinLeadTime}
-                        onChange={V.setJoinLeadTime}
-                        style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                      />
-                    </label>
 
                     <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 16 }}>
                       <button
