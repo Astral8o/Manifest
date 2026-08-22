@@ -197,6 +197,16 @@ const initialState = {
   joinCats: [],
   joinCatsMenuOpen: false,
   joinSubmitted: false,
+  joinFormStep: 1,
+  joinBusinessName: '',
+  joinContactPerson: '',
+  joinWhatsapp: '',
+  joinEmail: '',
+  joinBasedIn: '',
+  joinTravelRadius: '',
+  joinLeadTime: '',
+  joinPricing: '',
+  joinOtherText: '',
   contactSent: false,
   sourcingOpen: false,
   sourcingSent: false,
@@ -530,13 +540,34 @@ export default function App() {
     closeSourcing: () => patch({ sourcingOpen: false, sourcingSent: false }),
     submitSourcing: () => patch({ sourcingSent: true }),
     sourcingSent: !!st.sourcingSent,
-    goJoin: nav('join', { joinSubmitted: false }),
+    goJoin: nav('join', { joinSubmitted: false, joinFormStep: 1 }),
     goGoFurther: () => {
       pendingScrollAnchorRef.current = 'go-further';
-      patch({ screen: 'join', joinSubmitted: false, navMenuOpen: false });
+      patch({ screen: 'join', joinSubmitted: false, joinFormStep: 1, navMenuOpen: false });
     },
     submitJoin: () => patch({ joinSubmitted: true }),
     joinSubmitted: !!st.joinSubmitted,
+    joinFormStep: st.joinFormStep || 1,
+    joinFormNext: () => patch((s) => ({ joinFormStep: Math.min(3, (s.joinFormStep || 1) + 1) })),
+    joinFormBack: () => patch((s) => ({ joinFormStep: Math.max(1, (s.joinFormStep || 1) - 1) })),
+    joinBusinessName: st.joinBusinessName || '',
+    setJoinBusinessName: (e) => patch({ joinBusinessName: e.target.value }),
+    joinContactPerson: st.joinContactPerson || '',
+    setJoinContactPerson: (e) => patch({ joinContactPerson: e.target.value }),
+    joinWhatsapp: st.joinWhatsapp || '',
+    setJoinWhatsapp: (e) => patch({ joinWhatsapp: e.target.value }),
+    joinEmail: st.joinEmail || '',
+    setJoinEmail: (e) => patch({ joinEmail: e.target.value }),
+    joinBasedIn: st.joinBasedIn || '',
+    setJoinBasedIn: (e) => patch({ joinBasedIn: e.target.value }),
+    joinTravelRadius: st.joinTravelRadius || '',
+    setJoinTravelRadius: (e) => patch({ joinTravelRadius: e.target.value }),
+    joinLeadTime: st.joinLeadTime || '',
+    setJoinLeadTime: (e) => patch({ joinLeadTime: e.target.value }),
+    joinPricing: st.joinPricing || '',
+    setJoinPricing: (e) => patch({ joinPricing: e.target.value }),
+    joinOtherText: st.joinOtherText || '',
+    setJoinOtherText: (e) => patch({ joinOtherText: e.target.value }),
     goAbout: nav('about', { contactSent: false }),
     submitContact: () => patch({ contactSent: true }),
     contactSent: !!st.contactSent,
@@ -3194,7 +3225,7 @@ export default function App() {
           <div style={{ marginTop: 22, maxWidth: 640 }}>
             <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Join Eventory</h1>
             <p style={{ margin: '16px 0 0', fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
-              Right now, somewhere, a planner is searching your category. Get seen, and let them come to you.
+              Right now, somewhere a planner is searching your category. Get seen, and let them come to you.
             </p>
             <p style={{ margin: '14px 0 0', fontSize: 15, lineHeight: 1.6, color: '#5B5B5B' }}>
               Tell us what you do and we'll build your profile for you. Planners searching your category find you
@@ -3315,229 +3346,324 @@ export default function App() {
               </>
             ) : (
               <>
-                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Tell us about your business</div>
-                <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
-                  Takes about two minutes. We'll turn this into a profile planners can find.
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginTop: 18 }}>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Business name
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Cocoa Pod Catering"
-                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                    />
-                  </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Contact person
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Full name"
-                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                    />
-                  </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Email
-                    </span>
-                    <input
-                      type="email"
-                      placeholder="bookings@yourbusiness.tt"
-                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                    />
-                  </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      WhatsApp or phone
-                    </span>
-                    <input
-                      type="tel"
-                      placeholder="868 000 0000"
-                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                    />
-                  </label>
+                <div style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Step {V.joinFormStep} of 3
+                </div>
+                <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+                  {[1, 2, 3].map((n) => (
+                    <div key={n} style={{ flex: 1, height: 4, borderRadius: 999, background: n <= V.joinFormStep ? '#171717' : '#ECECEC' }} />
+                  ))}
                 </div>
 
-                <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                  Categories you serve
-                </div>
-                <div style={{ marginTop: 10, position: 'relative' }}>
-                  <button
-                    onClick={V.toggleJoinCatsMenu}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 12,
-                      width: '100%',
-                      border: '1px solid #E4E4DF',
-                      borderRadius: 14,
-                      background: '#F7F7F5',
-                      padding: '12px 14px',
-                      cursor: 'pointer',
-                      fontFamily: SANS,
-                      fontSize: 15,
-                      color: '#171717',
-                    }}
-                  >
-                    {V.joinCatsSummary}
-                    <span style={{ fontSize: 12, color: '#6E6E6E' }}>{V.joinCatsMenuOpen ? '▲' : '▼'}</span>
-                  </button>
-                  {V.joinCatsMenuOpen && (
-                    <div
+                {V.joinFormStep === 1 && (
+                  <>
+                    <div style={{ marginTop: 18, fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>The basics</div>
+                    <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
+                      Takes about two minutes. We'll turn this into a profile planners can find.
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginTop: 18 }}>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Business name
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Cocoa Pod Catering"
+                          value={V.joinBusinessName}
+                          onChange={V.setJoinBusinessName}
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                        />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Contact person
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Full name"
+                          value={V.joinContactPerson}
+                          onChange={V.setJoinContactPerson}
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                        />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          WhatsApp or phone
+                        </span>
+                        <input
+                          type="tel"
+                          placeholder="868 000 0000"
+                          value={V.joinWhatsapp}
+                          onChange={V.setJoinWhatsapp}
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                        />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Email
+                        </span>
+                        <input
+                          type="email"
+                          placeholder="bookings@yourbusiness.tt"
+                          value={V.joinEmail}
+                          onChange={V.setJoinEmail}
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                        />
+                      </label>
+                    </div>
+                    <button
+                      onClick={V.joinFormNext}
                       style={{
-                        position: 'absolute',
-                        top: 'calc(100% + 8px)',
-                        left: 0,
-                        right: 0,
-                        maxHeight: 280,
-                        overflowY: 'auto',
-                        border: '1px solid #ECECEC',
-                        borderRadius: 16,
-                        background: '#FFFFFF',
-                        boxShadow: '0 12px 28px rgba(0,0,0,0.12)',
-                        padding: 12,
-                        zIndex: 21,
+                        marginTop: 22,
+                        border: 0,
+                        borderRadius: 999,
+                        background: '#171717',
+                        color: '#FFFFFF',
+                        padding: '15px 26px',
+                        cursor: 'pointer',
+                        fontSize: 15,
+                        fontWeight: 700,
                       }}
                     >
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {V.joinCategories.map((c) => (
-                          <button
-                            key={c.key}
-                            onClick={c.pick}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 8,
-                              border: `1px solid ${c.border}`,
-                              borderRadius: 999,
-                              background: c.bg,
-                              color: c.fg,
-                              padding: '8px 14px',
-                              cursor: 'pointer',
-                              fontSize: 13,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {c.name}
-                          </button>
-                        ))}
-                      </div>
+                      Continue →
+                    </button>
+                  </>
+                )}
+
+                {V.joinFormStep === 2 && (
+                  <>
+                    <div style={{ marginTop: 18, fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>What you do</div>
+                    <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>Where you work and what you serve.</p>
+
+                    <div style={{ marginTop: 18, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Categories you serve
                     </div>
-                  )}
-                  {V.joinCatsMenuOpen && (
-                    <div onClick={V.closeJoinCatsMenu} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-                  )}
-                </div>
-                {V.joinCatsSelected.length > 0 && (
-                  <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {V.joinCatsSelected.map((name) => (
-                      <span
-                        key={name}
+                    <div style={{ marginTop: 10, position: 'relative' }}>
+                      <button
+                        onClick={V.toggleJoinCatsMenu}
                         style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 12,
+                          width: '100%',
                           border: '1px solid #E4E4DF',
-                          borderRadius: 999,
+                          borderRadius: 14,
                           background: '#F7F7F5',
-                          padding: '5px 12px',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: '#4A4A4A',
+                          padding: '12px 14px',
+                          cursor: 'pointer',
+                          fontFamily: SANS,
+                          fontSize: 15,
+                          color: '#171717',
                         }}
                       >
-                        {name}
+                        {V.joinCatsSummary}
+                        <span style={{ fontSize: 12, color: '#6E6E6E' }}>{V.joinCatsMenuOpen ? '▲' : '▼'}</span>
+                      </button>
+                      {V.joinCatsMenuOpen && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 'calc(100% + 8px)',
+                            left: 0,
+                            right: 0,
+                            maxHeight: 280,
+                            overflowY: 'auto',
+                            border: '1px solid #ECECEC',
+                            borderRadius: 16,
+                            background: '#FFFFFF',
+                            boxShadow: '0 12px 28px rgba(0,0,0,0.12)',
+                            padding: 12,
+                            zIndex: 21,
+                          }}
+                        >
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                            {V.joinCategories.map((c) => (
+                              <button
+                                key={c.key}
+                                onClick={c.pick}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 8,
+                                  border: `1px solid ${c.border}`,
+                                  borderRadius: 999,
+                                  background: c.bg,
+                                  color: c.fg,
+                                  padding: '8px 14px',
+                                  cursor: 'pointer',
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {c.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {V.joinCatsMenuOpen && (
+                        <div onClick={V.closeJoinCatsMenu} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
+                      )}
+                    </div>
+                    {V.joinCatsSelected.length > 0 && (
+                      <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {V.joinCatsSelected.map((name) => (
+                          <span
+                            key={name}
+                            style={{
+                              border: '1px solid #E4E4DF',
+                              borderRadius: 999,
+                              background: '#F7F7F5',
+                              padding: '5px 12px',
+                              fontSize: 12,
+                              fontWeight: 600,
+                              color: '#4A4A4A',
+                            }}
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {V.joinOther && (
+                      <label style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Tell us what you do
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="e.g. Mobile bathroom trailers, fireworks, drone coverage"
+                          value={V.joinOtherText}
+                          onChange={V.setJoinOtherText}
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                        />
+                      </label>
+                    )}
+
+                    <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14 }}>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Based in
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Chaguanas"
+                          value={V.joinBasedIn}
+                          onChange={V.setJoinBasedIn}
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                        />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Travel radius
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="60 km"
+                          value={V.joinTravelRadius}
+                          onChange={V.setJoinTravelRadius}
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                        />
+                      </label>
+                    </div>
+
+                    <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <button
+                        onClick={V.joinFormBack}
+                        style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '12px 4px', cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600 }}
+                      >
+                        ← Back
+                      </button>
+                      <button
+                        onClick={V.joinFormNext}
+                        style={{
+                          border: 0,
+                          borderRadius: 999,
+                          background: '#171717',
+                          color: '#FFFFFF',
+                          padding: '15px 26px',
+                          cursor: 'pointer',
+                          fontSize: 15,
+                          fontWeight: 700,
+                        }}
+                      >
+                        Continue →
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {V.joinFormStep === 3 && (
+                  <>
+                    <div style={{ marginTop: 18, fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Pricing (optional but helps)</div>
+                    <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
+                      Rough numbers now save back-and-forth later.
+                    </p>
+
+                    <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                        What you offer and roughly what it costs
                       </span>
-                    ))}
-                  </div>
+                      <textarea
+                        placeholder="One line per item, with a price range and unit. Example: Hot lunch buffet, TT$110 to 165 per guest, minimum 60 guests."
+                        value={V.joinPricing}
+                        onChange={V.setJoinPricing}
+                        style={{
+                          minHeight: 132,
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 14,
+                          background: '#F7F7F5',
+                          padding: 14,
+                          fontFamily: SANS,
+                          fontSize: 15,
+                          lineHeight: 1.5,
+                          color: '#171717',
+                          resize: 'vertical',
+                        }}
+                      />
+                    </label>
+                    <div style={{ marginTop: 8, fontSize: 13, color: '#5B5B5B' }}>Ranges are fine. Planners use them to shortlist, then you send the real quote.</div>
+
+                    <label style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: isMobile ? '100%' : 220 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                        Lead time needed
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="10 days"
+                        value={V.joinLeadTime}
+                        onChange={V.setJoinLeadTime}
+                        style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                      />
+                    </label>
+
+                    <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <button
+                        onClick={V.joinFormBack}
+                        style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '12px 4px', cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600 }}
+                      >
+                        ← Back
+                      </button>
+                      <button
+                        onClick={V.submitJoin}
+                        style={{
+                          border: 0,
+                          borderRadius: 999,
+                          background: '#171717',
+                          color: '#FFFFFF',
+                          padding: '15px 26px',
+                          cursor: 'pointer',
+                          fontSize: 15,
+                          fontWeight: 700,
+                        }}
+                      >
+                        Submit for review
+                      </button>
+                    </div>
+                    <div style={{ marginTop: 12, fontSize: 13, color: '#5B5B5B' }}>We'll reach out to help build your profile.</div>
+                  </>
                 )}
-                {V.joinOther && (
-                  <label style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Tell us what you do
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="e.g. Mobile bathroom trailers, fireworks, drone coverage"
-                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                    />
-                  </label>
-                )}
-
-                <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14 }}>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Based in
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Chaguanas"
-                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                    />
-                  </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Travel radius
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="60 km"
-                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                    />
-                  </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Lead time needed
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="10 days"
-                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                    />
-                  </label>
-                </div>
-
-                <label style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                    What you offer and roughly what it costs
-                  </span>
-                  <textarea
-                    placeholder="One line per item, with a price range and unit. Example: Hot lunch buffet, TT$110 to 165 per guest, minimum 60 guests."
-                    style={{
-                      minHeight: 132,
-                      border: '1px solid #E4E4DF',
-                      borderRadius: 14,
-                      background: '#F7F7F5',
-                      padding: 14,
-                      fontFamily: SANS,
-                      fontSize: 15,
-                      lineHeight: 1.5,
-                      color: '#171717',
-                      resize: 'vertical',
-                    }}
-                  />
-                </label>
-                <div style={{ marginTop: 8, fontSize: 13, color: '#5B5B5B' }}>Ranges are fine. Planners use them to shortlist, then you send the real quote.</div>
-
-                <button
-                  onClick={V.submitJoin}
-                  style={{
-                    marginTop: 22,
-                    border: 0,
-                    borderRadius: 999,
-                    background: '#171717',
-                    color: '#FFFFFF',
-                    padding: '15px 26px',
-                    cursor: 'pointer',
-                    fontSize: 15,
-                    fontWeight: 700,
-                  }}
-                >
-                  Submit for review
-                </button>
-                <div style={{ marginTop: 12, fontSize: 13, color: '#5B5B5B' }}>We'll reach out to help build your profile.</div>
               </>
             )}
           </div>
