@@ -4575,7 +4575,7 @@ export default function App() {
               <>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
                   Got it. We'll look for options that match what you described and follow up by email within one
-                  business day. You only pay if you approve one of the options we bring back.
+                  business day.
                 </p>
                 <button
                   onClick={V.closeSourcing}
@@ -4599,7 +4599,6 @@ export default function App() {
               <>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
                   Describe what you're looking for in your own words. We'll find options and send them back to you.
-                  You only pay if you approve one, quoted with the options.
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginTop: 18 }}>
@@ -4671,7 +4670,7 @@ export default function App() {
                   Submit request
                 </button>
                 <div style={{ marginTop: 12, fontSize: 12, color: '#5B5B5B', textAlign: 'center' }}>
-                  No upfront charge. We follow up by email within one business day.
+                  We follow up by email within one business day.
                 </div>
               </>
             )}
