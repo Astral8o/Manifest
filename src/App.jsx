@@ -5006,7 +5006,7 @@ export default function App() {
                     fontWeight: 700,
                   }}
                 >
-                  Request promotion plan
+                  Request Spotlight
                 </button>
               </>
             )}
