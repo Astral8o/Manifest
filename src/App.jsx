@@ -1606,8 +1606,8 @@ export default function App() {
                 <div style={{ maxWidth: 720 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Connect</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#4A4A4A' }}>
-                    Send your request directly to each vendor. They'll reach out to you with availability, pricing
-                    and details.
+                    Fill in your details once, then send to every vendor on your list at the same time — each
+                    replies to you directly with availability, pricing and details.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#C2C2BC' }}>03</div>
