@@ -187,8 +187,6 @@ const initialState = {
   fulfil: 'Delivery',
   spec: {},
   openSpec: {},
-  eventDetailsSaved: false,
-  vendorReady: {},
   eventDate: '',
   guestsExpected: '',
   eventTime: '',
@@ -406,11 +404,6 @@ export default function App() {
   const priceLabel = (p) =>
     p.priceOnRequest ? 'Inquire for pricing' : money(p.min) + '–' + money(p.max) + (p.unit === 'flat' ? '' : ' ' + p.unit);
   const startPrice = (s) => (s.priceOnRequest ? null : Math.min(...s.products.map((p) => p[2])));
-  const formatEventDate = (dateStr) => {
-    if (!dateStr) return '';
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   const add = (pid) => {
     patch((s) => {
@@ -426,14 +419,7 @@ export default function App() {
   };
   const remove = (pid) => patch((s) => ({ items: s.items.filter((i) => i.pid !== pid) }));
   const removeSupplier = (supId) =>
-    patch((s) => {
-      const vendorReady = { ...(s.vendorReady || {}) };
-      delete vendorReady[supId];
-      return {
-        items: s.items.filter((i) => { const p = product(i.pid); return p && p.supId !== supId; }),
-        vendorReady,
-      };
-    });
+    patch((s) => ({ items: s.items.filter((i) => { const p = product(i.pid); return p && p.supId !== supId; }) }));
   const setSpec = (pid, key, val) => {
     patch((s) => {
       const spec = { ...(s.spec || {}) };
@@ -482,11 +468,6 @@ export default function App() {
   // ---- derived view-model ----
   const grp = groups();
   const itemCount = st.items.reduce((n, i) => n + i.qty, 0);
-  const vendorReadyMap = st.vendorReady || {};
-  const firstIncompleteIdx = grp.findIndex((g) => !vendorReadyMap[g.sup.id]);
-  const activeVendorName = firstIncompleteIdx >= 0 ? grp[firstIncompleteIdx].sup.name : null;
-  const vendorReadyCount = grp.filter((g) => !!vendorReadyMap[g.sup.id]).length;
-  const allVendorsReady = grp.length > 0 && vendorReadyCount === grp.length;
   const nav = (screen, extra) => () =>
     patch({ screen, sent: screen === 'eventory' ? st.sent : null, navMenuOpen: false, ...(extra || {}) });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
@@ -909,28 +890,20 @@ export default function App() {
     isEmpty: st.items.length === 0,
     notSent: !st.sent,
     sent: !!st.sent,
-
-    progressLabel: grp.length
-      ? vendorReadyCount + ' of ' + grp.length + (grp.length === 1 ? ' vendor ready' : ' vendors ready')
-      : '',
-
-    eventDetailsSaved: !!st.eventDetailsSaved,
-    saveEventDetails: () => patch({ eventDetailsSaved: true }),
-    editEventDetails: () => patch({ eventDetailsSaved: false }),
-    eventDetailsSummary:
-      [
-        st.eventDate ? formatEventDate(st.eventDate) : null,
-        st.guestsExpected ? st.guestsExpected + ' guests' : null,
-        st.fulfil || null,
-      ]
-        .filter(Boolean)
-        .join(' · ') || 'Details saved',
-
-    eventoryGroups: grp.map((g, i) => {
-      const ready = !!vendorReadyMap[g.sup.id];
-      const active = st.eventDetailsSaved && i === firstIncompleteIdx;
-      const locked = !ready && !active;
-      const items = g.rows.map((r) => {
+    eventoryGroups: grp.map((g) => ({
+      key: g.sup.id,
+      supplierName: g.sup.name,
+      location: g.sup.city,
+      inquiryLabel: '1 inquiry · ' + g.rows.length + (g.rows.length === 1 ? ' line item' : ' line items'),
+      removeAll: () => removeSupplier(g.sup.id),
+      notePlaceholder:
+        g.sup.code === 'CAT.01'
+          ? 'Two guests need vegetarian plates. Can you hold the pepper on the side?'
+          : 'Anything this vendor should know about your setup or timing.',
+      note: (st.noteByVendor || {})[g.sup.id] || '',
+      setNote: (e) =>
+        patch((s) => ({ noteByVendor: { ...(s.noteByVendor || {}), [g.sup.id]: e.target.value } })),
+      items: g.rows.map((r) => {
         const defs = FIELDS[g.sup.code] || FIELDS_DEFAULT;
         const spec = (st.spec || {})[r.pid] || {};
         const setCount = defs.filter((d) => spec[d.k]).length;
@@ -944,8 +917,7 @@ export default function App() {
           dec: () => bump(r.pid, -1),
           remove: () => remove(r.pid),
           expanded: !!(st.openSpec || {})[r.pid],
-          hasDetails: setCount > 0,
-          detailLabel: setCount ? 'Details added ✓' : 'Add details',
+          detailLabel: setCount ? setCount + ' of ' + defs.length + ' set' : 'Add details',
           detailBg: setCount ? ACCENT : '#171717',
           detailFg: '#FFFFFF',
           toggle: () =>
@@ -966,67 +938,15 @@ export default function App() {
             })),
           })),
         };
-      });
-      const allDetailed = items.every((it) => it.hasDetails);
-      return {
-        key: g.sup.id,
-        id: 'vendor-' + g.sup.id,
-        supplierName: g.sup.name,
-        location: g.sup.city,
-        inquiryLabel: '1 inquiry · ' + g.rows.length + (g.rows.length === 1 ? ' line item' : ' line items'),
-        removeAll: () => removeSupplier(g.sup.id),
-        notePlaceholder:
-          g.sup.code === 'CAT.01'
-            ? 'Two guests need vegetarian plates. Can you hold the pepper on the side?'
-            : 'Anything this vendor should know about your setup or timing.',
-        note: (st.noteByVendor || {})[g.sup.id] || '',
-        setNote: (e) =>
-          patch((s) => ({ noteByVendor: { ...(s.noteByVendor || {}), [g.sup.id]: e.target.value } })),
-        items,
-        ready,
-        active,
-        locked,
-        lockMessage: !st.eventDetailsSaved ? 'Complete event details first' : 'Complete ' + activeVendorName + ' first',
-        readySummary:
-          items.filter((it) => it.hasDetails).length +
-          ' of ' +
-          items.length +
-          (items.length === 1 ? ' item detailed' : ' items detailed'),
-        canMarkReady: allDetailed,
-        markReady: () => patch((s) => ({ vendorReady: { ...(s.vendorReady || {}), [g.sup.id]: true } })),
-        editVendor: () => patch((s) => ({ vendorReady: { ...(s.vendorReady || {}), [g.sup.id]: false } })),
-      };
-    }),
-
-    allVendorsReady,
-    canReachSend: !!st.eventDetailsSaved && allVendorsReady,
-    incompleteWarning: grp.some(
-      (g) =>
-        vendorReadyMap[g.sup.id] &&
-        g.rows.some((r) => {
-          const defs = FIELDS[g.sup.code] || FIELDS_DEFAULT;
-          const spec = (st.spec || {})[r.pid] || {};
-          return defs.filter((d) => spec[d.k]).length === 0;
-        })
-    ),
-
+      }),
+    })),
     sendStats: [
       { key: 'suppliers', label: 'Vendors', value: grp.length },
       { key: 'products', label: 'Products', value: itemCount },
       { key: 'inquiries', label: 'Inquiries to send', value: grp.length },
     ],
-    mobileCartLabel: grp.length
-      ? vendorReadyCount + ' of ' + grp.length + (grp.length === 1 ? ' vendor ready' : ' vendors ready')
-      : itemCount + (itemCount === 1 ? ' item · ' : ' items · ') + grp.length + (grp.length === 1 ? ' vendor' : ' vendors'),
-    mobileCtaLabel: st.eventDetailsSaved && allVendorsReady ? 'Review & send →' : 'Continue →',
-    scrollToNext: () => {
-      let targetId = 'event-details-card';
-      if (st.eventDetailsSaved) {
-        targetId = firstIncompleteIdx >= 0 ? 'vendor-' + grp[firstIncompleteIdx].sup.id : 'eventory-summary';
-      }
-      const el = document.getElementById(targetId);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    },
+    mobileCartLabel:
+      itemCount + (itemCount === 1 ? ' item · ' : ' items · ') + grp.length + (grp.length === 1 ? ' vendor' : ' vendors'),
     scrollToSummary: () => {
       const el = document.getElementById('eventory-summary');
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1049,12 +969,12 @@ export default function App() {
     accessNotes: st.accessNotes || '',
     setAccessNotes: (e) => patch({ accessNotes: e.target.value }),
 
-    sendOpacity: st.items.length && st.signedIn && !st.sending && allVendorsReady ? 1 : 0.4,
+    sendOpacity: st.items.length && st.signedIn && !st.sending ? 1 : 0.4,
     sending: !!st.sending,
     sendError: st.sendError || '',
     signInDisabled: !(st.email && st.email.indexOf('@') > 0),
     send: async () => {
-      if (!st.signedIn || !st.items.length || st.sending || !allVendorsReady) return;
+      if (!st.signedIn || !st.items.length || st.sending) return;
       const grpNow = groups();
       const sentNames = grpNow.map((g) => g.sup.name);
       patch({ sending: true, sendError: null });
@@ -2927,29 +2847,11 @@ export default function App() {
             onClick={V.goHome}
             style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
           >
-            ← Back to browsing
+            ← Keep browsing
           </button>
           <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
             <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.eventoryHeading}</h1>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-              <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.eventorySub}</div>
-              {V.notSent && !V.isEmpty && V.progressLabel && (
-                <div
-                  style={{
-                    border: '1px solid #ECECEC',
-                    borderRadius: 999,
-                    padding: '5px 12px',
-                    fontFamily: MONO,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: '0.04em',
-                    color: V.allVendorsReady ? '#16A34A' : '#5B5B5B',
-                  }}
-                >
-                  {V.progressLabel}
-                </div>
-              )}
-            </div>
+            <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.eventorySub}</div>
           </div>
 
           {V.notSent && V.isEmpty && (
@@ -2981,396 +2883,292 @@ export default function App() {
             <>
             <div style={{ marginTop: 26, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
-                <div id="event-details-card" style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? '18px 18px' : '24px 26px', scrollMarginTop: 90 }}>
-                  {V.eventDetailsSaved ? (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                      <div>
-                        <div style={{ fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                          Event details <span style={{ color: '#16A34A' }}>✓</span>
-                        </div>
-                        <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>{V.eventDetailsSummary}</div>
-                      </div>
-                      <button
-                        onClick={V.editEventDetails}
-                        style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#5B5B5B' }}
-                      >
-                        ✎ Edit
-                      </button>
+                <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? '18px 18px' : '24px 26px' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Event details</div>
+                    <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Sent with every inquiry
                     </div>
-                  ) : (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>1. Event details</div>
-                        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          Sent with every inquiry
-                        </div>
-                      </div>
-                      <div style={{ marginTop: 4, fontSize: 14, color: '#5B5B5B' }}>
-                        Vendors need these to quote you. Fill them once and they go out with each inquiry.
-                      </div>
-                      <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                            Event date
-                          </span>
-                          <input
-                            type="date"
-                            value={V.eventDate}
-                            onChange={V.setEventDate}
-                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                          />
-                        </label>
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                            Guests expected
-                          </span>
-                          <input
-                            type="number"
-                            placeholder="120"
-                            value={V.guestsExpected}
-                            onChange={V.setGuestsExpected}
-                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                          />
-                        </label>
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                            Start and end time
-                          </span>
-                          <input
-                            type="text"
-                            placeholder="4pm to 11pm"
-                            value={V.eventTime}
-                            onChange={V.setEventTime}
-                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                          />
-                        </label>
-                      </div>
-                      <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          Fulfilment
-                        </span>
-                        {V.fulfilmentOptions.map((f) => (
-                          <button
-                            key={f.key}
-                            onClick={f.pick}
-                            style={{
-                              border: `1px solid ${f.border}`,
-                              borderRadius: 999,
-                              background: f.bg,
-                              color: f.fg,
-                              padding: '8px 16px',
-                              cursor: 'pointer',
-                              fontSize: 13,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {f.label}
-                          </button>
-                        ))}
-                      </div>
-                      <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          {V.addressLabel}
-                        </span>
-                        <input
-                          type="text"
-                          placeholder="Venue name, street, town"
-                          value={V.venueAddress}
-                          onChange={V.setVenueAddress}
-                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                        />
-                      </label>
-                      <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          Access notes, optional
-                        </span>
-                        <textarea
-                          placeholder="Load in through the back gate on Henry Street. No lift, one flight of stairs. Security needs names by the Friday before."
-                          value={V.accessNotes}
-                          onChange={V.setAccessNotes}
-                          style={{
-                            minHeight: 84,
-                            border: '1px solid #E4E4DF',
-                            borderRadius: 14,
-                            background: '#F7F7F5',
-                            padding: 14,
-                            fontFamily: SANS,
-                            fontSize: 15,
-                            lineHeight: 1.5,
-                            color: '#171717',
-                            resize: 'vertical',
-                          }}
-                        />
-                      </label>
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 14, color: '#5B5B5B' }}>
+                    Vendors need these to quote you. Fill them once and they go out with each inquiry.
+                  </div>
+                  <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                        Event date
+                      </span>
+                      <input
+                        type="date"
+                        value={V.eventDate}
+                        onChange={V.setEventDate}
+                        style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                      />
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                        Guests expected
+                      </span>
+                      <input
+                        type="number"
+                        placeholder="120"
+                        value={V.guestsExpected}
+                        onChange={V.setGuestsExpected}
+                        style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                      />
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                        Start and end time
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="4pm to 11pm"
+                        value={V.eventTime}
+                        onChange={V.setEventTime}
+                        style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                      />
+                    </label>
+                  </div>
+                  <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Fulfilment
+                    </span>
+                    {V.fulfilmentOptions.map((f) => (
                       <button
-                        onClick={V.saveEventDetails}
+                        key={f.key}
+                        onClick={f.pick}
                         style={{
-                          marginTop: 22,
-                          border: 0,
+                          border: `1px solid ${f.border}`,
                           borderRadius: 999,
-                          background: '#171717',
-                          color: '#FFFFFF',
-                          padding: '13px 24px',
+                          background: f.bg,
+                          color: f.fg,
+                          padding: '8px 16px',
                           cursor: 'pointer',
-                          fontSize: 14,
-                          fontWeight: 700,
+                          fontSize: 13,
+                          fontWeight: 600,
                         }}
                       >
-                        Save &amp; continue
+                        {f.label}
                       </button>
-                    </>
-                  )}
+                    ))}
+                  </div>
+                  <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      {V.addressLabel}
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Venue name, street, town"
+                      value={V.venueAddress}
+                      onChange={V.setVenueAddress}
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                  <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Access notes, optional
+                    </span>
+                    <textarea
+                      placeholder="Load in through the back gate on Henry Street. No lift, one flight of stairs. Security needs names by the Friday before."
+                      value={V.accessNotes}
+                      onChange={V.setAccessNotes}
+                      style={{
+                        minHeight: 84,
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 14,
+                        background: '#F7F7F5',
+                        padding: 14,
+                        fontFamily: SANS,
+                        fontSize: 15,
+                        lineHeight: 1.5,
+                        color: '#171717',
+                        resize: 'vertical',
+                      }}
+                    />
+                  </label>
                 </div>
 
-                {V.eventoryGroups.map((g, gi) => (
-                  <div
-                    key={g.key}
-                    id={g.id}
-                    style={{
-                      border: '1px solid #ECECEC',
-                      borderRadius: 24,
-                      padding: g.active ? '24px 26px' : '18px 22px',
-                      scrollMarginTop: 90,
-                      opacity: g.locked ? 0.5 : 1,
-                    }}
-                  >
-                    {g.locked && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: 16 }}>🔒</span>
-                        <div>
-                          <div style={{ fontSize: 15, fontWeight: 700 }}>
-                            {gi + 1}. {g.supplierName}
-                          </div>
-                          <div style={{ marginTop: 2, fontSize: 13, color: '#9A9A9A' }}>{g.lockMessage}</div>
-                        </div>
+                {V.eventoryGroups.map((g) => (
+                  <div key={g.key} style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: '24px 26px' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{g.supplierName}</div>
+                        <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{g.location}</div>
                       </div>
-                    )}
-
-                    {g.ready && (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                        <div>
-                          <div style={{ fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            {g.supplierName} <span style={{ color: '#16A34A' }}>✓</span>
-                          </div>
-                          <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>{g.readySummary}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          {g.inquiryLabel}
                         </div>
                         <button
-                          onClick={g.editVendor}
-                          style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#5B5B5B' }}
-                        >
-                          ✎ Edit
-                        </button>
-                      </div>
-                    )}
-
-                    {g.active && (
-                      <>
-                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-                            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>
-                              {gi + 1}. {g.supplierName}
-                            </div>
-                            <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{g.location}</div>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                              {g.inquiryLabel}
-                            </div>
-                            <button
-                              onClick={g.removeAll}
-                              style={{
-                                border: 0,
-                                background: 'transparent',
-                                padding: 0,
-                                cursor: 'pointer',
-                                fontSize: 12,
-                                fontWeight: 600,
-                                color: '#8A8A8A',
-                                textDecoration: 'underline',
-                                textUnderlineOffset: '3px',
-                              }}
-                            >
-                              Remove vendor
-                            </button>
-                          </div>
-                        </div>
-                        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          {g.items.map((it) => (
-                            <div key={it.key} style={{ borderTop: '1px solid #ECECEC', padding: '14px 0' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
-                                <div style={{ flex: '1 1 260px', minWidth: 220 }}>
-                                  <div style={{ fontSize: 16, fontWeight: 600 }}>{it.name}</div>
-                                  <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{it.termsLabel}</div>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', columnGap: 16, flexWrap: 'wrap', rowGap: 10 }}>
-                                  <div
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 10,
-                                      border: '1px solid #E4E4DF',
-                                      borderRadius: 999,
-                                      padding: '5px 6px',
-                                    }}
-                                  >
-                                    <button
-                                      onClick={it.dec}
-                                      style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
-                                    >
-                                      −
-                                    </button>
-                                    <span style={{ fontFamily: MONO, fontSize: 13, minWidth: 22, textAlign: 'center' }}>{it.qty}</span>
-                                    <button
-                                      onClick={it.inc}
-                                      style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
-                                    >
-                                      +
-                                    </button>
-                                  </div>
-                                  <div style={{ fontFamily: MONO, fontSize: 14, minWidth: isMobile ? 0 : 148, textAlign: 'right' }}>{it.priceLabel}</div>
-                                  <button
-                                    onClick={it.toggle}
-                                    style={{
-                                      border: '1px solid #171717',
-                                      borderRadius: 999,
-                                      background: it.detailBg,
-                                      padding: '8px 14px',
-                                      cursor: 'pointer',
-                                      fontSize: 13,
-                                      fontWeight: 700,
-                                      color: it.detailFg,
-                                    }}
-                                  >
-                                    {it.detailLabel}
-                                  </button>
-                                  <button
-                                    onClick={it.remove}
-                                    style={{
-                                      border: 0,
-                                      background: 'transparent',
-                                      padding: 0,
-                                      cursor: 'pointer',
-                                      fontSize: 13,
-                                      fontWeight: 600,
-                                      color: '#8A8A8A',
-                                      textDecoration: 'underline',
-                                      textUnderlineOffset: '3px',
-                                    }}
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              </div>
-                              {it.expanded && (
-                                <div style={{ marginTop: 12, borderRadius: 18, background: '#F7F7F5', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                  {it.fields.map((fd) => (
-                                    <div key={fd.key}>
-                                      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                                        {fd.label}
-                                      </div>
-                                      {fd.isChoice && (
-                                        <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                                          {fd.options.map((o) => (
-                                            <button
-                                              key={o.key}
-                                              onClick={o.pick}
-                                              style={{
-                                                border: `1px solid ${o.border}`,
-                                                borderRadius: 999,
-                                                background: o.bg,
-                                                color: o.fg,
-                                                padding: '7px 14px',
-                                                cursor: 'pointer',
-                                                fontSize: 13,
-                                                fontWeight: 600,
-                                              }}
-                                            >
-                                              {o.label}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      )}
-                                      {fd.isText && (
-                                        <input
-                                          type="text"
-                                          value={fd.value}
-                                          onChange={fd.set}
-                                          placeholder={fd.ph}
-                                          style={{
-                                            marginTop: 8,
-                                            width: '100%',
-                                            border: '1px solid #E4E4DF',
-                                            borderRadius: 14,
-                                            background: '#FFFFFF',
-                                            padding: '11px 14px',
-                                            fontFamily: SANS,
-                                            fontSize: 14,
-                                            color: '#171717',
-                                          }}
-                                        />
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        <label style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                            Note to {g.supplierName}, optional
-                          </span>
-                          <textarea
-                            placeholder={g.notePlaceholder}
-                            value={g.note}
-                            onChange={g.setNote}
-                            style={{
-                              minHeight: 68,
-                              border: '1px solid #E4E4DF',
-                              borderRadius: 14,
-                              background: '#F7F7F5',
-                              padding: '13px 14px',
-                              fontFamily: SANS,
-                              fontSize: 14,
-                              lineHeight: 1.5,
-                              color: '#171717',
-                              resize: 'vertical',
-                            }}
-                          />
-                          <span style={{ fontSize: 12, color: '#9A9A9A' }}>Only {g.supplierName} sees this note.</span>
-                        </label>
-                        <button
-                          onClick={g.markReady}
-                          disabled={!g.canMarkReady}
+                          onClick={g.removeAll}
                           style={{
-                            marginTop: 20,
-                            width: '100%',
                             border: 0,
-                            borderRadius: 999,
-                            background: '#171717',
-                            color: '#FFFFFF',
-                            padding: '13px 24px',
-                            cursor: g.canMarkReady ? 'pointer' : 'not-allowed',
-                            fontSize: 14,
-                            fontWeight: 700,
-                            opacity: g.canMarkReady ? 1 : 0.4,
+                            background: 'transparent',
+                            padding: 0,
+                            cursor: 'pointer',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: '#8A8A8A',
+                            textDecoration: 'underline',
+                            textUnderlineOffset: '3px',
                           }}
                         >
-                          Mark vendor ready
+                          Remove vendor
                         </button>
-                        {!g.canMarkReady && (
-                          <div style={{ marginTop: 10, fontSize: 12, color: '#9A9A9A', textAlign: 'center' }}>
-                            Add details to every line item before marking this vendor ready.
+                      </div>
+                    </div>
+                    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {g.items.map((it) => (
+                        <div key={it.key} style={{ borderTop: '1px solid #ECECEC', padding: '14px 0' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+                            <div style={{ flex: '1 1 260px', minWidth: 220 }}>
+                              <div style={{ fontSize: 16, fontWeight: 600 }}>{it.name}</div>
+                              <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{it.termsLabel}</div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', columnGap: 16, flexWrap: 'wrap', rowGap: 10 }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 10,
+                                  border: '1px solid #E4E4DF',
+                                  borderRadius: 999,
+                                  padding: '5px 6px',
+                                }}
+                              >
+                                <button
+                                  onClick={it.dec}
+                                  style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
+                                >
+                                  −
+                                </button>
+                                <span style={{ fontFamily: MONO, fontSize: 13, minWidth: 22, textAlign: 'center' }}>{it.qty}</span>
+                                <button
+                                  onClick={it.inc}
+                                  style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <div style={{ fontFamily: MONO, fontSize: 14, minWidth: isMobile ? 0 : 148, textAlign: 'right' }}>{it.priceLabel}</div>
+                              <button
+                                onClick={it.toggle}
+                                style={{
+                                  border: '1px solid #171717',
+                                  borderRadius: 999,
+                                  background: it.detailBg,
+                                  padding: '8px 14px',
+                                  cursor: 'pointer',
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  color: it.detailFg,
+                                }}
+                              >
+                                {it.detailLabel}
+                              </button>
+                              <button
+                                onClick={it.remove}
+                                style={{
+                                  border: 0,
+                                  background: 'transparent',
+                                  padding: 0,
+                                  cursor: 'pointer',
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                  color: '#8A8A8A',
+                                  textDecoration: 'underline',
+                                  textUnderlineOffset: '3px',
+                                }}
+                              >
+                                Remove
+                              </button>
+                            </div>
                           </div>
-                        )}
-                      </>
-                    )}
+                          {it.expanded && (
+                            <div style={{ marginTop: 12, borderRadius: 18, background: '#F7F7F5', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                              {it.fields.map((fd) => (
+                                <div key={fd.key}>
+                                  <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                                    {fd.label}
+                                  </div>
+                                  {fd.isChoice && (
+                                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                      {fd.options.map((o) => (
+                                        <button
+                                          key={o.key}
+                                          onClick={o.pick}
+                                          style={{
+                                            border: `1px solid ${o.border}`,
+                                            borderRadius: 999,
+                                            background: o.bg,
+                                            color: o.fg,
+                                            padding: '7px 14px',
+                                            cursor: 'pointer',
+                                            fontSize: 13,
+                                            fontWeight: 600,
+                                          }}
+                                        >
+                                          {o.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {fd.isText && (
+                                    <input
+                                      type="text"
+                                      value={fd.value}
+                                      onChange={fd.set}
+                                      placeholder={fd.ph}
+                                      style={{
+                                        marginTop: 8,
+                                        width: '100%',
+                                        border: '1px solid #E4E4DF',
+                                        borderRadius: 14,
+                                        background: '#FFFFFF',
+                                        padding: '11px 14px',
+                                        fontFamily: SANS,
+                                        fontSize: 14,
+                                        color: '#171717',
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <label style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                        Note to {g.supplierName}, optional
+                      </span>
+                      <textarea
+                        placeholder={g.notePlaceholder}
+                        value={g.note}
+                        onChange={g.setNote}
+                        style={{
+                          minHeight: 68,
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 14,
+                          background: '#F7F7F5',
+                          padding: '13px 14px',
+                          fontFamily: SANS,
+                          fontSize: 14,
+                          lineHeight: 1.5,
+                          color: '#171717',
+                          resize: 'vertical',
+                        }}
+                      />
+                      <span style={{ fontSize: 12, color: '#9A9A9A' }}>Only {g.supplierName} sees this note.</span>
+                    </label>
                   </div>
                 ))}
               </div>
 
               <div id="eventory-summary" style={{ position: isMobile ? 'static' : 'sticky', top: 92, scrollMarginTop: 90, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
-                <div style={{ borderRadius: 24, background: ACCENT, color: ACCENT_ON, padding: 26, opacity: V.canReachSend ? 1 : 0.6 }}>
+                <div style={{ borderRadius: 24, background: ACCENT, color: ACCENT_ON, padding: 26 }}>
                   <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>About to send</div>
                   <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {V.sendStats.map((s) => (
@@ -3383,20 +3181,7 @@ export default function App() {
                       </div>
                     ))}
                   </div>
-
-                  {!V.canReachSend && (
-                    <div style={{ marginTop: 18, borderTop: `1px solid ${ACCENT_ON_MUTED}`, paddingTop: 16, fontSize: 13, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
-                      Complete event details and every vendor card above to send your inquiries.
-                    </div>
-                  )}
-
-                  {V.canReachSend && V.incompleteWarning && (
-                    <div style={{ marginTop: 18, borderTop: `1px solid ${ACCENT_ON_MUTED}`, paddingTop: 16, fontSize: 13, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
-                      Some line items are missing details. You can still send, but vendors may need to follow up.
-                    </div>
-                  )}
-
-                  {V.canReachSend && V.needsAccount && (
+                  {V.needsAccount && (
                     <div style={{ marginTop: 18, borderTop: `1px solid ${ACCENT_ON_MUTED}`, paddingTop: 16 }}>
                       <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_ON_SOFT }}>
                         Your email
@@ -3480,32 +3265,30 @@ export default function App() {
                       </div>
                     </div>
                   )}
-                  {V.canReachSend && V.signedIn && (
+                  {V.signedIn && (
                     <div style={{ marginTop: 18, borderTop: `1px solid ${ACCENT_ON_MUTED}`, paddingTop: 14, fontSize: 13, color: ACCENT_ON_SOFT }}>
                       Saved to {V.email}. You can come back to this Eventory any time.
                     </div>
                   )}
-                  {V.canReachSend && V.signedIn && (
-                    <button
-                      onClick={V.send}
-                      disabled={V.isEmpty || !V.signedIn || V.sending || !V.allVendorsReady}
-                      style={{
-                        marginTop: 20,
-                        width: '100%',
-                        border: 0,
-                        borderRadius: 999,
-                        background: '#171717',
-                        color: '#FFFFFF',
-                        padding: '16px 20px',
-                        cursor: 'pointer',
-                        fontSize: 15,
-                        fontWeight: 700,
-                        opacity: V.sendOpacity,
-                      }}
-                    >
-                      {V.sending ? 'Sending…' : 'Send all inquiries'}
-                    </button>
-                  )}
+                  <button
+                    onClick={V.send}
+                    disabled={V.isEmpty || !V.signedIn || V.sending}
+                    style={{
+                      marginTop: 20,
+                      width: '100%',
+                      border: 0,
+                      borderRadius: 999,
+                      background: '#171717',
+                      color: '#FFFFFF',
+                      padding: '16px 20px',
+                      cursor: 'pointer',
+                      fontSize: 15,
+                      fontWeight: 700,
+                      opacity: V.sendOpacity,
+                    }}
+                  >
+                    {V.sending ? 'Sending…' : 'Send all inquiries'}
+                  </button>
                   {V.sendError && (
                     <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.sendError}</div>
                   )}
@@ -3538,7 +3321,7 @@ export default function App() {
                 >
                   <div style={{ fontFamily: MONO, fontSize: 12, color: '#5B5B5B' }}>{V.mobileCartLabel}</div>
                   <button
-                    onClick={V.scrollToNext}
+                    onClick={V.scrollToSummary}
                     style={{
                       border: 0,
                       borderRadius: 999,
@@ -3551,7 +3334,7 @@ export default function App() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {V.mobileCtaLabel}
+                    Review &amp; send →
                   </button>
                 </div>
               </>
