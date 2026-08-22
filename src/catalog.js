@@ -145,3 +145,19 @@ export async function submitInquiry({ buyer, groups }) {
 
   return inquiryId;
 }
+
+// New reviews are inserted with the default status ('pending') and only
+// become visible once approved, per the vendor_reviews RLS policy.
+export async function submitVendorReview({ vendorId, author, stars, body }) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('vendor_reviews').insert({
+    vendor_id: vendorId,
+    author,
+    stars,
+    body,
+  });
+
+  if (error) throw error;
+}

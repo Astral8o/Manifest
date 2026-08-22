@@ -6,7 +6,7 @@ import {
   FIELDS_DEFAULT,
   money,
 } from './data';
-import { fetchCatalog, submitInquiry } from './catalog';
+import { fetchCatalog, submitInquiry, submitVendorReview } from './catalog';
 import heroPhoto from './assets/hero-photo.jpg';
 import cateringPhoto from './assets/categories/catering.jpg';
 import venuesPhoto from './assets/categories/venues.jpg';
@@ -217,6 +217,13 @@ const initialState = {
   navMenuOpen: false,
   promoPlanOpen: false,
   promoPlanSent: false,
+  reviewFormOpen: false,
+  reviewAuthor: '',
+  reviewStars: 0,
+  reviewBody: '',
+  reviewSending: false,
+  reviewError: null,
+  reviewSent: false,
 };
 
 export default function App() {
@@ -664,7 +671,7 @@ export default function App() {
         location: s.city,
         categoryName: catName(s.code),
         rating: s.rating,
-        open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
+        open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false }),
       })),
 
     featuredProducts: SUPPLIERS.slice()
@@ -680,7 +687,7 @@ export default function App() {
           supplierName: s.name,
           categoryName: catName(s.code),
           priceLabel: priceLabel(p),
-          open: () => patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
+          open: () => patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false }),
           btnLabel: has(p.id) ? 'Added' : '+ Add',
           btnBg: has(p.id) ? '#DDF247' : '#171717',
           btnFg: has(p.id) ? '#171717' : '#FFFFFF',
@@ -700,7 +707,7 @@ export default function App() {
       location: s.city,
       description: s.bio,
       tags: s.tags,
-      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
+      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false }),
     })),
 
     dirCategoryFilters: [{ code: 'ALL', name: 'All categories' }, ...CATS.map((c) => ({ code: c[0], name: c[1] }))].map((c) => {
@@ -730,7 +737,7 @@ export default function App() {
       categoryName: catName(s.code),
       description: s.bio,
       tags: s.tags,
-      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
+      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false }),
     })),
     dirShowSeeAll: dirFiltered.length > (st.dirVisible || 6),
     dirSeeAllLabel: 'See all ' + dirFiltered.length + ' vendors',
@@ -784,6 +791,55 @@ export default function App() {
       active: (st.supplierTab || 'services') === t.key,
       go: () => patch({ supplierTab: t.key }),
     })),
+
+    reviewFormOpen: !!st.reviewFormOpen,
+    reviewSent: !!st.reviewSent,
+    reviewSending: !!st.reviewSending,
+    reviewError: st.reviewError || '',
+    reviewAuthor: st.reviewAuthor || '',
+    setReviewAuthor: (e) => patch({ reviewAuthor: e.target.value }),
+    reviewStars: st.reviewStars || 0,
+    setReviewStars: (n) => patch({ reviewStars: n }),
+    reviewBody: st.reviewBody || '',
+    setReviewBody: (e) => patch({ reviewBody: e.target.value }),
+    openReviewForm: () => patch({ reviewFormOpen: true, reviewSent: false, reviewError: null }),
+    cancelReviewForm: () =>
+      patch({ reviewFormOpen: false, reviewError: null, reviewAuthor: '', reviewStars: 0, reviewBody: '' }),
+    submitReview: async () => {
+      if (st.reviewSending) return;
+      if (!st.reviewAuthor || !st.reviewAuthor.trim()) {
+        patch({ reviewError: 'Enter your name.' });
+        return;
+      }
+      if (!st.reviewStars) {
+        patch({ reviewError: 'Choose a star rating.' });
+        return;
+      }
+      if (!st.reviewBody || !st.reviewBody.trim()) {
+        patch({ reviewError: 'Share a few words about your experience.' });
+        return;
+      }
+      patch({ reviewSending: true, reviewError: null });
+      try {
+        await submitVendorReview({
+          vendorId: sup.id,
+          author: st.reviewAuthor.trim(),
+          stars: st.reviewStars,
+          body: st.reviewBody.trim(),
+        });
+        patch({
+          reviewSending: false,
+          reviewSent: true,
+          reviewFormOpen: false,
+          reviewAuthor: '',
+          reviewStars: 0,
+          reviewBody: '',
+        });
+      } catch (err) {
+        patch({ reviewSending: false, reviewError: err.message || 'Something went wrong submitting your review. Please try again.' });
+      }
+    },
+
     svcQuery: st.svcQuery || '',
     setSvcQuery: (e) => patch({ svcQuery: e.target.value, svcVisible: 8 }),
     svcHasGroups: svcGroups.length > 1,
@@ -1026,7 +1082,7 @@ export default function App() {
           supplierName: s ? s.name : '',
           priceLabel: priceLabel(p),
           openSupplier: () =>
-            patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
+            patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false }),
           remove: () => toggleSave(pid),
           share: () => shareProduct(pid),
           shareLabel: st.copiedPid === pid ? 'Copied!' : 'Share',
@@ -2567,6 +2623,123 @@ export default function App() {
                         <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>{r.text}</p>
                       </div>
                     ))}
+                  </div>
+
+                  <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px solid #ECECEC' }}>
+                    {V.reviewSent ? (
+                      <>
+                        <div style={{ fontSize: 16, fontWeight: 700 }}>Thanks for your review</div>
+                        <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                          We appreciate you taking the time to share your experience.
+                        </p>
+                      </>
+                    ) : V.reviewFormOpen ? (
+                      <>
+                        <div style={{ fontSize: 16, fontWeight: 700 }}>Write a review</div>
+                        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+                          <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                              Your name
+                            </span>
+                            <input
+                              type="text"
+                              placeholder="Your name"
+                              value={V.reviewAuthor}
+                              onChange={V.setReviewAuthor}
+                              style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                            />
+                          </label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                              Rating
+                            </span>
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <button
+                                  key={n}
+                                  onClick={() => V.setReviewStars(n)}
+                                  style={{
+                                    border: 0,
+                                    background: 'transparent',
+                                    padding: 0,
+                                    cursor: 'pointer',
+                                    fontSize: 26,
+                                    lineHeight: 1,
+                                    color: n <= V.reviewStars ? '#DDA915' : '#D8D8D2',
+                                  }}
+                                >
+                                  ★
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                              Your review
+                            </span>
+                            <textarea
+                              placeholder="Share what it was like working with them."
+                              value={V.reviewBody}
+                              onChange={V.setReviewBody}
+                              style={{
+                                minHeight: 100,
+                                border: '1px solid #E4E4DF',
+                                borderRadius: 14,
+                                background: '#F7F7F5',
+                                padding: 14,
+                                fontFamily: SANS,
+                                fontSize: 15,
+                                lineHeight: 1.5,
+                                color: '#171717',
+                                resize: 'vertical',
+                              }}
+                            />
+                          </label>
+                          {V.reviewError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.reviewError}</div>}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <button
+                              onClick={V.cancelReviewForm}
+                              style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '12px 4px', cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600 }}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={V.submitReview}
+                              style={{
+                                border: 0,
+                                borderRadius: 999,
+                                background: '#171717',
+                                color: '#FFFFFF',
+                                padding: '13px 24px',
+                                cursor: 'pointer',
+                                fontSize: 14,
+                                fontWeight: 700,
+                                opacity: V.reviewSending ? 0.6 : 1,
+                              }}
+                            >
+                              {V.reviewSending ? 'Submitting…' : 'Submit review'}
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <button
+                        onClick={V.openReviewForm}
+                        style={{
+                          border: '1px solid #171717',
+                          borderRadius: 999,
+                          background: 'transparent',
+                          color: '#171717',
+                          padding: '13px 24px',
+                          cursor: 'pointer',
+                          fontFamily: SANS,
+                          fontSize: 14,
+                          fontWeight: 700,
+                        }}
+                      >
+                        Write a review
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
