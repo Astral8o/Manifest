@@ -161,3 +161,19 @@ export async function submitVendorReview({ vendorId, author, stars, body }) {
 
   if (error) throw error;
 }
+
+// Passwordless sign-in: emails a magic link. shouldCreateUser defaults to
+// true, so this also signs up a new account on first use — one flow for
+// both. The session lands via Supabase's own redirect handling once the
+// link is clicked (see the onAuthStateChange listener in App.jsx).
+export async function sendMagicLink(email) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: window.location.origin + window.location.pathname },
+  });
+
+  if (error) throw error;
+}

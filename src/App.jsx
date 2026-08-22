@@ -6,7 +6,8 @@ import {
   FIELDS_DEFAULT,
   money,
 } from './data';
-import { fetchCatalog, submitInquiry, submitVendorReview } from './catalog';
+import { fetchCatalog, submitInquiry, submitVendorReview, sendMagicLink } from './catalog';
+import { supabase } from './supabaseClient';
 import heroPhoto from './assets/hero-photo.jpg';
 import cateringPhoto from './assets/categories/catering.jpg';
 import venuesPhoto from './assets/categories/venues.jpg';
@@ -39,6 +40,7 @@ const SANS = 'Manrope, sans-serif';
 const DISPLAY = 'Archivo, Helvetica, sans-serif';
 const DISPLAY_BLACK = "'Archivo Black', Archivo, sans-serif";
 const ACCOUNT_KEY = 'eventoryAccount';
+const POST_AUTH_RETURN_KEY = 'eventoryPostAuthReturn';
 const PROMO_ACCENT = '#FF5A36';
 const ACCENT = '#E0512B';
 const CTA_ACCENT = '#B8401F';
@@ -120,14 +122,15 @@ const emptyCart = {
   sent: null,
 };
 
+// signedIn is intentionally not restored here — it now reflects a real
+// Supabase auth session, synced separately once the app mounts.
 const loadAccount = () => {
   try {
     const raw = localStorage.getItem(ACCOUNT_KEY);
-    if (!raw) return { email: '', signedIn: false, history: [], saved: [], promoOptIn: false, ...emptyCart };
+    if (!raw) return { email: '', history: [], saved: [], promoOptIn: false, ...emptyCart };
     const parsed = JSON.parse(raw);
     return {
       email: parsed.email || '',
-      signedIn: !!parsed.signedIn,
       history: parsed.history || [],
       saved: parsed.saved || [],
       promoOptIn: !!parsed.promoOptIn,
@@ -142,7 +145,7 @@ const loadAccount = () => {
       sent: parsed.sent || null,
     };
   } catch {
-    return { email: '', signedIn: false, history: [], saved: [], promoOptIn: false, ...emptyCart };
+    return { email: '', history: [], saved: [], promoOptIn: false, ...emptyCart };
   }
 };
 
@@ -195,6 +198,9 @@ const initialState = {
   accessNotes: '',
   email: '',
   signedIn: false,
+  authSending: false,
+  authSent: false,
+  authError: null,
   history: [],
   saved: [],
   promoOptIn: false,
@@ -265,13 +271,44 @@ export default function App() {
   const CATS = catalog.cats;
   const SUPPLIERS = catalog.suppliers;
 
+  // Real auth: restore any existing Supabase session on load, then stay in
+  // sync as the user signs in (via magic link) or out. A magic link click
+  // lands back here as a fresh page load, so on sign-in we also consume any
+  // stashed "return to" screen so the user reappears where they left off
+  // (e.g. back on the Send step) instead of on the home screen.
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) patch({ signedIn: true, email: data.session.user.email || '' });
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        let extra = {};
+        try {
+          const raw = localStorage.getItem(POST_AUTH_RETURN_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.screen) extra = { screen: parsed.screen, checkoutStep: parsed.checkoutStep || 1 };
+          }
+          localStorage.removeItem(POST_AUTH_RETURN_KEY);
+        } catch {
+          // ignore malformed/inaccessible storage
+        }
+        patch({ signedIn: true, email: session.user.email || '', authSent: false, authError: null, ...extra });
+      } else {
+        patch({ signedIn: false });
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     try {
       localStorage.setItem(
         ACCOUNT_KEY,
         JSON.stringify({
           email: st.email,
-          signedIn: st.signedIn,
           history: st.history,
           saved: st.saved,
           promoOptIn: st.promoOptIn,
@@ -291,7 +328,6 @@ export default function App() {
     }
   }, [
     st.email,
-    st.signedIn,
     st.history,
     st.saved,
     st.promoOptIn,
@@ -978,7 +1014,7 @@ export default function App() {
     sendOpacity: st.items.length && st.signedIn && !st.sending ? 1 : 0.4,
     sending: !!st.sending,
     sendError: st.sendError || '',
-    signInDisabled: !(st.email && st.email.indexOf('@') > 0),
+    signInDisabled: !(st.email && st.email.indexOf('@') > 0) || !!st.authSending,
     send: async () => {
       if (!st.signedIn || !st.items.length || st.sending) return;
       const grpNow = groups();
@@ -1051,7 +1087,7 @@ export default function App() {
       .map((c) => c[1]),
 
     email: st.email || '',
-    setEmail: (e) => patch({ email: e.target.value }),
+    setEmail: (e) => patch({ email: e.target.value, authSent: false, authError: null }),
     signedIn: !!st.signedIn,
     needsAccount: !st.signedIn,
     accountLabel: st.signedIn ? 'Signed in · ' + st.email : 'Sign in',
@@ -1059,9 +1095,30 @@ export default function App() {
     isSignedIn: !!st.signedIn,
     accountNeedsSignIn: !st.signedIn,
     accountEmail: st.email || '',
-    setAccountEmail: (e) => patch({ email: e.target.value }),
-    signIn: () => patch({ signedIn: !!(st.email && st.email.indexOf('@') > 0) }),
-    signOut: () => patch({ signedIn: false }),
+    setAccountEmail: (e) => patch({ email: e.target.value, authSent: false, authError: null }),
+    authSending: !!st.authSending,
+    authSent: !!st.authSent,
+    authError: st.authError || '',
+    useDifferentEmail: () => patch({ authSent: false, authError: null }),
+    signIn: async () => {
+      if (!st.email || st.email.indexOf('@') < 1 || st.authSending) return;
+      patch({ authSending: true, authError: null });
+      try {
+        localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: st.screen, checkoutStep: st.checkoutStep || 1 }));
+      } catch {
+        // ignore storage failures — worst case the user lands back on home
+      }
+      try {
+        await sendMagicLink(st.email);
+        patch({ authSending: false, authSent: true });
+      } catch (err) {
+        patch({ authSending: false, authError: err.message || 'Something went wrong sending your sign-in link. Please try again.' });
+      }
+    },
+    signOut: async () => {
+      if (supabase) await supabase.auth.signOut();
+      patch({ signedIn: false, authSent: false, authError: null });
+    },
     promoOptIn: !!st.promoOptIn,
     togglePromoOptIn: () => patch((s) => ({ promoOptIn: !s.promoOptIn })),
     accountHistory: (st.history || []).map((h) => ({
@@ -3244,86 +3301,108 @@ export default function App() {
                       </div>
                       {V.needsAccount && (
                         <div style={{ marginTop: 18, borderTop: `1px solid ${ACCENT_ON_MUTED}`, paddingTop: 16 }}>
-                          <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_ON_SOFT }}>
-                            Your email
-                          </div>
-                          <input
-                            type="email"
-                            value={V.email}
-                            onChange={V.setEmail}
-                            placeholder="you@organisation.tt"
-                            style={{
-                              marginTop: 8,
-                              width: '100%',
-                              border: `1px solid ${ACCENT_ON_MUTED}`,
-                              borderRadius: 14,
-                              background: '#FFFFFF',
-                              padding: '12px 14px',
-                              fontFamily: SANS,
-                              fontSize: 15,
-                              color: '#171717',
-                            }}
-                          />
-                          <button
-                            onClick={V.togglePromoOptIn}
-                            style={{
-                              marginTop: 12,
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              gap: 10,
-                              border: 0,
-                              background: 'transparent',
-                              padding: 0,
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                            }}
-                          >
-                            <span
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: 18,
-                                height: 18,
-                                marginTop: 1,
-                                border: `1px solid ${V.promoOptIn ? '#171717' : ACCENT_ON_SOFT}`,
-                                borderRadius: 5,
-                                background: V.promoOptIn ? '#171717' : 'transparent',
-                                color: '#FFFFFF',
-                                fontSize: 11,
-                                fontWeight: 800,
-                                flexShrink: 0,
-                              }}
-                            >
-                              {V.promoOptIn ? '✓' : ''}
-                            </span>
-                            <span style={{ fontSize: 13, lineHeight: 1.4, color: ACCENT_ON_SOFT }}>
-                              Send me promos and offers from vendors
-                            </span>
-                          </button>
-                          <button
-                            onClick={V.signIn}
-                            disabled={V.signInDisabled}
-                            style={{
-                              marginTop: 12,
-                              width: '100%',
-                              border: 0,
-                              borderRadius: 999,
-                              background: '#171717',
-                              color: '#FFFFFF',
-                              padding: '12px 20px',
-                              cursor: 'pointer',
-                              fontSize: 14,
-                              fontWeight: 700,
-                              opacity: V.signInDisabled ? 0.4 : 1,
-                            }}
-                          >
-                            Sign in to send inquiries
-                          </button>
-                          <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
-                            No password, we email you a sign-in link. Signing in is required to send your inquiries and
-                            saves this Eventory to your account.
-                          </div>
+                          {V.authSent ? (
+                            <>
+                              <div style={{ fontSize: 15, fontWeight: 700 }}>Check your email</div>
+                              <p style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
+                                We sent a sign-in link to {V.email}. Click it to come back here and send your
+                                inquiries — you can close this tab.
+                              </p>
+                              <button
+                                onClick={V.useDifferentEmail}
+                                style={{ marginTop: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: ACCENT_ON_SOFT, textDecoration: 'underline', textUnderlineOffset: '3px' }}
+                              >
+                                Use a different email
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_ON_SOFT }}>
+                                Your email
+                              </div>
+                              <input
+                                type="email"
+                                value={V.email}
+                                onChange={V.setEmail}
+                                placeholder="you@organisation.tt"
+                                style={{
+                                  marginTop: 8,
+                                  width: '100%',
+                                  border: `1px solid ${ACCENT_ON_MUTED}`,
+                                  borderRadius: 14,
+                                  background: '#FFFFFF',
+                                  padding: '12px 14px',
+                                  fontFamily: SANS,
+                                  fontSize: 15,
+                                  color: '#171717',
+                                }}
+                              />
+                              <button
+                                onClick={V.togglePromoOptIn}
+                                style={{
+                                  marginTop: 12,
+                                  display: 'flex',
+                                  alignItems: 'flex-start',
+                                  gap: 10,
+                                  border: 0,
+                                  background: 'transparent',
+                                  padding: 0,
+                                  cursor: 'pointer',
+                                  textAlign: 'left',
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: 18,
+                                    height: 18,
+                                    marginTop: 1,
+                                    border: `1px solid ${V.promoOptIn ? '#171717' : ACCENT_ON_SOFT}`,
+                                    borderRadius: 5,
+                                    background: V.promoOptIn ? '#171717' : 'transparent',
+                                    color: '#FFFFFF',
+                                    fontSize: 11,
+                                    fontWeight: 800,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {V.promoOptIn ? '✓' : ''}
+                                </span>
+                                <span style={{ fontSize: 13, lineHeight: 1.4, color: ACCENT_ON_SOFT }}>
+                                  Send me promos and offers from vendors
+                                </span>
+                              </button>
+                              <button
+                                onClick={V.signIn}
+                                disabled={V.signInDisabled}
+                                style={{
+                                  marginTop: 12,
+                                  width: '100%',
+                                  border: 0,
+                                  borderRadius: 999,
+                                  background: '#171717',
+                                  color: '#FFFFFF',
+                                  padding: '12px 20px',
+                                  cursor: 'pointer',
+                                  fontSize: 14,
+                                  fontWeight: 700,
+                                  opacity: V.signInDisabled ? 0.4 : 1,
+                                }}
+                              >
+                                {V.authSending ? 'Sending link…' : 'Continue with email'}
+                              </button>
+                              {V.authError && (
+                                <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: '#FDE2DA' }}>{V.authError}</div>
+                              )}
+                              <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
+                                No password, we email you a sign-in link. New here? The same link creates your
+                                account. Signing in is required to send your inquiries and saves this Eventory to
+                                your account.
+                              </div>
+                            </>
+                          )}
                         </div>
                       )}
                       {V.signedIn && (
@@ -4382,83 +4461,107 @@ export default function App() {
 
           {V.accountNeedsSignIn && (
             <div style={{ marginTop: 26, border: '1px solid #ECECEC', borderRadius: 24, padding: 26 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Sign in</div>
-              <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-                No password, we email you a sign-in link. Signing in saves your Eventories so you can find them again.
-              </p>
-              <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                  Your email
-                </span>
-                <input
-                  type="email"
-                  value={V.accountEmail}
-                  onChange={V.setAccountEmail}
-                  placeholder="you@organisation.tt"
-                  style={{
-                    border: '1px solid #E4E4DF',
-                    borderRadius: 14,
-                    background: '#F7F7F5',
-                    padding: '12px 14px',
-                    fontFamily: SANS,
-                    fontSize: 15,
-                    color: '#171717',
-                  }}
-                />
-              </label>
-              <button
-                onClick={V.togglePromoOptIn}
-                style={{
-                  marginTop: 16,
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 10,
-                  border: 0,
-                  background: 'transparent',
-                  padding: 0,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                }}
-              >
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 18,
-                    height: 18,
-                    marginTop: 1,
-                    border: `1px solid ${V.promoOptIn ? '#171717' : '#C8C8C2'}`,
-                    borderRadius: 5,
-                    background: V.promoOptIn ? '#171717' : 'transparent',
-                    color: '#FFFFFF',
-                    fontSize: 11,
-                    fontWeight: 800,
-                    flexShrink: 0,
-                  }}
-                >
-                  {V.promoOptIn ? '✓' : ''}
-                </span>
-                <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>
-                  Send me promos and offers from vendors
-                </span>
-              </button>
-              <button
-                onClick={V.signIn}
-                style={{
-                  marginTop: 18,
-                  border: 0,
-                  borderRadius: 999,
-                  background: '#171717',
-                  color: '#FFFFFF',
-                  padding: '14px 24px',
-                  cursor: 'pointer',
-                  fontSize: 15,
-                  fontWeight: 700,
-                }}
-              >
-                Sign in
-              </button>
+              {V.authSent ? (
+                <>
+                  <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Check your email</div>
+                  <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                    We sent a sign-in link to {V.accountEmail}. Click it to come back here signed in — you can close
+                    this tab.
+                  </p>
+                  <button
+                    onClick={V.useDifferentEmail}
+                    style={{ marginTop: 12, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#5B5B5B', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+                  >
+                    Use a different email
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Sign in</div>
+                  <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                    No password, we email you a link. New here? The same link creates your account and saves your
+                    Eventories so you can find them again.
+                  </p>
+                  <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Your email
+                    </span>
+                    <input
+                      type="email"
+                      value={V.accountEmail}
+                      onChange={V.setAccountEmail}
+                      placeholder="you@organisation.tt"
+                      style={{
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 14,
+                        background: '#F7F7F5',
+                        padding: '12px 14px',
+                        fontFamily: SANS,
+                        fontSize: 15,
+                        color: '#171717',
+                      }}
+                    />
+                  </label>
+                  <button
+                    onClick={V.togglePromoOptIn}
+                    style={{
+                      marginTop: 16,
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 10,
+                      border: 0,
+                      background: 'transparent',
+                      padding: 0,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 18,
+                        height: 18,
+                        marginTop: 1,
+                        border: `1px solid ${V.promoOptIn ? '#171717' : '#C8C8C2'}`,
+                        borderRadius: 5,
+                        background: V.promoOptIn ? '#171717' : 'transparent',
+                        color: '#FFFFFF',
+                        fontSize: 11,
+                        fontWeight: 800,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {V.promoOptIn ? '✓' : ''}
+                    </span>
+                    <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>
+                      Send me promos and offers from vendors
+                    </span>
+                  </button>
+                  <button
+                    onClick={V.signIn}
+                    disabled={V.signInDisabled}
+                    style={{
+                      marginTop: 18,
+                      border: 0,
+                      borderRadius: 999,
+                      background: '#171717',
+                      color: '#FFFFFF',
+                      padding: '14px 24px',
+                      cursor: 'pointer',
+                      fontSize: 15,
+                      fontWeight: 700,
+                      opacity: V.signInDisabled ? 0.4 : 1,
+                    }}
+                  >
+                    {V.authSending ? 'Sending link…' : 'Continue with email'}
+                  </button>
+                  {V.authError && (
+                    <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.authError}</div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
