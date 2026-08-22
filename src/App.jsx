@@ -3357,9 +3357,9 @@ export default function App() {
 
                 {V.joinFormStep === 1 && (
                   <>
-                    <div style={{ marginTop: 18, fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>The basics</div>
+                    <div style={{ marginTop: 18, fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Tell us about your business</div>
                     <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
-                      Takes about two minutes. We'll turn this into a profile planners can find.
+                      Fill out the form below, it takes two minutes.
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginTop: 18 }}>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
