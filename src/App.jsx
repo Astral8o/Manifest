@@ -40,7 +40,11 @@ const DISPLAY = 'Archivo, Helvetica, sans-serif';
 const DISPLAY_BLACK = "'Archivo Black', Archivo, sans-serif";
 const ACCOUNT_KEY = 'eventoryAccount';
 const PROMO_ACCENT = '#FF5A36';
-const CTA_ACCENT = '#5C6B14';
+const ACCENT = '#E0512B';
+const CTA_ACCENT = '#B8401F';
+const ACCENT_ON = '#FFFFFF';
+const ACCENT_ON_SOFT = 'rgba(255,255,255,0.72)';
+const ACCENT_ON_MUTED = 'rgba(255,255,255,0.32)';
 const PRICE_FILTERS = [
   { label: 'Any price', test: () => true },
   { label: 'Under TT$500', test: (v) => v !== null && v < 500 },
@@ -528,7 +532,8 @@ export default function App() {
 
   const V = {
     itemCount,
-    counterBg: itemCount ? '#DDF247' : '#FFFFFF',
+    counterBg: itemCount ? ACCENT : '#FFFFFF',
+    counterFg: itemCount ? '#FFFFFF' : '#171717',
     isHome: st.screen === 'home',
     isCategory: st.screen === 'category',
     isSuppliers: st.screen === 'suppliers',
@@ -685,8 +690,8 @@ export default function App() {
           priceLabel: priceLabel(p),
           open: () => patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false }),
           btnLabel: has(p.id) ? 'Added' : '+ Add',
-          btnBg: has(p.id) ? '#DDF247' : '#171717',
-          btnFg: has(p.id) ? '#171717' : '#FFFFFF',
+          btnBg: has(p.id) ? ACCENT : '#171717',
+          btnFg: '#FFFFFF',
           add: () => add(p.id),
         };
       })
@@ -858,8 +863,8 @@ export default function App() {
       termsLabel: 'Min ' + p.minQty + ' ' + (p.unit === 'flat' ? 'booking' : 'units'),
       priceLabel: priceLabel(p),
       btnLabel: has(p.id) ? 'Added' : '+ Add',
-      btnBg: has(p.id) ? '#DDF247' : '#171717',
-      btnFg: has(p.id) ? '#171717' : '#FFFFFF',
+      btnBg: has(p.id) ? ACCENT : '#171717',
+      btnFg: '#FFFFFF',
       add: () => add(p.id),
       saved: (st.saved || []).indexOf(p.id) >= 0,
       saveLabel: (st.saved || []).indexOf(p.id) >= 0 ? '★ Saved' : '☆ Save',
@@ -913,8 +918,8 @@ export default function App() {
           remove: () => remove(r.pid),
           expanded: !!(st.openSpec || {})[r.pid],
           detailLabel: setCount ? setCount + ' of ' + defs.length + ' set' : 'Add details',
-          detailBg: setCount ? '#DDF247' : '#171717',
-          detailFg: setCount ? '#171717' : '#FFFFFF',
+          detailBg: setCount ? ACCENT : '#171717',
+          detailFg: '#FFFFFF',
           toggle: () =>
             patch((s) => ({ openSpec: { ...(s.openSpec || {}), [r.pid]: !(s.openSpec || {})[r.pid] } })),
           fields: defs.map((d) => ({
@@ -1241,6 +1246,7 @@ export default function App() {
               border: '1px solid #171717',
               borderRadius: 999,
               background: V.counterBg,
+              color: V.counterFg,
               padding: '9px 8px 9px 18px',
               cursor: 'pointer',
               fontSize: 14,
@@ -1326,8 +1332,8 @@ export default function App() {
               style={{
                 border: 0,
                 borderRadius: 999,
-                background: '#DDF247',
-                color: '#171717',
+                background: ACCENT,
+                color: '#FFFFFF',
                 padding: '15px 32px',
                 cursor: 'pointer',
                 fontFamily: DISPLAY,
@@ -1649,18 +1655,19 @@ export default function App() {
                   justifyContent: 'space-between',
                   gap: 28,
                   borderRadius: 24,
-                  background: '#DDF247',
+                  background: ACCENT,
+                  color: ACCENT_ON,
                   padding: isMobile ? '20px 22px' : '28px 32px',
                   flexWrap: 'wrap',
                 }}
               >
                 <div style={{ maxWidth: 720 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Discover</div>
-                  <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#3B4200' }}>
+                  <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
                     Choose your event and browse vendors and what they offer.
                   </div>
                 </div>
-                <div style={{ fontFamily: MONO, fontSize: 34, color: '#A9BB3A' }}>01</div>
+                <div style={{ fontFamily: MONO, fontSize: 34, color: ACCENT_ON_MUTED }}>01</div>
               </div>
               <div
                 style={{
@@ -2802,7 +2809,7 @@ export default function App() {
             <div style={{ position: isMobile ? 'static' : 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
               <div style={{ borderRadius: 24, background: '#171717', color: '#FFFFFF', padding: 26 }}>
                 <div style={{ fontSize: 18, fontWeight: 700 }}>Your Eventory</div>
-                <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#DDF247' }}>{V.summaryLine}</div>
+                <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: ACCENT }}>{V.summaryLine}</div>
                 <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {V.eventoryBrief.map((g) => (
                     <div key={g.key} style={{ borderTop: '1px solid #2B2B2B', paddingTop: 10 }}>
@@ -2818,8 +2825,8 @@ export default function App() {
                     width: '100%',
                     border: 0,
                     borderRadius: 999,
-                    background: '#DDF247',
-                    color: '#171717',
+                    background: ACCENT,
+                    color: '#FFFFFF',
                     padding: '14px 20px',
                     cursor: 'pointer',
                     fontSize: 15,
@@ -3161,22 +3168,22 @@ export default function App() {
               </div>
 
               <div id="eventory-summary" style={{ position: isMobile ? 'static' : 'sticky', top: 92, scrollMarginTop: 90, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
-                <div style={{ borderRadius: 24, background: '#DDF247', padding: 26 }}>
+                <div style={{ borderRadius: 24, background: ACCENT, color: ACCENT_ON, padding: 26 }}>
                   <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>About to send</div>
                   <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {V.sendStats.map((s) => (
                       <div
                         key={s.key}
-                        style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #C6D93C', padding: '11px 0' }}
+                        style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, borderTop: `1px solid ${ACCENT_ON_MUTED}`, padding: '11px 0' }}
                       >
-                        <span style={{ fontSize: 14, fontWeight: 600, color: '#3B4200' }}>{s.label}</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: ACCENT_ON_SOFT }}>{s.label}</span>
                         <span style={{ fontFamily: MONO, fontSize: 17 }}>{s.value}</span>
                       </div>
                     ))}
                   </div>
                   {V.needsAccount && (
-                    <div style={{ marginTop: 18, borderTop: '1px solid #C6D93C', paddingTop: 16 }}>
-                      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B7A1F' }}>
+                    <div style={{ marginTop: 18, borderTop: `1px solid ${ACCENT_ON_MUTED}`, paddingTop: 16 }}>
+                      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_ON_SOFT }}>
                         Your email
                       </div>
                       <input
@@ -3187,7 +3194,7 @@ export default function App() {
                         style={{
                           marginTop: 8,
                           width: '100%',
-                          border: '1px solid #C6D93C',
+                          border: `1px solid ${ACCENT_ON_MUTED}`,
                           borderRadius: 14,
                           background: '#FFFFFF',
                           padding: '12px 14px',
@@ -3218,7 +3225,7 @@ export default function App() {
                             width: 18,
                             height: 18,
                             marginTop: 1,
-                            border: `1px solid ${V.promoOptIn ? '#171717' : '#7A8A1F'}`,
+                            border: `1px solid ${V.promoOptIn ? '#171717' : ACCENT_ON_SOFT}`,
                             borderRadius: 5,
                             background: V.promoOptIn ? '#171717' : 'transparent',
                             color: '#FFFFFF',
@@ -3229,7 +3236,7 @@ export default function App() {
                         >
                           {V.promoOptIn ? '✓' : ''}
                         </span>
-                        <span style={{ fontSize: 13, lineHeight: 1.4, color: '#3B4200' }}>
+                        <span style={{ fontSize: 13, lineHeight: 1.4, color: ACCENT_ON_SOFT }}>
                           Send me promos and offers from vendors
                         </span>
                       </button>
@@ -3252,14 +3259,14 @@ export default function App() {
                       >
                         Sign in to send inquiries
                       </button>
-                      <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: '#3B4200' }}>
+                      <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
                         No password, we email you a sign-in link. Signing in is required to send your inquiries and
                         saves this Eventory to your account.
                       </div>
                     </div>
                   )}
                   {V.signedIn && (
-                    <div style={{ marginTop: 18, borderTop: '1px solid #C6D93C', paddingTop: 14, fontSize: 13, color: '#3B4200' }}>
+                    <div style={{ marginTop: 18, borderTop: `1px solid ${ACCENT_ON_MUTED}`, paddingTop: 14, fontSize: 13, color: ACCENT_ON_SOFT }}>
                       Saved to {V.email}. You can come back to this Eventory any time.
                     </div>
                   )}
@@ -3285,7 +3292,7 @@ export default function App() {
                   {V.sendError && (
                     <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.sendError}</div>
                   )}
-                  <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5, color: '#3B4200' }}>
+                  <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
                     Each vendor receives one inquiry with your event details, their own line items and their own
                     note. No vendor sees the rest of your Eventory, and no payment is taken here.
                   </div>
@@ -3347,7 +3354,7 @@ export default function App() {
                       style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #2B2B2B', padding: '11px 0' }}
                     >
                       <span style={{ fontSize: 14, fontWeight: 600 }}>{s.name}</span>
-                      <span style={{ fontFamily: MONO, fontSize: 11, color: '#DDF247' }}>{s.status}</span>
+                      <span style={{ fontFamily: MONO, fontSize: 11, color: ACCENT }}>{s.status}</span>
                     </div>
                   ))}
                 </div>
@@ -3404,8 +3411,8 @@ export default function App() {
               style={{
                 border: 0,
                 borderRadius: 999,
-                background: '#DDF247',
-                color: '#171717',
+                background: ACCENT,
+                color: '#FFFFFF',
                 padding: '15px 32px',
                 cursor: 'pointer',
                 fontFamily: DISPLAY,
@@ -3428,18 +3435,19 @@ export default function App() {
                   justifyContent: 'space-between',
                   gap: 28,
                   borderRadius: 24,
-                  background: '#DDF247',
+                  background: ACCENT,
+                  color: ACCENT_ON,
                   padding: isMobile ? '20px 22px' : '26px 30px',
                   flexWrap: 'wrap',
                 }}
               >
                 <div style={{ maxWidth: 480 }}>
                   <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>Tell us about your business</div>
-                  <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#3B4200' }}>
+                  <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
                     Two minutes. No design skills, no writing needed.
                   </div>
                 </div>
-                <div style={{ fontFamily: MONO, fontSize: 30, color: '#A9BB3A' }}>01</div>
+                <div style={{ fontFamily: MONO, fontSize: 30, color: ACCENT_ON_MUTED }}>01</div>
               </div>
               <div
                 style={{
@@ -4006,7 +4014,8 @@ export default function App() {
               position: 'relative',
               overflow: 'hidden',
               borderRadius: 24,
-              background: '#DDF247',
+              background: ACCENT,
+              color: ACCENT_ON,
               padding: isMobile ? 22 : 34,
             }}
           >
@@ -4018,7 +4027,7 @@ export default function App() {
                 fontFamily: MONO,
                 fontSize: isMobile ? 100 : 160,
                 fontWeight: 700,
-                color: '#C7DB2E',
+                color: ACCENT_ON_MUTED,
                 lineHeight: 1,
                 userSelect: 'none',
               }}
@@ -4026,29 +4035,29 @@ export default function App() {
               01
             </div>
             <div style={{ position: 'relative', maxWidth: 600 }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#3B4200' }}>
+              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_ON_SOFT }}>
                 For planners
               </div>
-              <h2 style={{ margin: '8px 0 0', fontSize: isMobile ? 24 : 32, letterSpacing: '-0.02em', fontWeight: 800, color: '#171717' }}>
+              <h2 style={{ margin: '8px 0 0', fontSize: isMobile ? 24 : 32, letterSpacing: '-0.02em', fontWeight: 800, color: ACCENT_ON }}>
                 Planning an Event?
               </h2>
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3B4200' }}>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: ACCENT_ON_SOFT }}>
                   You have an event to plan and vendors to find.
                 </p>
-                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3B4200' }}>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: ACCENT_ON_SOFT }}>
                   Eventory puts caterers, venues, DJs, photographers, decorators, and more in one place across
                   Trinidad &amp; Tobago.
                 </p>
-                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3B4200' }}>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: ACCENT_ON_SOFT }}>
                   Browse what you need, add vendors to your Broadcast Request, and send everything together when
                   you're ready. Each vendor receives their own request with only the details that apply to them,
                   and messages you back directly.
                 </p>
-                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3B4200' }}>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: ACCENT_ON_SOFT }}>
                   Already know who you want? Message them straight from their profile.
                 </p>
-                <p style={{ margin: 0, fontSize: 16, fontWeight: 700, lineHeight: 1.6, color: '#171717' }}>
+                <p style={{ margin: 0, fontSize: 16, fontWeight: 700, lineHeight: 1.6, color: ACCENT_ON }}>
                   You find the people you need. They take it from there.
                 </p>
               </div>
@@ -4110,8 +4119,8 @@ export default function App() {
                   marginTop: 22,
                   border: 0,
                   borderRadius: 999,
-                  background: '#DDF247',
-                  color: '#171717',
+                  background: ACCENT,
+                  color: '#FFFFFF',
                   padding: '14px 28px',
                   cursor: 'pointer',
                   fontFamily: DISPLAY,
@@ -4454,10 +4463,10 @@ export default function App() {
                       width: 18,
                       height: 18,
                       marginTop: 1,
-                      border: `1px solid ${V.promoOptIn ? '#DDF247' : '#3B3B3B'}`,
+                      border: `1px solid ${V.promoOptIn ? ACCENT : '#3B3B3B'}`,
                       borderRadius: 5,
-                      background: V.promoOptIn ? '#DDF247' : 'transparent',
-                      color: '#171717',
+                      background: V.promoOptIn ? ACCENT : 'transparent',
+                      color: '#FFFFFF',
                       fontSize: 11,
                       fontWeight: 800,
                       flexShrink: 0,
@@ -4849,8 +4858,8 @@ export default function App() {
                     width: '100%',
                     border: 0,
                     borderRadius: 999,
-                    background: '#DDF247',
-                    color: '#171717',
+                    background: ACCENT,
+                    color: '#FFFFFF',
                     padding: '15px 26px',
                     cursor: 'pointer',
                     fontSize: 15,
