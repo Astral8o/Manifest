@@ -1596,7 +1596,8 @@ export default function App() {
                 <div style={{ maxWidth: 720 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Build your Broadcast Request</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#A8A8A8' }}>
-                    Add what you need from multiple vendors as you browse.
+                    Add what you need from multiple vendors as you browse. Only need one? Message them on
+                    WhatsApp straight from their profile instead.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#4A4A4A' }}>02</div>
@@ -1621,9 +1622,6 @@ export default function App() {
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#C2C2BC' }}>03</div>
-              </div>
-              <div style={{ padding: isMobile ? '2px 22px' : '2px 30px', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
-                Only need one vendor? Message them straight from their profile.
               </div>
               <div
                 style={{
@@ -3200,34 +3198,24 @@ export default function App() {
             </p>
           </div>
 
-          <div style={{ marginTop: isMobile ? 32 : 44, borderRadius: 24, background: '#DDF247', padding: isMobile ? 22 : 34 }}>
-            <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Get Listed</div>
-            <p style={{ margin: '12px 0 0', maxWidth: 520, fontSize: 15, lineHeight: 1.55, color: '#3B4200' }}>
-              Tell us what you do, we'll build your profile for you. Planners searching your category find you, and
-              message you directly.
-            </p>
-            <p style={{ margin: '10px 0 0', maxWidth: 520, fontSize: 15, fontWeight: 700, lineHeight: 1.55, color: '#3B4200' }}>
-              Free to list. Free to receive inquiries.
-            </p>
+          <div style={{ marginTop: isMobile ? 28 : 36, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <button
               onClick={V.scrollToJoinForm}
               style={{
-                marginTop: 20,
                 border: 0,
                 borderRadius: 999,
-                background: '#171717',
-                color: '#FFFFFF',
-                padding: '14px 26px',
+                background: '#DDF247',
+                color: '#171717',
+                padding: '15px 32px',
                 cursor: 'pointer',
+                fontFamily: DISPLAY,
                 fontSize: 15,
-                fontWeight: 700,
+                fontWeight: 600,
               }}
             >
               Get Listed →
             </button>
-            <div style={{ marginTop: 14, fontSize: 13, color: '#3B4200' }}>
-              We review every submission by hand and reach out to help build your profile.
-            </div>
+            <div style={{ fontSize: 13, color: '#5B5B5B' }}>Free to list. We review every submission by hand.</div>
           </div>
 
           <div style={{ marginTop: isMobile ? 40 : 56 }}>
@@ -3592,20 +3580,46 @@ export default function App() {
                 display: 'flex',
                 flexDirection: 'column',
                 borderRadius: 24,
-                border: `1px solid ${PROMO_ACCENT}`,
-                background: `${PROMO_ACCENT}0D`,
-                padding: isMobile ? 22 : 34,
+                overflow: 'hidden',
+                border: `1.5px solid ${PROMO_ACCENT}`,
+                boxShadow: isMobile ? 'none' : `0 24px 48px -28px ${PROMO_ACCENT}`,
                 scrollMarginTop: 100,
               }}
             >
-              <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Spotlight</div>
-              <ul style={{ margin: '14px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Everything in Listed</li>
-                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Top of the list when planners search your category</li>
-                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Your profile shown first, with room for your work to stand out</li>
-                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Email features that put you in front of planners actively searching</li>
-                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>A push across our social channels</li>
-              </ul>
+              <div style={{ background: PROMO_ACCENT, color: '#FFFFFF', padding: isMobile ? '20px 22px' : '26px 34px' }}>
+                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.8)' }}>
+                  Paid placement
+                </div>
+                <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Spotlight</div>
+                <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 30, fontWeight: 700 }}>TTD $500</span>
+                  <span style={{ fontFamily: MONO, fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>/month</span>
+                </div>
+              </div>
+
+              <div style={{ background: `${PROMO_ACCENT}0D`, padding: isMobile ? 22 : 34 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ flexShrink: 0, marginTop: 2, width: 18, height: 18, borderRadius: 999, background: PROMO_ACCENT, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>✓</span>
+                  <span style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Everything in Listed</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ flexShrink: 0, marginTop: 2, width: 18, height: 18, borderRadius: 999, background: PROMO_ACCENT, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>✓</span>
+                  <span style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Top of the list when planners search your category</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ flexShrink: 0, marginTop: 2, width: 18, height: 18, borderRadius: 999, background: PROMO_ACCENT, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>✓</span>
+                  <span style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Your profile shown first, with room for your work to stand out</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ flexShrink: 0, marginTop: 2, width: 18, height: 18, borderRadius: 999, background: PROMO_ACCENT, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>✓</span>
+                  <span style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Email features that put you in front of planners actively searching</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ flexShrink: 0, marginTop: 2, width: 18, height: 18, borderRadius: 999, background: PROMO_ACCENT, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>✓</span>
+                  <span style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>A push across our social channels</span>
+                </div>
+              </div>
 
               <div style={{ marginTop: 24 }}>
                 <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
@@ -3668,23 +3682,23 @@ export default function App() {
                 </div>
               </div>
 
-              <div style={{ marginTop: 20 }}>
-                <button
-                  onClick={V.openPromoPlan}
-                  style={{
-                    border: 0,
-                    borderRadius: 999,
-                    background: PROMO_ACCENT,
-                    color: '#FFFFFF',
-                    padding: '14px 26px',
-                    cursor: 'pointer',
-                    fontSize: 15,
-                    fontWeight: 700,
-                  }}
-                >
-                  Tell me more →
-                </button>
-                <div style={{ marginTop: 14, fontFamily: MONO, fontSize: 13, fontWeight: 700, color: '#171717' }}>TTD $500/month</div>
+              <button
+                onClick={V.openPromoPlan}
+                style={{
+                  marginTop: 20,
+                  width: '100%',
+                  border: 0,
+                  borderRadius: 999,
+                  background: PROMO_ACCENT,
+                  color: '#FFFFFF',
+                  padding: '14px 26px',
+                  cursor: 'pointer',
+                  fontSize: 15,
+                  fontWeight: 700,
+                }}
+              >
+                Tell me more →
+              </button>
               </div>
             </div>
           </div>
