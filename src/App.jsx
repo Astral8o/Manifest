@@ -722,6 +722,12 @@ export default function App() {
         { label: 'Response time', value: sup.response },
       ],
       phone: sup.phone,
+      whatsappUrl: sup.phone
+        ? 'https://wa.me/' +
+          sup.phone.replace(/\D/g, '') +
+          '?text=' +
+          encodeURIComponent(`Hi ${sup.name}, I found you on Eventory and I'm interested in your services.`)
+        : null,
       social: [
         sup.instagram ? { key: 'instagram', label: 'Instagram', value: sup.instagram } : null,
         sup.facebook ? { key: 'facebook', label: 'Facebook', value: sup.facebook } : null,
@@ -2265,6 +2271,30 @@ export default function App() {
                 </div>
                 <p style={{ margin: '14px 0 0', maxWidth: 620, fontSize: 16, lineHeight: 1.55, color: '#4A4A4A' }}>{V.sup.description}</p>
                 <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {V.sup.whatsappUrl && (
+                    <a
+                      href={V.sup.whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        border: '1px solid #25D366',
+                        borderRadius: 999,
+                        background: '#25D36614',
+                        padding: '6px 14px',
+                        fontFamily: MONO,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: '#128C4A',
+                        textDecoration: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      WhatsApp
+                    </a>
+                  )}
                   {V.sup.phone && (
                     <span
                       style={{
