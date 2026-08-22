@@ -3952,6 +3952,23 @@ export default function App() {
                   You reach out, discuss the details, and take it from there.
                 </p>
               </div>
+              <button
+                onClick={V.goJoin}
+                style={{
+                  marginTop: 22,
+                  border: 0,
+                  borderRadius: 999,
+                  background: '#DDF247',
+                  color: '#171717',
+                  padding: '14px 28px',
+                  cursor: 'pointer',
+                  fontFamily: DISPLAY,
+                  fontSize: 15,
+                  fontWeight: 600,
+                }}
+              >
+                Join Eventory →
+              </button>
             </div>
           </div>
 
