@@ -71,7 +71,7 @@ const ABOUT_FAQS = [
   },
   {
     q: 'What is the Go Further plan?',
-    a: "Go Further is Eventory's paid placement option for vendors. It puts your business in front of buyers actively sourcing in your category, with top placement, targeted ads and email marketing.",
+    a: "Go Further is Eventory's paid placement option for vendors. It puts your business in front of planners actively sourcing in your category, with top placement, targeted ads and email marketing.",
     linkTo: 'promo',
     linkLabel: 'See the Go Further plan',
   },
@@ -3165,7 +3165,7 @@ export default function App() {
           <div style={{ marginTop: isMobile ? 32 : 44, borderRadius: 24, background: '#DDF247', padding: isMobile ? 22 : 34 }}>
             <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Get Listed</div>
             <p style={{ margin: '12px 0 0', maxWidth: 520, fontSize: 15, lineHeight: 1.55, color: '#3B4200' }}>
-              Tell us what you do, we'll build you a profile buyers can actually find. No design skills needed, no
+              Tell us what you do, we'll build you a profile planners can actually find. No design skills needed, no
               catch.
             </p>
             <p style={{ margin: '10px 0 0', maxWidth: 520, fontSize: 15, fontWeight: 700, lineHeight: 1.55, color: '#3B4200' }}>
@@ -3238,7 +3238,7 @@ export default function App() {
                   flexWrap: 'wrap',
                 }}
               >
-                <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>Buyers find you and reach out — directly</div>
+                <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>Planners find you and reach out — directly</div>
                 <div style={{ fontFamily: MONO, fontSize: 30, color: '#C2C2BC' }}>03</div>
               </div>
             </div>
@@ -3471,7 +3471,7 @@ export default function App() {
                     }}
                   />
                 </label>
-                <div style={{ marginTop: 8, fontSize: 13, color: '#5B5B5B' }}>Ranges are fine. Buyers use them to shortlist, then you send the real quote.</div>
+                <div style={{ marginTop: 8, fontSize: 13, color: '#5B5B5B' }}>Ranges are fine. Planners use them to shortlist, then you send the real quote.</div>
 
                 <button
                   onClick={V.submitJoin}
@@ -3507,13 +3507,13 @@ export default function App() {
           >
             <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Go Further</div>
             <p style={{ margin: '12px 0 0', maxWidth: 520, fontSize: 15, lineHeight: 1.55, color: '#4A4A4A' }}>
-              We push you further, straight in front of buyers actively looking to hire, wherever they are.
+              We push you further, straight in front of planners actively looking to hire, wherever they are.
             </p>
             <ul style={{ margin: '14px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 520 }}>
-              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Direct access to buyers actively sourcing in your category</li>
+              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Direct access to planners actively sourcing in your category</li>
               <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Targeted ads that reach the right audience</li>
               <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Top placement in your category</li>
-              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Email marketing that puts you in front of buyers actively searching</li>
+              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Email marketing that puts you in front of planners actively searching</li>
               <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>A push across our social channels</li>
             </ul>
 
@@ -3556,7 +3556,7 @@ export default function App() {
                         </span>
                       </div>
                       <div style={{ marginTop: 2, fontSize: 12, color: '#6E6E6E' }}>
-                        First thing buyers see when they open Catering.
+                        First thing planners see when they open Catering.
                       </div>
                     </div>
                   </div>
@@ -3639,7 +3639,7 @@ export default function App() {
             </div>
             <div style={{ position: 'relative', maxWidth: 600 }}>
               <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#3B4200' }}>
-                For buyers
+                For planners
               </div>
               <h2 style={{ margin: '8px 0 0', fontSize: isMobile ? 24 : 32, letterSpacing: '-0.02em', fontWeight: 800, color: '#171717' }}>
                 Planning an Event?
