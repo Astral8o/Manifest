@@ -51,7 +51,7 @@ const PRICE_FILTERS = [
 const ABOUT_FAQS = [
   {
     q: 'Is Eventory free to use?',
-    a: 'Yes. Browsing vendors, comparing what they offer and sending inquiries is free for anyone planning an event. Listing a business is also free, and paid placement is optional.',
+    a: 'Yes. Browsing vendors, comparing what they offer and sending requests is free for anyone planning an event. Listing a business is also free, and paid placement is optional.',
   },
   {
     q: 'Does Eventory process payments?',
@@ -59,7 +59,11 @@ const ABOUT_FAQS = [
   },
   {
     q: 'How do I request a quote from a vendor?',
-    a: "Add what you need to your Eventory as you browse, then send it. Each vendor gets a separate inquiry with only the items relevant to them.",
+    a: "Add what you need to your Broadcast Request as you browse, then send it once. Each vendor gets a separate request with only the items relevant to them.",
+  },
+  {
+    q: 'What if I only need one vendor?',
+    a: 'Message them directly from their profile. No need to build a Broadcast Request for a single ask.',
   },
   {
     q: "Can't find what you're looking for?",
@@ -70,10 +74,10 @@ const ABOUT_FAQS = [
     a: 'Head to the Join Eventory page and submit your details. We\'ll get back to you to build your profile.',
   },
   {
-    q: 'What is Premium Placement?',
-    a: "Premium Placement is Eventory's paid placement option for vendors. It puts your business in front of planners actively sourcing in your category, with top placement, targeted ads and email marketing.",
+    q: 'What is Spotlight?',
+    a: "Spotlight is Eventory's paid placement option for vendors. It puts your business in front of planners actively sourcing in your category, with top placement, targeted ads and email marketing.",
     linkTo: 'promo',
-    linkLabel: 'See Premium Placement',
+    linkLabel: 'See Spotlight',
   },
   {
     q: 'Where does Eventory operate?',
@@ -1584,9 +1588,9 @@ export default function App() {
                 }}
               >
                 <div style={{ maxWidth: 720 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Request</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Build your Broadcast Request</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#A8A8A8' }}>
-                    Build your request as you browse, adding what you need from multiple vendors.
+                    Add what you need from multiple vendors as you browse.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#4A4A4A' }}>02</div>
@@ -1606,11 +1610,14 @@ export default function App() {
                 <div style={{ maxWidth: 720 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Connect</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#4A4A4A' }}>
-                    Fill in your details once, then send to every vendor on your list at the same time — each
-                    replies to you directly with availability, pricing and details.
+                    Fill in your details once, then send to everyone on your list at the same time. Each vendor
+                    messages you back directly with availability, pricing and details.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#C2C2BC' }}>03</div>
+              </div>
+              <div style={{ padding: isMobile ? '2px 22px' : '2px 30px', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
+                Only need one vendor? Message them straight from their profile.
               </div>
               <div
                 style={{
@@ -3249,9 +3256,9 @@ export default function App() {
                 }}
               >
                 <div style={{ maxWidth: 480 }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>Planners find you and message you — directly</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>Planners find you and message you directly</div>
                   <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>
-                    No bidding, no middleman. They message you, you close the booking.
+                    They message you, you close the booking.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 30, color: '#C2C2BC' }}>03</div>
@@ -3512,107 +3519,143 @@ export default function App() {
             )}
           </div>
 
-          <div
-            id="go-further"
-            style={{
-              marginTop: isMobile ? 40 : 56,
-              borderRadius: 24,
-              border: `1px solid ${PROMO_ACCENT}`,
-              background: `${PROMO_ACCENT}0D`,
-              padding: isMobile ? 22 : 34,
-              scrollMarginTop: 100,
-            }}
-          >
-            <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Premium Placement</div>
-            <p style={{ margin: '12px 0 0', maxWidth: 520, fontSize: 15, lineHeight: 1.55, color: '#4A4A4A' }}>
-              Right now, somewhere, a planner is searching your category. Premium Placement puts you at the top of
-              that search, before anyone else in your category.
-            </p>
-            <ul style={{ margin: '14px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 520 }}>
-              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Top of the list when planners search your category</li>
-              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Your profile shown first, with room for your work to stand out</li>
-              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Email features that put you in front of planners actively searching</li>
-              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>A push across our social channels</li>
-            </ul>
+          <div style={{ marginTop: isMobile ? 40 : 56, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, alignItems: 'start' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                border: '1px solid #ECECEC',
+                borderRadius: 24,
+                padding: isMobile ? 22 : 34,
+              }}
+            >
+              <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Listed</div>
+              <ul style={{ margin: '14px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>We build your profile for you. Just tell us what you do.</li>
+                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Listed in the directory, found by planners searching your category</li>
+                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Planners message you directly when they're interested</li>
+                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Free to list, free always</li>
+              </ul>
+              <button
+                onClick={V.scrollToJoinForm}
+                style={{
+                  marginTop: 20,
+                  border: 0,
+                  borderRadius: 999,
+                  background: '#171717',
+                  color: '#FFFFFF',
+                  padding: '14px 26px',
+                  cursor: 'pointer',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  alignSelf: 'flex-start',
+                }}
+              >
+                Get Listed →
+              </button>
+            </div>
 
-            <div style={{ marginTop: 24 }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                Preview — top placement in your category
-              </div>
-              <div style={{ marginTop: 10, maxWidth: 480, border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', padding: isMobile ? 14 : 18 }}>
-                <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>Catering</div>
-                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      border: `1.5px solid ${PROMO_ACCENT}`,
-                      borderRadius: 14,
-                      padding: '12px 14px',
-                      background: `${PROMO_ACCENT}0D`,
-                    }}
-                  >
-                    <div style={{ width: 38, height: 38, borderRadius: 999, background: '#171717', flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 14, fontWeight: 700 }}>Your Business</span>
-                        <span
-                          style={{
-                            fontFamily: MONO,
-                            fontSize: 9,
-                            fontWeight: 700,
-                            letterSpacing: '0.05em',
-                            textTransform: 'uppercase',
-                            color: PROMO_ACCENT,
-                            border: `1px solid ${PROMO_ACCENT}`,
-                            borderRadius: 999,
-                            padding: '2px 8px',
-                          }}
-                        >
-                          Featured
-                        </span>
-                      </div>
-                      <div style={{ marginTop: 2, fontSize: 12, color: '#6E6E6E' }}>
-                        First thing planners see when they open Catering.
+            <div
+              id="go-further"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                borderRadius: 24,
+                border: `1px solid ${PROMO_ACCENT}`,
+                background: `${PROMO_ACCENT}0D`,
+                padding: isMobile ? 22 : 34,
+                scrollMarginTop: 100,
+              }}
+            >
+              <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Spotlight</div>
+              <ul style={{ margin: '14px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Everything in Listed</li>
+                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Top of the list when planners search your category</li>
+                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Your profile shown first, with room for your work to stand out</li>
+                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Email features that put you in front of planners actively searching</li>
+                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>A push across our social channels</li>
+              </ul>
+
+              <div style={{ marginTop: 24 }}>
+                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Preview — top placement in your category
+                </div>
+                <div style={{ marginTop: 10, border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', padding: isMobile ? 14 : 18 }}>
+                  <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>Catering</div>
+                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        border: `1.5px solid ${PROMO_ACCENT}`,
+                        borderRadius: 14,
+                        padding: '12px 14px',
+                        background: `${PROMO_ACCENT}0D`,
+                      }}
+                    >
+                      <div style={{ width: 38, height: 38, borderRadius: 999, background: '#171717', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 14, fontWeight: 700 }}>Your Business</span>
+                          <span
+                            style={{
+                              fontFamily: MONO,
+                              fontSize: 9,
+                              fontWeight: 700,
+                              letterSpacing: '0.05em',
+                              textTransform: 'uppercase',
+                              color: PROMO_ACCENT,
+                              border: `1px solid ${PROMO_ACCENT}`,
+                              borderRadius: 999,
+                              padding: '2px 8px',
+                            }}
+                          >
+                            Featured
+                          </span>
+                        </div>
+                        <div style={{ marginTop: 2, fontSize: 12, color: '#6E6E6E' }}>
+                          First thing planners see when they open Catering.
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 14, padding: '12px 14px', background: '#F7F7F5' }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 999, background: '#D7D7D2', flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#9A9A9A' }}>Other business</div>
-                      <div style={{ marginTop: 2, fontSize: 12, color: '#B5B5B0' }}>Standard listing</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 14, padding: '12px 14px', background: '#F7F7F5' }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 999, background: '#D7D7D2', flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#9A9A9A' }}>Other business</div>
+                        <div style={{ marginTop: 2, fontSize: 12, color: '#B5B5B0' }}>Standard listing</div>
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 14, padding: '12px 14px', background: '#F7F7F5' }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 999, background: '#D7D7D2', flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#9A9A9A' }}>Other business</div>
-                      <div style={{ marginTop: 2, fontSize: 12, color: '#B5B5B0' }}>Standard listing</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 14, padding: '12px 14px', background: '#F7F7F5' }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 999, background: '#D7D7D2', flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#9A9A9A' }}>Other business</div>
+                        <div style={{ marginTop: 2, fontSize: 12, color: '#B5B5B0' }}>Standard listing</div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <button
-              onClick={V.openPromoPlan}
-              style={{
-                marginTop: 20,
-                border: 0,
-                borderRadius: 999,
-                background: PROMO_ACCENT,
-                color: '#FFFFFF',
-                padding: '14px 26px',
-                cursor: 'pointer',
-                fontSize: 15,
-                fontWeight: 700,
-              }}
-            >
-              Tell me more →
-            </button>
-            <div style={{ marginTop: 14, fontFamily: MONO, fontSize: 13, fontWeight: 700, color: '#171717' }}>TTD $500/month</div>
+              <div style={{ marginTop: 20 }}>
+                <button
+                  onClick={V.openPromoPlan}
+                  style={{
+                    border: 0,
+                    borderRadius: 999,
+                    background: PROMO_ACCENT,
+                    color: '#FFFFFF',
+                    padding: '14px 26px',
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  Tell me more →
+                </button>
+                <div style={{ marginTop: 14, fontFamily: MONO, fontSize: 13, fontWeight: 700, color: '#171717' }}>TTD $500/month</div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -3671,12 +3714,12 @@ export default function App() {
                   Trinidad &amp; Tobago.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3B4200' }}>
-                  Browse what you need, add vendors to your Request, and send everything together when you're
-                  ready.
+                  Browse what you need, add vendors to your Broadcast Request, and send everything together when
+                  you're ready. Each vendor receives their own request with only the details that apply to them,
+                  and messages you back directly.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3B4200' }}>
-                  Each vendor receives their own request with only the details that apply to them, then reaches
-                  out to you directly.
+                  Already know who you want? Message them straight from their profile.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, fontWeight: 700, lineHeight: 1.6, color: '#171717' }}>
                   You find the people you need. They take it from there.
@@ -3723,7 +3766,8 @@ export default function App() {
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#D7D7D2' }}>
                   Eventory helps them find your business when they're planning an event. They can browse your
-                  profile, see what you offer, and add you to their Request.
+                  profile, see what you offer, and add you to their Broadcast Request. Or message you directly if
+                  they already know it's you they want.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#D7D7D2' }}>
                   When they're ready, you receive their request directly, with the event details and what they're
@@ -4506,7 +4550,7 @@ export default function App() {
           >
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 22 : 26, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
-                {V.promoPlanSent ? "You're on the list" : 'Get the Promotion Plan'}
+                {V.promoPlanSent ? "You're on the list" : 'Get Spotlight'}
               </h2>
               <button
                 onClick={V.closePromoPlan}
@@ -4720,7 +4764,7 @@ export default function App() {
                 onClick={V.goGoFurther}
                 style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
               >
-                Premium Placement
+                Spotlight
               </button>
             </div>
           </div>
