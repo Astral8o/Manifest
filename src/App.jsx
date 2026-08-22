@@ -70,10 +70,10 @@ const ABOUT_FAQS = [
     a: 'Head to the Join Eventory page and submit your details. We\'ll get back to you to build your profile.',
   },
   {
-    q: 'What is the Go Further plan?',
-    a: "Go Further is Eventory's paid placement option for vendors. It puts your business in front of planners actively sourcing in your category, with top placement, targeted ads and email marketing.",
+    q: 'What is Premium Placement?',
+    a: "Premium Placement is Eventory's paid placement option for vendors. It puts your business in front of planners actively sourcing in your category, with top placement, targeted ads and email marketing.",
     linkTo: 'promo',
-    linkLabel: 'See the Go Further plan',
+    linkLabel: 'See Premium Placement',
   },
   {
     q: 'Where does Eventory operate?',
@@ -4720,7 +4720,7 @@ export default function App() {
                 onClick={V.goGoFurther}
                 style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
               >
-                Go Further
+                Premium Placement
               </button>
             </div>
           </div>
