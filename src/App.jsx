@@ -3158,18 +3158,18 @@ export default function App() {
           <div style={{ marginTop: 22, maxWidth: 640 }}>
             <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 52, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Join Eventory</h1>
             <p style={{ margin: '16px 0 0', fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
-              Somewhere out there, someone needs exactly what you offer. Let's make sure they find you.
+              Right now, somewhere, a planner is searching your category. Get seen, and let them come to you.
             </p>
           </div>
 
           <div style={{ marginTop: isMobile ? 32 : 44, borderRadius: 24, background: '#DDF247', padding: isMobile ? 22 : 34 }}>
             <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Get Listed</div>
             <p style={{ margin: '12px 0 0', maxWidth: 520, fontSize: 15, lineHeight: 1.55, color: '#3B4200' }}>
-              Tell us what you do, we'll build you a profile planners can actually find. No design skills needed, no
-              catch.
+              Tell us what you do, we'll build your profile for you. Planners searching your category find you, and
+              message you directly.
             </p>
             <p style={{ margin: '10px 0 0', maxWidth: 520, fontSize: 15, fontWeight: 700, lineHeight: 1.55, color: '#3B4200' }}>
-              Free to list. Free to receive inquiries. That's the whole deal.
+              Free to list. Free to receive inquiries.
             </p>
             <button
               onClick={V.scrollToJoinForm}
@@ -3207,7 +3207,12 @@ export default function App() {
                   flexWrap: 'wrap',
                 }}
               >
-                <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>Tell us about your business</div>
+                <div style={{ maxWidth: 480 }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>Tell us about your business</div>
+                  <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#3B4200' }}>
+                    Two minutes. No design skills, no writing needed.
+                  </div>
+                </div>
                 <div style={{ fontFamily: MONO, fontSize: 30, color: '#A9BB3A' }}>01</div>
               </div>
               <div
@@ -3223,7 +3228,12 @@ export default function App() {
                   flexWrap: 'wrap',
                 }}
               >
-                <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>We get back to you to build your profile</div>
+                <div style={{ maxWidth: 480 }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>We build your profile</div>
+                  <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#A8A8A8' }}>
+                    We turn what you send us into a profile planners can actually find.
+                  </div>
+                </div>
                 <div style={{ fontFamily: MONO, fontSize: 30, color: '#4A4A4A' }}>02</div>
               </div>
               <div
@@ -3238,7 +3248,12 @@ export default function App() {
                   flexWrap: 'wrap',
                 }}
               >
-                <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>Planners find you and reach out — directly</div>
+                <div style={{ maxWidth: 480 }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>Planners find you and message you — directly</div>
+                  <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>
+                    No bidding, no middleman. They message you, you close the booking.
+                  </div>
+                </div>
                 <div style={{ fontFamily: MONO, fontSize: 30, color: '#C2C2BC' }}>03</div>
               </div>
             </div>
@@ -3271,6 +3286,9 @@ export default function App() {
             ) : (
               <>
                 <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Tell us about your business</div>
+                <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
+                  Takes about two minutes. We'll turn this into a profile planners can find.
+                </p>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginTop: 18 }}>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
@@ -3505,15 +3523,15 @@ export default function App() {
               scrollMarginTop: 100,
             }}
           >
-            <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Go Further</div>
+            <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Premium Placement</div>
             <p style={{ margin: '12px 0 0', maxWidth: 520, fontSize: 15, lineHeight: 1.55, color: '#4A4A4A' }}>
-              We push you further, straight in front of planners actively looking to hire, wherever they are.
+              Right now, somewhere, a planner is searching your category. Premium Placement puts you at the top of
+              that search, before anyone else in your category.
             </p>
             <ul style={{ margin: '14px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 520 }}>
-              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Direct access to planners actively sourcing in your category</li>
-              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Targeted ads that reach the right audience</li>
-              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Top placement in your category</li>
-              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Email marketing that puts you in front of planners actively searching</li>
+              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Top of the list when planners search your category</li>
+              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Your profile shown first, with room for your work to stand out</li>
+              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Email features that put you in front of planners actively searching</li>
               <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>A push across our social channels</li>
             </ul>
 
@@ -4595,7 +4613,7 @@ export default function App() {
             <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.02em' }}>Eventory</div>
             <p style={{ margin: '10px 0 0', maxWidth: 320, fontSize: 14, lineHeight: 1.55, color: '#A8A8A8' }}>
               Discovery and sourcing for events in Trinidad &amp; Tobago. Browse vendors, compare what they offer,
-              and reach out directly.
+              and message them directly.
             </p>
             <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 10 }}>
               <button
