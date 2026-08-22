@@ -187,6 +187,7 @@ const initialState = {
   fulfil: 'Delivery',
   spec: {},
   openSpec: {},
+  checkoutStep: 1,
   eventDate: '',
   guestsExpected: '',
   eventTime: '',
@@ -468,6 +469,8 @@ export default function App() {
   // ---- derived view-model ----
   const grp = groups();
   const itemCount = st.items.reduce((n, i) => n + i.qty, 0);
+  const checkoutTotalSteps = 2 + grp.length;
+  const checkoutStep = Math.min(Math.max(st.checkoutStep || 1, 1), checkoutTotalSteps);
   const nav = (screen, extra) => () =>
     patch({ screen, sent: screen === 'eventory' ? st.sent : null, navMenuOpen: false, ...(extra || {}) });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
@@ -545,7 +548,7 @@ export default function App() {
     sourcingOpen: st.sourcingOpen,
     goHome: nav('home'),
     goSuppliers: nav('suppliers'),
-    goEventory: nav('eventory'),
+    goEventory: nav('eventory', { checkoutStep: 1 }),
     goSourcing: () => patch({ sourcingOpen: true, sourcingSent: false }),
     closeSourcing: () => patch({ sourcingOpen: false, sourcingSent: false }),
     submitSourcing: () => patch({ sourcingSent: true }),
@@ -945,12 +948,15 @@ export default function App() {
       { key: 'products', label: 'Products', value: itemCount },
       { key: 'inquiries', label: 'Inquiries to send', value: grp.length },
     ],
-    mobileCartLabel:
-      itemCount + (itemCount === 1 ? ' item · ' : ' items · ') + grp.length + (grp.length === 1 ? ' vendor' : ' vendors'),
-    scrollToSummary: () => {
-      const el = document.getElementById('eventory-summary');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    },
+
+    checkoutStep,
+    checkoutTotalSteps,
+    checkoutStepLabel: 'Step ' + checkoutStep + ' of ' + checkoutTotalSteps,
+    checkoutIsDetails: checkoutStep === 1,
+    checkoutIsSend: checkoutStep === checkoutTotalSteps,
+    nextCheckoutStep: () => patch((s) => ({ checkoutStep: Math.min((s.checkoutStep || 1) + 1, checkoutTotalSteps) })),
+    prevCheckoutStep: () => patch((s) => ({ checkoutStep: Math.max((s.checkoutStep || 1) - 1, 1) })),
+
     fulfilmentOptions: ['Delivery', 'Pickup by us', 'On site at venue'].map((l) => ({
       key: l,
       label: l,
@@ -2844,10 +2850,10 @@ export default function App() {
       {V.isEventory && (
         <div style={{ padding: '34px 0 0' }}>
           <button
-            onClick={V.goHome}
+            onClick={V.goSuppliers}
             style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
           >
-            ← Keep browsing
+            ← Back to vendor listings
           </button>
           <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
             <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.eventoryHeading}</h1>
@@ -2880,466 +2886,488 @@ export default function App() {
           )}
 
           {V.notSent && !V.isEmpty && (
-            <>
-            <div style={{ marginTop: 26, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
-                <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? '18px 18px' : '24px 26px' }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                    <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Event details</div>
-                    <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Sent with every inquiry
+            <div style={{ marginTop: 26, maxWidth: 640 }}>
+              <div style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                {V.checkoutStepLabel}
+              </div>
+              <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+                {Array.from({ length: V.checkoutTotalSteps }).map((_, i) => (
+                  <div key={i} style={{ flex: 1, height: 4, borderRadius: 999, background: i < V.checkoutStep ? '#171717' : '#ECECEC' }} />
+                ))}
+              </div>
+
+              <div style={{ marginTop: 22, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? '18px 18px' : '24px 26px' }}>
+                {V.checkoutIsDetails && (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Event details</div>
+                      <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                        Sent with every inquiry
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ marginTop: 4, fontSize: 14, color: '#5B5B5B' }}>
-                    Vendors need these to quote you. Fill them once and they go out with each inquiry.
-                  </div>
-                  <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ marginTop: 4, fontSize: 14, color: '#5B5B5B' }}>
+                      Vendors need these to quote you. Fill them once and they go out with each inquiry.
+                    </div>
+                    <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Event date
+                        </span>
+                        <input
+                          type="date"
+                          value={V.eventDate}
+                          onChange={V.setEventDate}
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                        />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Guests expected
+                        </span>
+                        <input
+                          type="number"
+                          placeholder="120"
+                          value={V.guestsExpected}
+                          onChange={V.setGuestsExpected}
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                        />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Start and end time
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="4pm to 11pm"
+                          value={V.eventTime}
+                          onChange={V.setEventTime}
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                        />
+                      </label>
+                    </div>
+                    <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                        Event date
+                        Fulfilment
                       </span>
-                      <input
-                        type="date"
-                        value={V.eventDate}
-                        onChange={V.setEventDate}
-                        style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                      />
-                    </label>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {V.fulfilmentOptions.map((f) => (
+                        <button
+                          key={f.key}
+                          onClick={f.pick}
+                          style={{
+                            border: `1px solid ${f.border}`,
+                            borderRadius: 999,
+                            background: f.bg,
+                            color: f.fg,
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                    <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                        Guests expected
-                      </span>
-                      <input
-                        type="number"
-                        placeholder="120"
-                        value={V.guestsExpected}
-                        onChange={V.setGuestsExpected}
-                        style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                      />
-                    </label>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                        Start and end time
+                        {V.addressLabel}
                       </span>
                       <input
                         type="text"
-                        placeholder="4pm to 11pm"
-                        value={V.eventTime}
-                        onChange={V.setEventTime}
+                        placeholder="Venue name, street, town"
+                        value={V.venueAddress}
+                        onChange={V.setVenueAddress}
                         style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
                       />
                     </label>
-                  </div>
-                  <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Fulfilment
-                    </span>
-                    {V.fulfilmentOptions.map((f) => (
-                      <button
-                        key={f.key}
-                        onClick={f.pick}
-                        style={{
-                          border: `1px solid ${f.border}`,
-                          borderRadius: 999,
-                          background: f.bg,
-                          color: f.fg,
-                          padding: '8px 16px',
-                          cursor: 'pointer',
-                          fontSize: 13,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
-                  <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      {V.addressLabel}
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Venue name, street, town"
-                      value={V.venueAddress}
-                      onChange={V.setVenueAddress}
-                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                    />
-                  </label>
-                  <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Access notes, optional
-                    </span>
-                    <textarea
-                      placeholder="Load in through the back gate on Henry Street. No lift, one flight of stairs. Security needs names by the Friday before."
-                      value={V.accessNotes}
-                      onChange={V.setAccessNotes}
-                      style={{
-                        minHeight: 84,
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 14,
-                        background: '#F7F7F5',
-                        padding: 14,
-                        fontFamily: SANS,
-                        fontSize: 15,
-                        lineHeight: 1.5,
-                        color: '#171717',
-                        resize: 'vertical',
-                      }}
-                    />
-                  </label>
-                </div>
-
-                {V.eventoryGroups.map((g) => (
-                  <div key={g.key} style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: '24px 26px' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-                        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{g.supplierName}</div>
-                        <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{g.location}</div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          {g.inquiryLabel}
-                        </div>
-                        <button
-                          onClick={g.removeAll}
-                          style={{
-                            border: 0,
-                            background: 'transparent',
-                            padding: 0,
-                            cursor: 'pointer',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: '#8A8A8A',
-                            textDecoration: 'underline',
-                            textUnderlineOffset: '3px',
-                          }}
-                        >
-                          Remove vendor
-                        </button>
-                      </div>
-                    </div>
-                    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      {g.items.map((it) => (
-                        <div key={it.key} style={{ borderTop: '1px solid #ECECEC', padding: '14px 0' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
-                            <div style={{ flex: '1 1 260px', minWidth: 220 }}>
-                              <div style={{ fontSize: 16, fontWeight: 600 }}>{it.name}</div>
-                              <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{it.termsLabel}</div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', columnGap: 16, flexWrap: 'wrap', rowGap: 10 }}>
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 10,
-                                  border: '1px solid #E4E4DF',
-                                  borderRadius: 999,
-                                  padding: '5px 6px',
-                                }}
-                              >
-                                <button
-                                  onClick={it.dec}
-                                  style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
-                                >
-                                  −
-                                </button>
-                                <span style={{ fontFamily: MONO, fontSize: 13, minWidth: 22, textAlign: 'center' }}>{it.qty}</span>
-                                <button
-                                  onClick={it.inc}
-                                  style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
-                                >
-                                  +
-                                </button>
-                              </div>
-                              <div style={{ fontFamily: MONO, fontSize: 14, minWidth: isMobile ? 0 : 148, textAlign: 'right' }}>{it.priceLabel}</div>
-                              <button
-                                onClick={it.toggle}
-                                style={{
-                                  border: '1px solid #171717',
-                                  borderRadius: 999,
-                                  background: it.detailBg,
-                                  padding: '8px 14px',
-                                  cursor: 'pointer',
-                                  fontSize: 13,
-                                  fontWeight: 700,
-                                  color: it.detailFg,
-                                }}
-                              >
-                                {it.detailLabel}
-                              </button>
-                              <button
-                                onClick={it.remove}
-                                style={{
-                                  border: 0,
-                                  background: 'transparent',
-                                  padding: 0,
-                                  cursor: 'pointer',
-                                  fontSize: 13,
-                                  fontWeight: 600,
-                                  color: '#8A8A8A',
-                                  textDecoration: 'underline',
-                                  textUnderlineOffset: '3px',
-                                }}
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          </div>
-                          {it.expanded && (
-                            <div style={{ marginTop: 12, borderRadius: 18, background: '#F7F7F5', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                              {it.fields.map((fd) => (
-                                <div key={fd.key}>
-                                  <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                                    {fd.label}
-                                  </div>
-                                  {fd.isChoice && (
-                                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                                      {fd.options.map((o) => (
-                                        <button
-                                          key={o.key}
-                                          onClick={o.pick}
-                                          style={{
-                                            border: `1px solid ${o.border}`,
-                                            borderRadius: 999,
-                                            background: o.bg,
-                                            color: o.fg,
-                                            padding: '7px 14px',
-                                            cursor: 'pointer',
-                                            fontSize: 13,
-                                            fontWeight: 600,
-                                          }}
-                                        >
-                                          {o.label}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                  {fd.isText && (
-                                    <input
-                                      type="text"
-                                      value={fd.value}
-                                      onChange={fd.set}
-                                      placeholder={fd.ph}
-                                      style={{
-                                        marginTop: 8,
-                                        width: '100%',
-                                        border: '1px solid #E4E4DF',
-                                        borderRadius: 14,
-                                        background: '#FFFFFF',
-                                        padding: '11px 14px',
-                                        fontFamily: SANS,
-                                        fontSize: 14,
-                                        color: '#171717',
-                                      }}
-                                    />
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <label style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                        Note to {g.supplierName}, optional
+                        Access notes, optional
                       </span>
                       <textarea
-                        placeholder={g.notePlaceholder}
-                        value={g.note}
-                        onChange={g.setNote}
+                        placeholder="Load in through the back gate on Henry Street. No lift, one flight of stairs. Security needs names by the Friday before."
+                        value={V.accessNotes}
+                        onChange={V.setAccessNotes}
                         style={{
-                          minHeight: 68,
+                          minHeight: 84,
                           border: '1px solid #E4E4DF',
                           borderRadius: 14,
                           background: '#F7F7F5',
-                          padding: '13px 14px',
+                          padding: 14,
                           fontFamily: SANS,
-                          fontSize: 14,
+                          fontSize: 15,
                           lineHeight: 1.5,
                           color: '#171717',
                           resize: 'vertical',
                         }}
                       />
-                      <span style={{ fontSize: 12, color: '#9A9A9A' }}>Only {g.supplierName} sees this note.</span>
                     </label>
-                  </div>
-                ))}
-              </div>
+                    <button
+                      onClick={V.nextCheckoutStep}
+                      style={{
+                        marginTop: 22,
+                        border: 0,
+                        borderRadius: 999,
+                        background: '#171717',
+                        color: '#FFFFFF',
+                        padding: '13px 24px',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Continue →
+                    </button>
+                  </>
+                )}
 
-              <div id="eventory-summary" style={{ position: isMobile ? 'static' : 'sticky', top: 92, scrollMarginTop: 90, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
-                <div style={{ borderRadius: 24, background: ACCENT, color: ACCENT_ON, padding: 26 }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>About to send</div>
-                  <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {V.sendStats.map((s) => (
-                      <div
-                        key={s.key}
-                        style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, borderTop: `1px solid ${ACCENT_ON_MUTED}`, padding: '11px 0' }}
-                      >
-                        <span style={{ fontSize: 14, fontWeight: 600, color: ACCENT_ON_SOFT }}>{s.label}</span>
-                        <span style={{ fontFamily: MONO, fontSize: 17 }}>{s.value}</span>
+                {!V.checkoutIsDetails && !V.checkoutIsSend && V.eventoryGroups[V.checkoutStep - 2] && (() => {
+                  const g = V.eventoryGroups[V.checkoutStep - 2];
+                  return (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{g.supplierName}</div>
+                          <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{g.location}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                          <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                            {g.inquiryLabel}
+                          </div>
+                          <button
+                            onClick={g.removeAll}
+                            style={{
+                              border: 0,
+                              background: 'transparent',
+                              padding: 0,
+                              cursor: 'pointer',
+                              fontSize: 12,
+                              fontWeight: 600,
+                              color: '#8A8A8A',
+                              textDecoration: 'underline',
+                              textUnderlineOffset: '3px',
+                            }}
+                          >
+                            Remove vendor
+                          </button>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                  {V.needsAccount && (
-                    <div style={{ marginTop: 18, borderTop: `1px solid ${ACCENT_ON_MUTED}`, paddingTop: 16 }}>
-                      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_ON_SOFT }}>
-                        Your email
+                      <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {g.items.map((it) => (
+                          <div key={it.key} style={{ borderTop: '1px solid #ECECEC', padding: '14px 0' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+                              <div style={{ flex: '1 1 260px', minWidth: 220 }}>
+                                <div style={{ fontSize: 16, fontWeight: 600 }}>{it.name}</div>
+                                <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{it.termsLabel}</div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', columnGap: 16, flexWrap: 'wrap', rowGap: 10 }}>
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    border: '1px solid #E4E4DF',
+                                    borderRadius: 999,
+                                    padding: '5px 6px',
+                                  }}
+                                >
+                                  <button
+                                    onClick={it.dec}
+                                    style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
+                                  >
+                                    −
+                                  </button>
+                                  <span style={{ fontFamily: MONO, fontSize: 13, minWidth: 22, textAlign: 'center' }}>{it.qty}</span>
+                                  <button
+                                    onClick={it.inc}
+                                    style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                                <div style={{ fontFamily: MONO, fontSize: 14, minWidth: isMobile ? 0 : 148, textAlign: 'right' }}>{it.priceLabel}</div>
+                                <button
+                                  onClick={it.toggle}
+                                  style={{
+                                    border: '1px solid #171717',
+                                    borderRadius: 999,
+                                    background: it.detailBg,
+                                    padding: '8px 14px',
+                                    cursor: 'pointer',
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    color: it.detailFg,
+                                  }}
+                                >
+                                  {it.detailLabel}
+                                </button>
+                                <button
+                                  onClick={it.remove}
+                                  style={{
+                                    border: 0,
+                                    background: 'transparent',
+                                    padding: 0,
+                                    cursor: 'pointer',
+                                    fontSize: 13,
+                                    fontWeight: 600,
+                                    color: '#8A8A8A',
+                                    textDecoration: 'underline',
+                                    textUnderlineOffset: '3px',
+                                  }}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                            {it.expanded && (
+                              <div style={{ marginTop: 12, borderRadius: 18, background: '#F7F7F5', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                {it.fields.map((fd) => (
+                                  <div key={fd.key}>
+                                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                                      {fd.label}
+                                    </div>
+                                    {fd.isChoice && (
+                                      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                        {fd.options.map((o) => (
+                                          <button
+                                            key={o.key}
+                                            onClick={o.pick}
+                                            style={{
+                                              border: `1px solid ${o.border}`,
+                                              borderRadius: 999,
+                                              background: o.bg,
+                                              color: o.fg,
+                                              padding: '7px 14px',
+                                              cursor: 'pointer',
+                                              fontSize: 13,
+                                              fontWeight: 600,
+                                            }}
+                                          >
+                                            {o.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {fd.isText && (
+                                      <input
+                                        type="text"
+                                        value={fd.value}
+                                        onChange={fd.set}
+                                        placeholder={fd.ph}
+                                        style={{
+                                          marginTop: 8,
+                                          width: '100%',
+                                          border: '1px solid #E4E4DF',
+                                          borderRadius: 14,
+                                          background: '#FFFFFF',
+                                          padding: '11px 14px',
+                                          fontFamily: SANS,
+                                          fontSize: 14,
+                                          color: '#171717',
+                                        }}
+                                      />
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                      <input
-                        type="email"
-                        value={V.email}
-                        onChange={V.setEmail}
-                        placeholder="you@organisation.tt"
-                        style={{
-                          marginTop: 8,
-                          width: '100%',
-                          border: `1px solid ${ACCENT_ON_MUTED}`,
-                          borderRadius: 14,
-                          background: '#FFFFFF',
-                          padding: '12px 14px',
-                          fontFamily: SANS,
-                          fontSize: 15,
-                          color: '#171717',
-                        }}
-                      />
-                      <button
-                        onClick={V.togglePromoOptIn}
-                        style={{
-                          marginTop: 12,
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: 10,
-                          border: 0,
-                          background: 'transparent',
-                          padding: 0,
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                        }}
-                      >
-                        <span
+                      <label style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Note to {g.supplierName}, optional
+                        </span>
+                        <textarea
+                          placeholder={g.notePlaceholder}
+                          value={g.note}
+                          onChange={g.setNote}
                           style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 18,
-                            height: 18,
-                            marginTop: 1,
-                            border: `1px solid ${V.promoOptIn ? '#171717' : ACCENT_ON_SOFT}`,
-                            borderRadius: 5,
-                            background: V.promoOptIn ? '#171717' : 'transparent',
+                            minHeight: 68,
+                            border: '1px solid #E4E4DF',
+                            borderRadius: 14,
+                            background: '#F7F7F5',
+                            padding: '13px 14px',
+                            fontFamily: SANS,
+                            fontSize: 14,
+                            lineHeight: 1.5,
+                            color: '#171717',
+                            resize: 'vertical',
+                          }}
+                        />
+                        <span style={{ fontSize: 12, color: '#9A9A9A' }}>Only {g.supplierName} sees this note.</span>
+                      </label>
+                      <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <button
+                          onClick={V.prevCheckoutStep}
+                          style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '12px 4px', cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600 }}
+                        >
+                          ← Back
+                        </button>
+                        <button
+                          onClick={V.nextCheckoutStep}
+                          style={{
+                            border: 0,
+                            borderRadius: 999,
+                            background: '#171717',
                             color: '#FFFFFF',
-                            fontSize: 11,
-                            fontWeight: 800,
-                            flexShrink: 0,
+                            padding: '13px 24px',
+                            cursor: 'pointer',
+                            fontSize: 14,
+                            fontWeight: 700,
                           }}
                         >
-                          {V.promoOptIn ? '✓' : ''}
-                        </span>
-                        <span style={{ fontSize: 13, lineHeight: 1.4, color: ACCENT_ON_SOFT }}>
-                          Send me promos and offers from vendors
-                        </span>
-                      </button>
+                          Continue →
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
+
+                {V.checkoutIsSend && (
+                  <>
+                    <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Review &amp; send</div>
+                    <div style={{ marginTop: 4, fontSize: 14, color: '#5B5B5B' }}>
+                      One inquiry per vendor, each scoped to their own items and note.
+                    </div>
+                    <div style={{ marginTop: 20, borderRadius: 20, background: ACCENT, color: ACCENT_ON, padding: 22 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {V.sendStats.map((s) => (
+                          <div
+                            key={s.key}
+                            style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, borderTop: `1px solid ${ACCENT_ON_MUTED}`, padding: '11px 0' }}
+                          >
+                            <span style={{ fontSize: 14, fontWeight: 600, color: ACCENT_ON_SOFT }}>{s.label}</span>
+                            <span style={{ fontFamily: MONO, fontSize: 17 }}>{s.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {V.needsAccount && (
+                        <div style={{ marginTop: 18, borderTop: `1px solid ${ACCENT_ON_MUTED}`, paddingTop: 16 }}>
+                          <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_ON_SOFT }}>
+                            Your email
+                          </div>
+                          <input
+                            type="email"
+                            value={V.email}
+                            onChange={V.setEmail}
+                            placeholder="you@organisation.tt"
+                            style={{
+                              marginTop: 8,
+                              width: '100%',
+                              border: `1px solid ${ACCENT_ON_MUTED}`,
+                              borderRadius: 14,
+                              background: '#FFFFFF',
+                              padding: '12px 14px',
+                              fontFamily: SANS,
+                              fontSize: 15,
+                              color: '#171717',
+                            }}
+                          />
+                          <button
+                            onClick={V.togglePromoOptIn}
+                            style={{
+                              marginTop: 12,
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 10,
+                              border: 0,
+                              background: 'transparent',
+                              padding: 0,
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                            }}
+                          >
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 18,
+                                height: 18,
+                                marginTop: 1,
+                                border: `1px solid ${V.promoOptIn ? '#171717' : ACCENT_ON_SOFT}`,
+                                borderRadius: 5,
+                                background: V.promoOptIn ? '#171717' : 'transparent',
+                                color: '#FFFFFF',
+                                fontSize: 11,
+                                fontWeight: 800,
+                                flexShrink: 0,
+                              }}
+                            >
+                              {V.promoOptIn ? '✓' : ''}
+                            </span>
+                            <span style={{ fontSize: 13, lineHeight: 1.4, color: ACCENT_ON_SOFT }}>
+                              Send me promos and offers from vendors
+                            </span>
+                          </button>
+                          <button
+                            onClick={V.signIn}
+                            disabled={V.signInDisabled}
+                            style={{
+                              marginTop: 12,
+                              width: '100%',
+                              border: 0,
+                              borderRadius: 999,
+                              background: '#171717',
+                              color: '#FFFFFF',
+                              padding: '12px 20px',
+                              cursor: 'pointer',
+                              fontSize: 14,
+                              fontWeight: 700,
+                              opacity: V.signInDisabled ? 0.4 : 1,
+                            }}
+                          >
+                            Sign in to send inquiries
+                          </button>
+                          <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
+                            No password, we email you a sign-in link. Signing in is required to send your inquiries and
+                            saves this Eventory to your account.
+                          </div>
+                        </div>
+                      )}
+                      {V.signedIn && (
+                        <div style={{ marginTop: 18, borderTop: `1px solid ${ACCENT_ON_MUTED}`, paddingTop: 14, fontSize: 13, color: ACCENT_ON_SOFT }}>
+                          Saved to {V.email}. You can come back to this Eventory any time.
+                        </div>
+                      )}
                       <button
-                        onClick={V.signIn}
-                        disabled={V.signInDisabled}
+                        onClick={V.send}
+                        disabled={V.isEmpty || !V.signedIn || V.sending}
                         style={{
-                          marginTop: 12,
+                          marginTop: 20,
                           width: '100%',
                           border: 0,
                           borderRadius: 999,
                           background: '#171717',
                           color: '#FFFFFF',
-                          padding: '12px 20px',
+                          padding: '16px 20px',
                           cursor: 'pointer',
-                          fontSize: 14,
+                          fontSize: 15,
                           fontWeight: 700,
-                          opacity: V.signInDisabled ? 0.4 : 1,
+                          opacity: V.sendOpacity,
                         }}
                       >
-                        Sign in to send inquiries
+                        {V.sending ? 'Sending…' : 'Send all inquiries'}
                       </button>
-                      <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
-                        No password, we email you a sign-in link. Signing in is required to send your inquiries and
-                        saves this Eventory to your account.
+                      {V.sendError && (
+                        <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.sendError}</div>
+                      )}
+                      <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
+                        Each vendor receives one inquiry with your event details, their own line items and their own
+                        note. No vendor sees the rest of your Eventory, and no payment is taken here.
                       </div>
                     </div>
-                  )}
-                  {V.signedIn && (
-                    <div style={{ marginTop: 18, borderTop: `1px solid ${ACCENT_ON_MUTED}`, paddingTop: 14, fontSize: 13, color: ACCENT_ON_SOFT }}>
-                      Saved to {V.email}. You can come back to this Eventory any time.
-                    </div>
-                  )}
-                  <button
-                    onClick={V.send}
-                    disabled={V.isEmpty || !V.signedIn || V.sending}
-                    style={{
-                      marginTop: 20,
-                      width: '100%',
-                      border: 0,
-                      borderRadius: 999,
-                      background: '#171717',
-                      color: '#FFFFFF',
-                      padding: '16px 20px',
-                      cursor: 'pointer',
-                      fontSize: 15,
-                      fontWeight: 700,
-                      opacity: V.sendOpacity,
-                    }}
-                  >
-                    {V.sending ? 'Sending…' : 'Send all inquiries'}
-                  </button>
-                  {V.sendError && (
-                    <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.sendError}</div>
-                  )}
-                  <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
-                    Each vendor receives one inquiry with your event details, their own line items and their own
-                    note. No vendor sees the rest of your Eventory, and no payment is taken here.
-                  </div>
-                </div>
+                    <button
+                      onClick={V.prevCheckoutStep}
+                      style={{ marginTop: 16, border: 0, background: 'transparent', color: '#5B5B5B', padding: '12px 4px', cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600 }}
+                    >
+                      ← Back
+                    </button>
+                  </>
+                )}
               </div>
             </div>
-            {isMobile && (
-              <>
-                <div style={{ height: 78 }} />
-                <div
-                  style={{
-                    position: 'fixed',
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 30,
-                    background: '#FFFFFF',
-                    borderTop: '1px solid #ECECEC',
-                    boxShadow: '0 -8px 24px rgba(0,0,0,0.08)',
-                    padding: '12px 16px calc(12px + env(safe-area-inset-bottom))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 14,
-                  }}
-                >
-                  <div style={{ fontFamily: MONO, fontSize: 12, color: '#5B5B5B' }}>{V.mobileCartLabel}</div>
-                  <button
-                    onClick={V.scrollToSummary}
-                    style={{
-                      border: 0,
-                      borderRadius: 999,
-                      background: '#171717',
-                      color: '#FFFFFF',
-                      padding: '12px 20px',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      fontWeight: 700,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    Review &amp; send →
-                  </button>
-                </div>
-              </>
-            )}
-            </>
           )}
 
           {V.sent && (
