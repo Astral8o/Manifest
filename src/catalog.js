@@ -93,44 +93,46 @@ export async function fetchCatalog() {
 
 // Submits a buyer's cart as one inquiry row plus one inquiry_vendor_groups row
 // per vendor (matching the "one inquiry per vendor" model), each with its items.
+//
+// IDs are generated client-side (rather than read back with .select()) because
+// inquiries/inquiry_vendor_groups intentionally have no public SELECT policy —
+// Postgres RLS treats INSERT ... RETURNING as requiring a SELECT policy too, so
+// reading the row back after insert would fail even though the insert itself
+// is allowed.
 export async function submitInquiry({ buyer, groups }) {
   if (!supabaseConfigured) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
-  const { data: inquiry, error: inquiryError } = await supabase
-    .from('inquiries')
-    .insert({
-      buyer_name: buyer.name || null,
-      buyer_email: buyer.email,
-      buyer_phone: buyer.phone || null,
-      event_date: buyer.eventDate || null,
-      guests_expected: buyer.guestsExpected ? Number(buyer.guestsExpected) : null,
-      event_time: buyer.eventTime || null,
-      fulfilment: buyer.fulfilment || null,
-      venue_address: buyer.venueAddress || null,
-      access_notes: buyer.accessNotes || null,
-      promo_opt_in: !!buyer.promoOptIn,
-    })
-    .select('id')
-    .single();
+  const inquiryId = crypto.randomUUID();
+  const { error: inquiryError } = await supabase.from('inquiries').insert({
+    id: inquiryId,
+    buyer_name: buyer.name || null,
+    buyer_email: buyer.email,
+    buyer_phone: buyer.phone || null,
+    event_date: buyer.eventDate || null,
+    guests_expected: buyer.guestsExpected ? Number(buyer.guestsExpected) : null,
+    event_time: buyer.eventTime || null,
+    fulfilment: buyer.fulfilment || null,
+    venue_address: buyer.venueAddress || null,
+    access_notes: buyer.accessNotes || null,
+    promo_opt_in: !!buyer.promoOptIn,
+  });
 
   if (inquiryError) throw inquiryError;
 
   for (const group of groups) {
-    const { data: groupRow, error: groupError } = await supabase
-      .from('inquiry_vendor_groups')
-      .insert({
-        inquiry_id: inquiry.id,
-        vendor_id: group.vendorId,
-        note_to_vendor: group.note || null,
-      })
-      .select('id')
-      .single();
+    const groupId = crypto.randomUUID();
+    const { error: groupError } = await supabase.from('inquiry_vendor_groups').insert({
+      id: groupId,
+      inquiry_id: inquiryId,
+      vendor_id: group.vendorId,
+      note_to_vendor: group.note || null,
+    });
 
     if (groupError) throw groupError;
 
     const itemRows = group.items.map((item) => ({
-      inquiry_vendor_group_id: groupRow.id,
+      inquiry_vendor_group_id: groupId,
       product_id: item.productId || null,
       product_name: item.name,
       qty: item.qty,
@@ -141,5 +143,5 @@ export async function submitInquiry({ buyer, groups }) {
     if (itemsError) throw itemsError;
   }
 
-  return inquiry.id;
+  return inquiryId;
 }
