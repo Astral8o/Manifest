@@ -3196,9 +3196,13 @@ export default function App() {
             <p style={{ margin: '16px 0 0', fontSize: 17, lineHeight: 1.5, color: '#4A4A4A' }}>
               Right now, somewhere, a planner is searching your category. Get seen, and let them come to you.
             </p>
+            <p style={{ margin: '14px 0 0', fontSize: 15, lineHeight: 1.6, color: '#5B5B5B' }}>
+              Tell us what you do and we'll build your profile for you. Planners searching your category find you
+              and message you directly. Free to list, free to receive messages.
+            </p>
           </div>
 
-          <div style={{ marginTop: isMobile ? 28 : 36, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ marginTop: isMobile ? 24 : 30, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <button
               onClick={V.scrollToJoinForm}
               style={{
@@ -3215,7 +3219,7 @@ export default function App() {
             >
               Get Listed →
             </button>
-            <div style={{ fontSize: 13, color: '#5B5B5B' }}>Free to list. We review every submission by hand.</div>
+            <div style={{ fontSize: 13, color: '#5B5B5B' }}>We review every submission by hand.</div>
           </div>
 
           <div style={{ marginTop: isMobile ? 40 : 56 }}>
