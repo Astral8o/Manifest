@@ -646,6 +646,10 @@ export default function App() {
           categoryName: catName(s.code),
           priceLabel: priceLabel(p),
           open: () => patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8 }),
+          btnLabel: has(p.id) ? 'Added' : '+ Add',
+          btnBg: has(p.id) ? '#DDF247' : '#171717',
+          btnFg: has(p.id) ? '#171717' : '#FFFFFF',
+          add: () => add(p.id),
         };
       })
       .filter(Boolean),
@@ -1444,48 +1448,85 @@ export default function App() {
               }}
             >
               {V.featuredProducts.map((f) => (
-                <button
+                <div
                   key={f.key}
-                  onClick={f.open}
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    textAlign: 'left',
                     border: '1px solid #ECECEC',
                     borderRadius: 20,
                     overflow: 'hidden',
                     background: '#FFFFFF',
-                    cursor: 'pointer',
-                    padding: 0,
                   }}
                 >
-                  <img
-                    src={f.photo}
-                    alt={f.name}
-                    style={{ width: '100%', height: isMobile ? 110 : 150, objectFit: 'cover', display: 'block' }}
-                  />
-                  <div style={{ padding: isMobile ? '12px 14px 16px' : '16px 18px 20px' }}>
-                    <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{f.supplierName}</div>
-                    <div style={{ marginTop: 4, fontSize: isMobile ? 14 : 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{f.name}</div>
-                    <div style={{ marginTop: 10 }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 999,
-                          background: '#F7F7F5',
-                          padding: '4px 10px',
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: '#4A4A4A',
-                        }}
-                      >
-                        {f.categoryName}
-                      </span>
+                  <button
+                    onClick={f.open}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      textAlign: 'left',
+                      border: 0,
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      padding: 0,
+                      width: '100%',
+                    }}
+                  >
+                    <img
+                      src={f.photo}
+                      alt={f.name}
+                      style={{ width: '100%', height: isMobile ? 110 : 150, objectFit: 'cover', display: 'block' }}
+                    />
+                    <div style={{ padding: isMobile ? '12px 14px 0' : '16px 18px 0' }}>
+                      <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{f.supplierName}</div>
+                      <div style={{ marginTop: 4, fontSize: isMobile ? 14 : 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{f.name}</div>
+                      <div style={{ marginTop: 10 }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            border: '1px solid #E4E4DF',
+                            borderRadius: 999,
+                            background: '#F7F7F5',
+                            padding: '4px 10px',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: '#4A4A4A',
+                          }}
+                        >
+                          {f.categoryName}
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ marginTop: 10, fontFamily: MONO, fontSize: isMobile ? 12 : 14, fontWeight: 700 }}>{f.priceLabel}</div>
+                  </button>
+                  <div
+                    style={{
+                      marginTop: 10,
+                      padding: isMobile ? '0 14px 16px' : '0 18px 20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                    }}
+                  >
+                    <span style={{ fontFamily: MONO, fontSize: isMobile ? 12 : 14, fontWeight: 700 }}>{f.priceLabel}</span>
+                    <button
+                      onClick={f.add}
+                      style={{
+                        flexShrink: 0,
+                        border: 0,
+                        borderRadius: 999,
+                        background: f.btnBg,
+                        color: f.btnFg,
+                        padding: '7px 14px',
+                        cursor: 'pointer',
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {f.btnLabel}
+                    </button>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
             <button
