@@ -177,3 +177,12 @@ export async function sendMagicLink(email) {
 
   if (error) throw error;
 }
+
+export async function joinWaitlist(email) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('waitlist_signups').insert({ email });
+
+  if (error) throw error;
+}
