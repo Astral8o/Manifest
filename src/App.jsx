@@ -142,7 +142,6 @@ const loadAccount = () => {
       eventTime: parsed.eventTime || '',
       venueAddress: parsed.venueAddress || '',
       accessNotes: parsed.accessNotes || '',
-      sent: parsed.sent || null,
     };
   } catch {
     return { email: '', history: [], saved: [], promoOptIn: false, ...emptyCart };
@@ -320,7 +319,6 @@ export default function App() {
           eventTime: st.eventTime,
           venueAddress: st.venueAddress,
           accessNotes: st.accessNotes,
-          sent: st.sent,
         })
       );
     } catch {
@@ -339,7 +337,6 @@ export default function App() {
     st.eventTime,
     st.venueAddress,
     st.accessNotes,
-    st.sent,
   ]);
 
   useEffect(() => {
