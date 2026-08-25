@@ -186,3 +186,21 @@ export async function joinWaitlist(email) {
 
   if (error) throw error;
 }
+
+export async function submitPlanningRequest(request) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('planning_requests').insert({
+    event_label: request.eventLabel,
+    event_date: request.eventDate || null,
+    location: request.location || null,
+    category_codes: request.categoryCodes,
+    budget_label: request.budgetLabel || null,
+    contact_name: request.contactName,
+    contact_phone: request.contactPhone,
+    contact_email: request.contactEmail || null,
+  });
+
+  if (error) throw error;
+}

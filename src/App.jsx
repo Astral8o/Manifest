@@ -6,7 +6,7 @@ import {
   FIELDS_DEFAULT,
   money,
 } from './data';
-import { fetchCatalog, submitInquiry, submitVendorReview, sendMagicLink } from './catalog';
+import { fetchCatalog, submitInquiry, submitVendorReview, sendMagicLink, submitPlanningRequest } from './catalog';
 import { supabase } from './supabaseClient';
 import heroPhoto from './assets/hero-photo.jpg';
 import cateringPhoto from './assets/categories/catering.jpg';
@@ -642,10 +642,27 @@ export default function App() {
     navMenuOpen: !!st.navMenuOpen,
     toggleNavMenu: () => patch((s) => ({ navMenuOpen: !s.navMenuOpen })),
     closeNavMenu: () => patch({ navMenuOpen: false }),
-    startPlanning: () => patch({ planModalOpen: true, planStep: 1, planEventType: null, planOtherLabel: '', planCats: [] }),
+    startPlanning: () =>
+      patch({
+        planModalOpen: true,
+        planStep: 1,
+        planEventType: null,
+        planOtherLabel: '',
+        planEventDate: '',
+        planLoc: 0,
+        planCats: [],
+        planBudget: 0,
+        planContactName: '',
+        planContactPhone: '',
+        planContactEmail: '',
+        planSubmitting: false,
+        planSubmitError: null,
+      }),
     planModalOpen: !!st.planModalOpen,
     closePlanModal: () => patch({ planModalOpen: false }),
     planStep: st.planStep || 1,
+    planTotalSteps: 5,
+    planStepBack: () => patch((s) => ({ planStep: Math.max(1, (s.planStep || 1) - 1) })),
     eventTypeTiles: EVENT_TYPES.map((t) => ({
       key: t.key,
       label: t.label,
@@ -655,17 +672,26 @@ export default function App() {
           patch({ planEventType: 'other' });
           return;
         }
-        patch({ planEventType: t.key, planCats: [], planStep: 2 });
+        patch({ planEventType: t.key, planStep: 2 });
       },
     })),
     planOtherLabel: st.planOtherLabel || '',
     setPlanOtherLabel: (e) => patch({ planOtherLabel: e.target.value }),
-    confirmOtherEventType: () => patch({ planCats: [], planStep: 2 }),
-    planBackToStep1: () => patch({ planStep: 1 }),
+    confirmOtherEventType: () => patch({ planStep: 2 }),
     planEventLabel:
       st.planEventType === 'other'
         ? st.planOtherLabel.trim() || 'Your event'
         : (EVENT_TYPES.find((t) => t.key === st.planEventType) || {}).label || '',
+
+    planEventDate: st.planEventDate || '',
+    setPlanEventDate: (e) => patch({ planEventDate: e.target.value }),
+    planLocationTiles: LOCATIONS.map((l, i) => ({
+      label: l,
+      on: (st.planLoc || 0) === i,
+      pick: () => patch({ planLoc: i }),
+    })),
+    planWhenWhereNext: () => patch({ planStep: 3 }),
+
     planCategoryTiles: CATS.map((c) => ({
       code: c[0],
       name: c[1],
@@ -677,21 +703,61 @@ export default function App() {
             : s.planCats.concat([c[0]]),
         })),
     })),
-    finishPlanning: () => {
+    planServicesNext: () => patch({ planStep: 4 }),
+    planServicesNextDisabled: !(st.planCats || []).length,
+
+    planBudgetTiles: PRICE_FILTERS.map((f, i) => ({
+      label: f.label,
+      on: (st.planBudget || 0) === i,
+      pick: () => patch({ planBudget: i }),
+    })),
+    planBudgetNext: () => patch({ planStep: 5 }),
+
+    planContactName: st.planContactName || '',
+    setPlanContactName: (e) => patch({ planContactName: e.target.value }),
+    planContactPhone: st.planContactPhone || '',
+    setPlanContactPhone: (e) => patch({ planContactPhone: e.target.value }),
+    planContactEmail: st.planContactEmail || '',
+    setPlanContactEmail: (e) => patch({ planContactEmail: e.target.value }),
+    planSubmitting: !!st.planSubmitting,
+    planSubmitError: st.planSubmitError || '',
+    planSubmitDisabled:
+      !(st.planContactName || '').trim() || !(st.planContactPhone || '').trim() || !!st.planSubmitting,
+    finishPlanning: async () => {
+      const name = (st.planContactName || '').trim();
+      const phone = (st.planContactPhone || '').trim();
+      if (!name || !phone || st.planSubmitting) return;
       const label =
         st.planEventType === 'other'
           ? st.planOtherLabel.trim() || 'Your event'
           : (EVENT_TYPES.find((t) => t.key === st.planEventType) || {}).label || '';
-      patch({
-        planModalOpen: false,
-        screen: 'suppliers',
-        dirCat: 'ALL',
-        dirCats: st.planCats || [],
-        dirPlanLabel: label,
-        dirLoc: 0,
-        dirVisible: 6,
-        navMenuOpen: false,
-      });
+      patch({ planSubmitting: true, planSubmitError: null });
+      try {
+        await submitPlanningRequest({
+          eventLabel: label,
+          eventDate: st.planEventDate || '',
+          location: LOCATIONS[st.planLoc || 0],
+          categoryCodes: st.planCats || [],
+          budgetLabel: PRICE_FILTERS[st.planBudget || 0].label,
+          contactName: name,
+          contactPhone: phone,
+          contactEmail: (st.planContactEmail || '').trim(),
+        });
+        patch({
+          planModalOpen: false,
+          planSubmitting: false,
+          screen: 'suppliers',
+          dirCat: 'ALL',
+          dirCats: st.planCats || [],
+          dirPlanLabel: label,
+          dirLoc: st.planLoc || 0,
+          dirPrice: st.planBudget || 0,
+          dirVisible: 6,
+          navMenuOpen: false,
+        });
+      } catch (err) {
+        patch({ planSubmitting: false, planSubmitError: err.message || 'Something went wrong. Please try again.' });
+      }
     },
     dirPlanLabel: st.dirPlanLabel || '',
     clearDirPlan: () => patch({ dirCats: [], dirPlanLabel: '' }),
@@ -4838,25 +4904,38 @@ export default function App() {
               padding: isMobile ? 20 : 32,
             }}
           >
-            {V.planStep === 1 ? (
-              <>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-                  <div>
-                    <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Step 1 of 2
-                    </div>
-                    <h2 style={{ margin: '6px 0 0', fontSize: isMobile ? 22 : 28, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
-                      What are you planning?
-                    </h2>
-                  </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+              <div>
+                {V.planStep > 1 && (
                   <button
-                    onClick={V.closePlanModal}
-                    aria-label="Close"
-                    style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#6E6E6E', padding: 4, lineHeight: 1, flexShrink: 0 }}
+                    onClick={V.planStepBack}
+                    style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
                   >
-                    ✕
+                    ← Back
                   </button>
+                )}
+                <div style={{ marginTop: V.planStep > 1 ? 10 : 0, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Step {V.planStep} of {V.planTotalSteps}
                 </div>
+                <h2 style={{ margin: '6px 0 0', fontSize: isMobile ? 22 : 28, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
+                  {V.planStep === 1 && 'What are you planning?'}
+                  {V.planStep === 2 && 'When & where?'}
+                  {V.planStep === 3 && 'Which vendors are you looking for?'}
+                  {V.planStep === 4 && "What's your budget?"}
+                  {V.planStep === 5 && 'How can vendors reach you?'}
+                </h2>
+              </div>
+              <button
+                onClick={V.closePlanModal}
+                aria-label="Close"
+                style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#6E6E6E', padding: 4, lineHeight: 1, flexShrink: 0 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {V.planStep === 1 && (
+              <>
                 <div
                   style={{
                     marginTop: 22,
@@ -4924,31 +5003,81 @@ export default function App() {
                   </div>
                 )}
               </>
-            ) : (
+            )}
+
+            {V.planStep === 2 && (
               <>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-                  <div>
-                    <button
-                      onClick={V.planBackToStep1}
-                      style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
-                    >
-                      ← Back
-                    </button>
-                    <div style={{ marginTop: 10, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Step 2 of 2
-                    </div>
-                    <h2 style={{ margin: '6px 0 0', fontSize: isMobile ? 22 : 28, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
-                      Which vendors are you looking for?
-                    </h2>
+                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
+                  Roughly when is your {V.planEventLabel.toLowerCase()}, and where in Trinidad &amp; Tobago?
+                </p>
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                    Event date (optional)
                   </div>
-                  <button
-                    onClick={V.closePlanModal}
-                    aria-label="Close"
-                    style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#6E6E6E', padding: 4, lineHeight: 1, flexShrink: 0 }}
-                  >
-                    ✕
-                  </button>
+                  <input
+                    type="date"
+                    value={V.planEventDate}
+                    onChange={V.setPlanEventDate}
+                    style={{
+                      marginTop: 8,
+                      width: '100%',
+                      border: '1px solid #E4E4DF',
+                      borderRadius: 14,
+                      background: '#F7F7F5',
+                      padding: '11px 14px',
+                      fontFamily: SANS,
+                      fontSize: 14,
+                      color: '#171717',
+                    }}
+                  />
                 </div>
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                    Location
+                  </div>
+                  <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {V.planLocationTiles.map((l) => (
+                      <button
+                        key={l.label}
+                        onClick={l.pick}
+                        style={{
+                          border: l.on ? '2px solid #171717' : '1px solid #E4E4DF',
+                          borderRadius: 999,
+                          background: l.on ? '#171717' : '#FFFFFF',
+                          color: l.on ? '#FFFFFF' : '#171717',
+                          padding: '9px 16px',
+                          cursor: 'pointer',
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {l.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  onClick={V.planWhenWhereNext}
+                  style={{
+                    marginTop: 22,
+                    width: '100%',
+                    border: 0,
+                    borderRadius: 999,
+                    background: '#171717',
+                    color: '#FFFFFF',
+                    padding: '15px 26px',
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  Continue →
+                </button>
+              </>
+            )}
+
+            {V.planStep === 3 && (
+              <>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
                   Tell us what you need for your {V.planEventLabel.toLowerCase()} — tick everything that applies.
                 </p>
@@ -4998,7 +5127,148 @@ export default function App() {
                   ))}
                 </div>
                 <button
+                  onClick={V.planServicesNext}
+                  disabled={V.planServicesNextDisabled}
+                  style={{
+                    marginTop: 22,
+                    width: '100%',
+                    border: 0,
+                    borderRadius: 999,
+                    background: '#171717',
+                    color: '#FFFFFF',
+                    padding: '15px 26px',
+                    cursor: V.planServicesNextDisabled ? 'not-allowed' : 'pointer',
+                    opacity: V.planServicesNextDisabled ? 0.4 : 1,
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  Continue →
+                </button>
+              </>
+            )}
+
+            {V.planStep === 4 && (
+              <>
+                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
+                  Roughly what are you looking to spend? This helps us show you a realistic shortlist.
+                </p>
+                <div style={{ marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {V.planBudgetTiles.map((b) => (
+                    <button
+                      key={b.label}
+                      onClick={b.pick}
+                      style={{
+                        border: b.on ? '2px solid #171717' : '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: b.on ? '#171717' : '#FFFFFF',
+                        color: b.on ? '#FFFFFF' : '#171717',
+                        padding: '9px 16px',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={V.planBudgetNext}
+                  style={{
+                    marginTop: 22,
+                    width: '100%',
+                    border: 0,
+                    borderRadius: 999,
+                    background: '#171717',
+                    color: '#FFFFFF',
+                    padding: '15px 26px',
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  Continue →
+                </button>
+              </>
+            )}
+
+            {V.planStep === 5 && (
+              <>
+                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
+                  Last step — this is how we and matching vendors can follow up with you.
+                </p>
+                <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div>
+                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Your name
+                    </div>
+                    <input
+                      type="text"
+                      value={V.planContactName}
+                      onChange={V.setPlanContactName}
+                      placeholder="Full name"
+                      style={{
+                        marginTop: 8,
+                        width: '100%',
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 14,
+                        background: '#F7F7F5',
+                        padding: '11px 14px',
+                        fontFamily: SANS,
+                        fontSize: 14,
+                        color: '#171717',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Phone number
+                    </div>
+                    <input
+                      type="tel"
+                      value={V.planContactPhone}
+                      onChange={V.setPlanContactPhone}
+                      placeholder="e.g. 868 123 4567"
+                      style={{
+                        marginTop: 8,
+                        width: '100%',
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 14,
+                        background: '#F7F7F5',
+                        padding: '11px 14px',
+                        fontFamily: SANS,
+                        fontSize: 14,
+                        color: '#171717',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Email (optional)
+                    </div>
+                    <input
+                      type="email"
+                      value={V.planContactEmail}
+                      onChange={V.setPlanContactEmail}
+                      placeholder="you@organisation.tt"
+                      style={{
+                        marginTop: 8,
+                        width: '100%',
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 14,
+                        background: '#F7F7F5',
+                        padding: '11px 14px',
+                        fontFamily: SANS,
+                        fontSize: 14,
+                        color: '#171717',
+                      }}
+                    />
+                  </div>
+                </div>
+                <button
                   onClick={V.finishPlanning}
+                  disabled={V.planSubmitDisabled}
                   style={{
                     marginTop: 22,
                     width: '100%',
@@ -5007,13 +5277,17 @@ export default function App() {
                     background: ACCENT,
                     color: '#FFFFFF',
                     padding: '15px 26px',
-                    cursor: 'pointer',
+                    cursor: V.planSubmitDisabled ? 'not-allowed' : 'pointer',
+                    opacity: V.planSubmitDisabled ? 0.5 : 1,
                     fontSize: 15,
                     fontWeight: 700,
                   }}
                 >
-                  See vendors →
+                  {V.planSubmitting ? 'Finding matches…' : 'See my matches →'}
                 </button>
+                {V.planSubmitError && (
+                  <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.planSubmitError}</div>
+                )}
               </>
             )}
           </div>
