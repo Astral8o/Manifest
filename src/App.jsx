@@ -15,6 +15,9 @@ import {
   adminListVendors,
   adminSetPublished,
   adminCreateVendor,
+  createVendorAccount,
+  submitVendorOnboarding,
+  uploadVendorMedia,
 } from './catalog';
 import { supabase } from './supabaseClient';
 import heroPhoto from './assets/hero-photo.jpg';
@@ -75,14 +78,18 @@ const EMPTY_SUPPLIER = {
   facebook: '',
   logoUrl: '',
   coverUrl: '',
-  paymentTerms: '',
-  depositTerms: '',
-  reschedulePolicy: '',
-  cancellationPolicy: '',
+  tiktok: '',
+  mapLink: '',
+  subcategory: '',
+  contactPerson: '',
+  country: '',
+  startingPrice: null,
   promos: [],
   reviews: [],
   faqs: [],
   gallery: [],
+  policies: [],
+  menuItems: [],
   products: [],
 };
 const DEFAULT_FAQ_TEMPLATES = [
@@ -90,6 +97,26 @@ const DEFAULT_FAQ_TEMPLATES = [
   { q: 'How far in advance should I book?', a: '' },
   { q: 'Can packages be customized?', a: '' },
   { q: 'Is a deposit required?', a: '' },
+];
+const SUGGESTED_ALBUMS = ['Weddings', 'Birthdays', 'Corporate Events', 'Baby Showers', 'Family Day', 'Graduations'];
+const SUGGESTED_PACKAGES = ['Basic Package', 'Standard Package', 'Premium Package'];
+const SUGGESTED_FAQS = [
+  'What types of events do you cater to?',
+  'How far in advance should I book?',
+  'Can packages be customized?',
+  'Is a deposit required to confirm a booking?',
+  'Do you travel outside your base location?',
+  'What happens if I need to reschedule?',
+];
+const SUGGESTED_POLICIES = [
+  'Booking & Reservation Policy',
+  'Payment Policy',
+  'Deposit Policy',
+  'Cancellation Policy',
+  'Rescheduling Policy',
+  'Guest Count & Final Numbers Policy',
+  'Setup & Access Policy',
+  'Health & Safety Policy',
 ];
 const POST_AUTH_RETURN_KEY = 'eventoryPostAuthReturn';
 const PROMO_ACCENT = '#FF5A36';
@@ -255,18 +282,6 @@ const initialState = {
   saved: [],
   promoOptIn: false,
   copiedPid: null,
-  joinCats: [],
-  joinCatsMenuOpen: false,
-  joinSubmitted: false,
-  joinFormStep: 1,
-  joinBusinessName: '',
-  joinContactPerson: '',
-  joinWhatsapp: '',
-  joinEmail: '',
-  joinBasedIn: '',
-  joinTravelRadius: '',
-  joinPricing: '',
-  joinOtherText: '',
   contactSent: false,
   sourcingOpen: false,
   sourcingSent: false,
@@ -630,9 +645,8 @@ export default function App() {
   );
   const svcVisibleCount = st.svcVisible || 8;
   const svcVisible = svcFiltered.slice(0, svcVisibleCount);
-  const hasPolicies = [sup.paymentTerms, sup.depositTerms, sup.reschedulePolicy, sup.cancellationPolicy].some(
-    (t) => t && t.trim()
-  );
+  const hasPolicies = (sup.policies || []).length > 0;
+  const hasMenu = (sup.menuItems || []).length > 0;
 
   const chip = (on) =>
     on ? { bg: '#171717', fg: '#FFFFFF', border: '#171717' } : { bg: '#FFFFFF', fg: '#171717', border: '#D7D7D2' };
@@ -657,7 +671,7 @@ export default function App() {
     closeSourcing: () => patch({ sourcingOpen: false, sourcingSent: false }),
     submitSourcing: () => patch({ sourcingSent: true }),
     sourcingSent: !!st.sourcingSent,
-    goJoin: nav('join', { joinSubmitted: false, joinFormStep: 1 }),
+    goJoin: nav('join'),
     goCategories: () => {
       patch({ navMenuOpen: false });
       if (st.screen === 'home') {
@@ -678,29 +692,8 @@ export default function App() {
     },
     goGoFurther: () => {
       pendingScrollAnchorRef.current = 'go-further';
-      patch({ screen: 'join', joinSubmitted: false, joinFormStep: 1, navMenuOpen: false });
+      patch({ screen: 'join', navMenuOpen: false });
     },
-    submitJoin: () => patch({ joinSubmitted: true }),
-    joinSubmitted: !!st.joinSubmitted,
-    joinFormStep: st.joinFormStep || 1,
-    joinFormNext: () => patch((s) => ({ joinFormStep: Math.min(3, (s.joinFormStep || 1) + 1) })),
-    joinFormBack: () => patch((s) => ({ joinFormStep: Math.max(1, (s.joinFormStep || 1) - 1) })),
-    joinBusinessName: st.joinBusinessName || '',
-    setJoinBusinessName: (e) => patch({ joinBusinessName: e.target.value }),
-    joinContactPerson: st.joinContactPerson || '',
-    setJoinContactPerson: (e) => patch({ joinContactPerson: e.target.value }),
-    joinWhatsapp: st.joinWhatsapp || '',
-    setJoinWhatsapp: (e) => patch({ joinWhatsapp: e.target.value }),
-    joinEmail: st.joinEmail || '',
-    setJoinEmail: (e) => patch({ joinEmail: e.target.value }),
-    joinBasedIn: st.joinBasedIn || '',
-    setJoinBasedIn: (e) => patch({ joinBasedIn: e.target.value }),
-    joinTravelRadius: st.joinTravelRadius || '',
-    setJoinTravelRadius: (e) => patch({ joinTravelRadius: e.target.value }),
-    joinPricing: st.joinPricing || '',
-    setJoinPricing: (e) => patch({ joinPricing: e.target.value }),
-    joinOtherText: st.joinOtherText || '',
-    setJoinOtherText: (e) => patch({ joinOtherText: e.target.value }),
     goAbout: nav('about', { contactSent: false }),
     submitContact: () => patch({ contactSent: true }),
     contactSent: !!st.contactSent,
@@ -832,9 +825,6 @@ export default function App() {
     },
     dirPlanLabel: st.dirPlanLabel || '',
     clearDirPlan: () => patch({ dirCats: [], dirPlanLabel: '' }),
-    scrollToJoinForm: () => {
-      document.getElementById('join-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    },
     backToCategory: () => patch({ screen: 'category', catCode: sup.code }),
 
     homeQuery: st.dirQuery || '',
@@ -976,12 +966,8 @@ export default function App() {
           return acc;
         }, {})
       ).map(([eventType, photos]) => ({ key: eventType, eventType, photos })),
-      policies: [
-        { key: 'payment', label: 'Payment', text: sup.paymentTerms },
-        { key: 'deposit', label: 'Deposit', text: sup.depositTerms },
-        { key: 'reschedule', label: 'Rescheduling', text: sup.reschedulePolicy },
-        { key: 'cancellation', label: 'Cancellation & refunds', text: sup.cancellationPolicy },
-      ].filter((p) => p.text && p.text.trim()),
+      policies: (sup.policies || []).map((p) => ({ key: p.title, label: p.title, text: p.body })),
+      menuItems: sup.menuItems || [],
     },
     openFaqKey: st.openFaqKey || null,
     toggleFaq: (key) => patch((s) => ({ openFaqKey: s.openFaqKey === key ? null : key })),
@@ -990,6 +976,7 @@ export default function App() {
       { key: 'about', label: 'About' },
       { key: 'services', label: 'Packages (' + supProducts.length + ')' },
       (sup.gallery || []).length > 0 && { key: 'gallery', label: 'Gallery' },
+      hasMenu && { key: 'menu', label: 'Menu' },
       { key: 'reviews', label: 'Reviews (' + (sup.reviews || []).length + ')' },
       { key: 'faq', label: 'FAQ' },
       { key: 'promos', label: 'Promos' + ((sup.promos || []).length ? ' (' + sup.promos.length + ')' : '') },
@@ -1235,28 +1222,6 @@ export default function App() {
     sentSummary: st.sent ? 'One inquiry per vendor, each scoped to their own items.' : '',
     sentList: (st.sent || []).map((n) => ({ key: n, name: n, status: 'Sent' })),
     reset: () => patch({ ...emptyCart, screen: 'home' }),
-
-    joinCategories: CATS.concat([['OTHER', 'Something else']]).map((c) => ({
-      key: c[0],
-      code: c[0] === 'OTHER' ? '' : c[0],
-      name: c[1],
-      ...chip((st.joinCats || []).indexOf(c[0]) >= 0),
-      pick: () =>
-        patch((s) => {
-          const cur = s.joinCats || [];
-          return { joinCats: cur.indexOf(c[0]) >= 0 ? cur.filter((x) => x !== c[0]) : cur.concat([c[0]]) };
-        }),
-    })),
-    joinOther: (st.joinCats || []).indexOf('OTHER') >= 0,
-    joinCatsMenuOpen: !!st.joinCatsMenuOpen,
-    toggleJoinCatsMenu: () => patch((s) => ({ joinCatsMenuOpen: !s.joinCatsMenuOpen })),
-    closeJoinCatsMenu: () => patch({ joinCatsMenuOpen: false }),
-    joinCatsSummary: (st.joinCats || []).length
-      ? (st.joinCats || []).length + (st.joinCats.length === 1 ? ' category selected' : ' categories selected')
-      : 'Select categories',
-    joinCatsSelected: CATS.concat([['OTHER', 'Something else']])
-      .filter((c) => (st.joinCats || []).indexOf(c[0]) >= 0)
-      .map((c) => c[1]),
 
     email: st.email || '',
     setEmail: (e) => patch({ email: e.target.value, authSent: false, authError: null }),
@@ -1543,6 +1508,330 @@ export default function App() {
         loadCatalog();
       } catch (err) {
         patch({ adminSaving: false, adminSaveError: err.message || 'Could not save this vendor.' });
+      }
+    },
+
+    isVendorOnboarding: st.screen === 'vendor-onboarding',
+    goVendorOnboarding: () =>
+      patch({
+        screen: 'vendor-onboarding',
+        voStep: 1,
+        voDone: false,
+        voVendorId: null,
+        voSector: null,
+        voSubcategory: '',
+        voBusinessName: '',
+        voContactPerson: '',
+        voCity: null,
+        voStartingPrice: '',
+        voEmail: '',
+        voPhone: '',
+        voPassword: '',
+        voConfirmPassword: '',
+        voAgreeTerms: false,
+        voAgreePrivacy: false,
+        voStep1Error: null,
+        voCoverUrl: '',
+        voLogoUrl: '',
+        voAbout: '',
+        voInstagram: '',
+        voTiktok: '',
+        voMapLink: '',
+        voAlbums: [],
+        voAlbumName: '',
+        voPackages: [],
+        voPkgName: '',
+        voPkgPhotoUrl: '',
+        voPkgDescription: '',
+        voPkgInclusionsText: '',
+        voPkgPriceMin: '',
+        voPkgPriceMax: '',
+        voMenu: [],
+        voMenuDraft: '',
+        voFaqs: [],
+        voPolicies: [],
+        voStep2Error: null,
+        navMenuOpen: false,
+      }),
+    voStep: st.voStep || 1,
+    voDone: !!st.voDone,
+
+    voSectorTiles: CATS.map((c) => ({
+      code: c[0],
+      name: c[1],
+      on: st.voSector === c[0],
+      pick: () => patch({ voSector: c[0] }),
+    })),
+    voSubcategory: st.voSubcategory || '',
+    setVoSubcategory: (e) => patch({ voSubcategory: e.target.value }),
+    voBusinessName: st.voBusinessName || '',
+    setVoBusinessName: (e) => patch({ voBusinessName: e.target.value }),
+    voContactPerson: st.voContactPerson || '',
+    setVoContactPerson: (e) => patch({ voContactPerson: e.target.value }),
+    voCityTiles: LOCATIONS.filter((l) => l !== 'All areas').map((l) => ({
+      label: l,
+      on: st.voCity === l,
+      pick: () => patch({ voCity: l }),
+    })),
+    voStartingPrice: st.voStartingPrice || '',
+    setVoStartingPrice: (e) => patch({ voStartingPrice: e.target.value }),
+    voEmail: st.voEmail || '',
+    setVoEmail: (e) => patch({ voEmail: e.target.value }),
+    voPhone: st.voPhone || '',
+    setVoPhone: (e) => patch({ voPhone: e.target.value }),
+    voPassword: st.voPassword || '',
+    setVoPassword: (e) => patch({ voPassword: e.target.value }),
+    voConfirmPassword: st.voConfirmPassword || '',
+    setVoConfirmPassword: (e) => patch({ voConfirmPassword: e.target.value }),
+    voAgreeTerms: !!st.voAgreeTerms,
+    toggleVoAgreeTerms: () => patch((s) => ({ voAgreeTerms: !s.voAgreeTerms })),
+    voAgreePrivacy: !!st.voAgreePrivacy,
+    toggleVoAgreePrivacy: () => patch((s) => ({ voAgreePrivacy: !s.voAgreePrivacy })),
+    voStep1Submitting: !!st.voStep1Submitting,
+    voStep1Error: st.voStep1Error || '',
+    voStep1Disabled: !(
+      st.voSector &&
+      (st.voBusinessName || '').trim() &&
+      (st.voContactPerson || '').trim() &&
+      st.voCity &&
+      (st.voEmail || '').trim() &&
+      (st.voPhone || '').trim() &&
+      (st.voPassword || '').length >= 6 &&
+      st.voPassword === st.voConfirmPassword &&
+      st.voAgreeTerms &&
+      st.voAgreePrivacy
+    ),
+    voStep1Next: async () => {
+      const name = (st.voBusinessName || '').trim();
+      const contactPerson = (st.voContactPerson || '').trim();
+      const email = (st.voEmail || '').trim();
+      const phone = (st.voPhone || '').trim();
+      if (
+        !st.voSector ||
+        !name ||
+        !contactPerson ||
+        !st.voCity ||
+        !email ||
+        !phone ||
+        (st.voPassword || '').length < 6 ||
+        st.voPassword !== st.voConfirmPassword ||
+        !st.voAgreeTerms ||
+        !st.voAgreePrivacy ||
+        st.voStep1Submitting
+      ) {
+        return;
+      }
+      patch({ voStep1Submitting: true, voStep1Error: null });
+      try {
+        const vendorId = await createVendorAccount({
+          categoryCode: st.voSector,
+          subcategory: (st.voSubcategory || '').trim(),
+          name,
+          contactPerson,
+          country: 'Trinidad and Tobago',
+          city: st.voCity,
+          email,
+          phone,
+          password: st.voPassword,
+          startingPrice: st.voStartingPrice ? Number(st.voStartingPrice) : null,
+        });
+        patch({
+          voStep1Submitting: false,
+          voVendorId: vendorId,
+          voStep: 2,
+          voMapLink: '',
+        });
+      } catch (err) {
+        patch({ voStep1Submitting: false, voStep1Error: err.message || 'Could not create your account. Please try again.' });
+      }
+    },
+
+    voCoverUrl: st.voCoverUrl || '',
+    voUploadingCover: !!st.voUploadingCover,
+    uploadVoCover: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ voUploadingCover: true, voStep2Error: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ voUploadingCover: false, voCoverUrl: url });
+      } catch (err) {
+        patch({ voUploadingCover: false, voStep2Error: err.message || 'Could not upload that photo.' });
+      }
+    },
+    voLogoUrl: st.voLogoUrl || '',
+    voUploadingLogo: !!st.voUploadingLogo,
+    uploadVoLogo: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ voUploadingLogo: true, voStep2Error: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ voUploadingLogo: false, voLogoUrl: url });
+      } catch (err) {
+        patch({ voUploadingLogo: false, voStep2Error: err.message || 'Could not upload that photo.' });
+      }
+    },
+    voAbout: st.voAbout || '',
+    setVoAbout: (e) => patch({ voAbout: e.target.value }),
+    voInstagram: st.voInstagram || '',
+    setVoInstagram: (e) => patch({ voInstagram: e.target.value }),
+    voTiktok: st.voTiktok || '',
+    setVoTiktok: (e) => patch({ voTiktok: e.target.value }),
+    voMapLink: st.voMapLink || '',
+    setVoMapLink: (e) => patch({ voMapLink: e.target.value }),
+
+    voAlbums: st.voAlbums || [],
+    voAlbumName: st.voAlbumName || '',
+    setVoAlbumName: (e) => patch({ voAlbumName: e.target.value }),
+    suggestedAlbumChips: SUGGESTED_ALBUMS.map((name) => ({ name, pick: () => patch({ voAlbumName: name }) })),
+    voUploadingAlbumPhoto: !!st.voUploadingAlbumPhoto,
+    uploadVoAlbumPhoto: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      const albumName = (st.voAlbumName || '').trim();
+      if (!file || !albumName) return;
+      patch({ voUploadingAlbumPhoto: true, voStep2Error: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch((s) => {
+          const albums = s.voAlbums || [];
+          const existing = albums.find((a) => a.name === albumName);
+          return {
+            voUploadingAlbumPhoto: false,
+            voAlbums: existing
+              ? albums.map((a) => (a.name === albumName ? { ...a, photos: a.photos.concat([url]) } : a))
+              : albums.concat([{ name: albumName, photos: [url] }]),
+          };
+        });
+      } catch (err) {
+        patch({ voUploadingAlbumPhoto: false, voStep2Error: err.message || 'Could not upload that photo.' });
+      }
+    },
+    removeVoAlbum: (name) => patch((s) => ({ voAlbums: (s.voAlbums || []).filter((a) => a.name !== name) })),
+
+    voPackages: st.voPackages || [],
+    voPkgName: st.voPkgName || '',
+    setVoPkgName: (e) => patch({ voPkgName: e.target.value }),
+    suggestedPackageChips: SUGGESTED_PACKAGES.map((name) => ({ name, pick: () => patch({ voPkgName: name }) })),
+    voPkgPhotoUrl: st.voPkgPhotoUrl || '',
+    voUploadingPkgPhoto: !!st.voUploadingPkgPhoto,
+    uploadVoPkgPhoto: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ voUploadingPkgPhoto: true, voStep2Error: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ voUploadingPkgPhoto: false, voPkgPhotoUrl: url });
+      } catch (err) {
+        patch({ voUploadingPkgPhoto: false, voStep2Error: err.message || 'Could not upload that photo.' });
+      }
+    },
+    voPkgDescription: st.voPkgDescription || '',
+    setVoPkgDescription: (e) => patch({ voPkgDescription: e.target.value }),
+    voPkgInclusionsText: st.voPkgInclusionsText || '',
+    setVoPkgInclusionsText: (e) => patch({ voPkgInclusionsText: e.target.value }),
+    voPkgPriceMin: st.voPkgPriceMin || '',
+    setVoPkgPriceMin: (e) => patch({ voPkgPriceMin: e.target.value }),
+    voPkgPriceMax: st.voPkgPriceMax || '',
+    setVoPkgPriceMax: (e) => patch({ voPkgPriceMax: e.target.value }),
+    voAddPackageDisabled: !(
+      (st.voPkgName || '').trim() &&
+      Number(st.voPkgPriceMin) > 0 &&
+      Number(st.voPkgPriceMax) >= Number(st.voPkgPriceMin)
+    ),
+    voAddPackage: () => {
+      const name = (st.voPkgName || '').trim();
+      const priceMin = Number(st.voPkgPriceMin);
+      const priceMax = Number(st.voPkgPriceMax);
+      if (!name || !(priceMin > 0) || !(priceMax >= priceMin)) return;
+      patch((s) => ({
+        voPackages: (s.voPackages || []).concat([
+          {
+            name,
+            photoUrl: (s.voPkgPhotoUrl || '').trim(),
+            description: (s.voPkgDescription || '').trim(),
+            inclusions: (s.voPkgInclusionsText || '')
+              .split(',')
+              .map((x) => x.trim())
+              .filter(Boolean),
+            priceMin,
+            priceMax,
+            unit: 'event',
+          },
+        ]),
+        voPkgName: '',
+        voPkgPhotoUrl: '',
+        voPkgDescription: '',
+        voPkgInclusionsText: '',
+        voPkgPriceMin: '',
+        voPkgPriceMax: '',
+      }));
+    },
+    removeVoPackage: (i) => patch((s) => ({ voPackages: (s.voPackages || []).filter((_, idx) => idx !== i) })),
+
+    voMenu: st.voMenu || [],
+    voMenuDraft: st.voMenuDraft || '',
+    setVoMenuDraft: (e) => patch({ voMenuDraft: e.target.value }),
+    voAddMenuItem: () => {
+      const name = (st.voMenuDraft || '').trim();
+      if (!name) return;
+      patch((s) => ({ voMenu: (s.voMenu || []).concat([name]), voMenuDraft: '' }));
+    },
+    removeVoMenuItem: (i) => patch((s) => ({ voMenu: (s.voMenu || []).filter((_, idx) => idx !== i) })),
+
+    voFaqs: st.voFaqs || [],
+    suggestedFaqChips: SUGGESTED_FAQS.filter((q) => !(st.voFaqs || []).some((f) => f.q === q)).map((q) => ({
+      q,
+      pick: () => patch((s) => ({ voFaqs: (s.voFaqs || []).concat([{ q, a: '' }]) })),
+    })),
+    voAddFaqRow: () => patch((s) => ({ voFaqs: (s.voFaqs || []).concat([{ q: '', a: '' }]) })),
+    setVoFaqQ: (i, e) =>
+      patch((s) => ({ voFaqs: (s.voFaqs || []).map((f, idx) => (idx === i ? { ...f, q: e.target.value } : f)) })),
+    setVoFaqA: (i, e) =>
+      patch((s) => ({ voFaqs: (s.voFaqs || []).map((f, idx) => (idx === i ? { ...f, a: e.target.value } : f)) })),
+    removeVoFaq: (i) => patch((s) => ({ voFaqs: (s.voFaqs || []).filter((_, idx) => idx !== i) })),
+
+    voPolicies: st.voPolicies || [],
+    suggestedPolicyChips: SUGGESTED_POLICIES.filter(
+      (title) => !(st.voPolicies || []).some((p) => p.title === title)
+    ).map((title) => ({
+      title,
+      pick: () => patch((s) => ({ voPolicies: (s.voPolicies || []).concat([{ title, body: '' }]) })),
+    })),
+    voAddPolicyRow: () => patch((s) => ({ voPolicies: (s.voPolicies || []).concat([{ title: '', body: '' }]) })),
+    setVoPolicyTitle: (i, e) =>
+      patch((s) => ({
+        voPolicies: (s.voPolicies || []).map((p, idx) => (idx === i ? { ...p, title: e.target.value } : p)),
+      })),
+    setVoPolicyBody: (i, e) =>
+      patch((s) => ({
+        voPolicies: (s.voPolicies || []).map((p, idx) => (idx === i ? { ...p, body: e.target.value } : p)),
+      })),
+    removeVoPolicy: (i) => patch((s) => ({ voPolicies: (s.voPolicies || []).filter((_, idx) => idx !== i) })),
+
+    voStep2Submitting: !!st.voStep2Submitting,
+    voStep2Error: st.voStep2Error || '',
+    voSubmitApplication: async () => {
+      if (st.voStep2Submitting || !st.voVendorId) return;
+      patch({ voStep2Submitting: true, voStep2Error: null });
+      try {
+        await submitVendorOnboarding(st.voVendorId, {
+          bio: st.voAbout || '',
+          description: st.voAbout || '',
+          logoUrl: st.voLogoUrl || '',
+          coverUrl: st.voCoverUrl || '',
+          instagram: st.voInstagram || '',
+          tiktok: st.voTiktok || '',
+          mapLink: st.voMapLink || '',
+          albums: st.voAlbums || [],
+          packages: st.voPackages || [],
+          menu: st.voMenu || [],
+          faqs: (st.voFaqs || []).filter((f) => f.q.trim() && f.a.trim()),
+          policies: (st.voPolicies || []).filter((p) => p.title.trim() && p.body.trim()),
+        });
+        patch({ voStep2Submitting: false, voDone: true });
+      } catch (err) {
+        patch({ voStep2Submitting: false, voStep2Error: err.message || 'Could not submit your application. Please try again.' });
       }
     },
   };
@@ -3173,6 +3462,30 @@ export default function App() {
                 </div>
               )}
 
+              {V.supplierTab === 'menu' && (
+                <div style={{ marginTop: 24 }}>
+                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Menu</h2>
+                  <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {V.sup.menuItems.map((name) => (
+                      <span
+                        key={name}
+                        style={{
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 999,
+                          background: '#F7F7F5',
+                          padding: '8px 16px',
+                          fontSize: 13.5,
+                          fontWeight: 600,
+                          color: '#171717',
+                        }}
+                      >
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {V.supplierTab === 'reviews' && (
                 <div style={{ marginTop: 24 }}>
                   <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Reviews</h2>
@@ -4044,14 +4357,14 @@ export default function App() {
               Right now, somewhere a planner is searching your category. Get seen, and let them come to you.
             </p>
             <p style={{ margin: '14px 0 0', fontSize: 15, lineHeight: 1.6, color: '#5B5B5B' }}>
-              Tell us what you do and we'll build your profile for you. Planners searching your category find you
-              and message you directly. Free to list, free to receive messages.
+              Set up your own profile in a couple of steps. Planners searching your category find you and message
+              you directly. Free to list, free to receive messages.
             </p>
           </div>
 
           <div style={{ marginTop: isMobile ? 24 : 30, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <button
-              onClick={V.scrollToJoinForm}
+              onClick={V.goVendorOnboarding}
               style={{
                 border: 0,
                 borderRadius: 999,
@@ -4086,7 +4399,7 @@ export default function App() {
                 }}
               >
                 <div style={{ maxWidth: 480 }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>Tell us about your business</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>Create your account</div>
                   <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
                     Two minutes. No design skills, no writing needed.
                   </div>
@@ -4107,9 +4420,9 @@ export default function App() {
                 }}
               >
                 <div style={{ maxWidth: 480 }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>We build your profile</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>Build your profile</div>
                   <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#A8A8A8' }}>
-                    We turn what you send us into a profile planners can actually find.
+                    Add your packages, photos and details yourself, at your own pace.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 30, color: '#4A4A4A' }}>02</div>
@@ -4137,340 +4450,6 @@ export default function App() {
             </div>
           </div>
 
-          <div id="join-form" style={{ marginTop: isMobile ? 40 : 56, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 18 : 26, scrollMarginTop: 100 }}>
-            {V.joinSubmitted ? (
-              <>
-                <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Thanks — you're in the queue</div>
-                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-                  We'll reach out to help build your profile. You'll hear from us by email.
-                </p>
-                <button
-                  onClick={V.goHome}
-                  style={{
-                    marginTop: 20,
-                    border: 0,
-                    borderRadius: 999,
-                    background: '#171717',
-                    color: '#FFFFFF',
-                    padding: '13px 24px',
-                    cursor: 'pointer',
-                    fontSize: 14,
-                    fontWeight: 700,
-                  }}
-                >
-                  Back to home
-                </button>
-              </>
-            ) : (
-              <>
-                <div style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                  Step {V.joinFormStep} of 3
-                </div>
-                <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
-                  {[1, 2, 3].map((n) => (
-                    <div key={n} style={{ flex: 1, height: 4, borderRadius: 999, background: n <= V.joinFormStep ? '#171717' : '#ECECEC' }} />
-                  ))}
-                </div>
-
-                {V.joinFormStep === 1 && (
-                  <>
-                    <div style={{ marginTop: 18, fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Tell us about your business</div>
-                    <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
-                      Fill out the form below, it takes two minutes.
-                    </p>
-                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginTop: 18 }}>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          Business name
-                        </span>
-                        <input
-                          type="text"
-                          placeholder="Cocoa Pod Catering"
-                          value={V.joinBusinessName}
-                          onChange={V.setJoinBusinessName}
-                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                        />
-                      </label>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          Contact person
-                        </span>
-                        <input
-                          type="text"
-                          placeholder="Full name"
-                          value={V.joinContactPerson}
-                          onChange={V.setJoinContactPerson}
-                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                        />
-                      </label>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          WhatsApp or phone
-                        </span>
-                        <input
-                          type="tel"
-                          placeholder="868 000 0000"
-                          value={V.joinWhatsapp}
-                          onChange={V.setJoinWhatsapp}
-                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                        />
-                      </label>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          Email
-                        </span>
-                        <input
-                          type="email"
-                          placeholder="bookings@yourbusiness.tt"
-                          value={V.joinEmail}
-                          onChange={V.setJoinEmail}
-                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                        />
-                      </label>
-                    </div>
-                    <button
-                      onClick={V.joinFormNext}
-                      style={{
-                        marginTop: 22,
-                        border: 0,
-                        borderRadius: 999,
-                        background: '#171717',
-                        color: '#FFFFFF',
-                        padding: '15px 26px',
-                        cursor: 'pointer',
-                        fontSize: 15,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Continue →
-                    </button>
-                  </>
-                )}
-
-                {V.joinFormStep === 2 && (
-                  <>
-                    <div style={{ marginTop: 18, fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>What you do</div>
-                    <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>Where you work and what you serve.</p>
-
-                    <div style={{ marginTop: 18, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Categories you serve
-                    </div>
-                    <div style={{ marginTop: 10, position: 'relative' }}>
-                      <button
-                        onClick={V.toggleJoinCatsMenu}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 12,
-                          width: '100%',
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 14,
-                          background: '#F7F7F5',
-                          padding: '12px 14px',
-                          cursor: 'pointer',
-                          fontFamily: SANS,
-                          fontSize: 15,
-                          color: '#171717',
-                        }}
-                      >
-                        {V.joinCatsSummary}
-                        <span style={{ fontSize: 12, color: '#6E6E6E' }}>{V.joinCatsMenuOpen ? '▲' : '▼'}</span>
-                      </button>
-                      {V.joinCatsMenuOpen && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: 'calc(100% + 8px)',
-                            left: 0,
-                            right: 0,
-                            maxHeight: 280,
-                            overflowY: 'auto',
-                            border: '1px solid #ECECEC',
-                            borderRadius: 16,
-                            background: '#FFFFFF',
-                            boxShadow: '0 12px 28px rgba(0,0,0,0.12)',
-                            padding: 12,
-                            zIndex: 21,
-                          }}
-                        >
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                            {V.joinCategories.map((c) => (
-                              <button
-                                key={c.key}
-                                onClick={c.pick}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 8,
-                                  border: `1px solid ${c.border}`,
-                                  borderRadius: 999,
-                                  background: c.bg,
-                                  color: c.fg,
-                                  padding: '8px 14px',
-                                  cursor: 'pointer',
-                                  fontSize: 13,
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {c.name}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {V.joinCatsMenuOpen && (
-                        <div onClick={V.closeJoinCatsMenu} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-                      )}
-                    </div>
-                    {V.joinCatsSelected.length > 0 && (
-                      <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {V.joinCatsSelected.map((name) => (
-                          <span
-                            key={name}
-                            style={{
-                              border: '1px solid #E4E4DF',
-                              borderRadius: 999,
-                              background: '#F7F7F5',
-                              padding: '5px 12px',
-                              fontSize: 12,
-                              fontWeight: 600,
-                              color: '#4A4A4A',
-                            }}
-                          >
-                            {name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {V.joinOther && (
-                      <label style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          Tell us what you do
-                        </span>
-                        <input
-                          type="text"
-                          placeholder="e.g. Mobile bathroom trailers, fireworks, drone coverage"
-                          value={V.joinOtherText}
-                          onChange={V.setJoinOtherText}
-                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                        />
-                      </label>
-                    )}
-
-                    <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14 }}>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          Based in
-                        </span>
-                        <input
-                          type="text"
-                          placeholder="Chaguanas"
-                          value={V.joinBasedIn}
-                          onChange={V.setJoinBasedIn}
-                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                        />
-                      </label>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          Travel radius
-                        </span>
-                        <input
-                          type="text"
-                          placeholder="60 km"
-                          value={V.joinTravelRadius}
-                          onChange={V.setJoinTravelRadius}
-                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                        />
-                      </label>
-                    </div>
-
-                    <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 16 }}>
-                      <button
-                        onClick={V.joinFormBack}
-                        style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '12px 4px', cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600 }}
-                      >
-                        ← Back
-                      </button>
-                      <button
-                        onClick={V.joinFormNext}
-                        style={{
-                          border: 0,
-                          borderRadius: 999,
-                          background: '#171717',
-                          color: '#FFFFFF',
-                          padding: '15px 26px',
-                          cursor: 'pointer',
-                          fontSize: 15,
-                          fontWeight: 700,
-                        }}
-                      >
-                        Continue →
-                      </button>
-                    </div>
-                  </>
-                )}
-
-                {V.joinFormStep === 3 && (
-                  <>
-                    <div style={{ marginTop: 18, fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Pricing (optional but helps)</div>
-                    <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
-                      Rough numbers now save back-and-forth later.
-                    </p>
-
-                    <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                        What you offer and roughly what it costs
-                      </span>
-                      <textarea
-                        placeholder="One line per item, with a price range and unit. Example: Hot lunch buffet, TT$110 to 165 per guest, minimum 60 guests."
-                        value={V.joinPricing}
-                        onChange={V.setJoinPricing}
-                        style={{
-                          minHeight: 132,
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 14,
-                          background: '#F7F7F5',
-                          padding: 14,
-                          fontFamily: SANS,
-                          fontSize: 15,
-                          lineHeight: 1.5,
-                          color: '#171717',
-                          resize: 'vertical',
-                        }}
-                      />
-                    </label>
-                    <div style={{ marginTop: 8, fontSize: 13, color: '#5B5B5B' }}>Ranges are fine. Planners use them to shortlist, then you send the real quote.</div>
-
-                    <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 16 }}>
-                      <button
-                        onClick={V.joinFormBack}
-                        style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '12px 4px', cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600 }}
-                      >
-                        ← Back
-                      </button>
-                      <button
-                        onClick={V.submitJoin}
-                        style={{
-                          border: 0,
-                          borderRadius: 999,
-                          background: '#171717',
-                          color: '#FFFFFF',
-                          padding: '15px 26px',
-                          cursor: 'pointer',
-                          fontSize: 15,
-                          fontWeight: 700,
-                        }}
-                      >
-                        Submit for review
-                      </button>
-                    </div>
-                    <div style={{ marginTop: 12, fontSize: 13, color: '#5B5B5B' }}>We'll reach out to help build your profile.</div>
-                  </>
-                )}
-              </>
-            )}
-          </div>
 
           <div style={{ marginTop: isMobile ? 40 : 56, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, alignItems: 'start' }}>
             <div
@@ -4484,13 +4463,13 @@ export default function App() {
             >
               <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Listed</div>
               <ul style={{ margin: '14px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>We build your profile for you. Just tell us what you do.</li>
+                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Set up your own profile in a couple of steps.</li>
                 <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Listed in the directory, found by planners searching your category</li>
                 <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Planners message you directly when they're interested</li>
                 <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Free to list, free always</li>
               </ul>
               <button
-                onClick={V.scrollToJoinForm}
+                onClick={V.goVendorOnboarding}
                 style={{
                   marginTop: 20,
                   border: 0,
@@ -5689,6 +5668,342 @@ export default function App() {
                 </>
               )}
             </div>
+          )}
+        </div>
+      )}
+
+      {V.isVendorOnboarding && (
+        <div style={{ padding: '34px 0 0', maxWidth: 720 }}>
+          <button
+            onClick={V.goHome}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← Back
+          </button>
+          <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 28 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
+            Vendor onboarding
+          </h1>
+
+          {V.voDone ? (
+            <div style={{ marginTop: 24, maxWidth: 460, border: '1px solid #ECECEC', borderRadius: 24, padding: 28 }}>
+              <div style={{ fontSize: 20, fontWeight: 700 }}>Application submitted</div>
+              <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                Thanks — we review every application by hand before it goes live. You'll be able to sign back in
+                with your email and password once it's approved.
+              </p>
+              <button
+                onClick={V.goHome}
+                style={{ marginTop: 18, border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
+              >
+                Back to home
+              </button>
+            </div>
+          ) : (
+            <>
+              <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                Step {V.voStep} of 2 · {V.voStep === 1 ? 'Contact & Business Info' : 'Profile, Packages & More'}
+              </div>
+              <div style={{ marginTop: 10, display: 'flex', gap: 4 }}>
+                <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#171717' }} />
+                <div style={{ flex: 1, height: 4, borderRadius: 2, background: V.voStep === 2 ? '#171717' : '#ECECEC' }} />
+              </div>
+
+              {V.voStep === 1 && (
+                <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  <div>
+                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Sector *</div>
+                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {V.voSectorTiles.map((c) => (
+                        <button
+                          key={c.code}
+                          onClick={c.pick}
+                          style={{ border: c.on ? '2px solid #171717' : '1px solid #E4E4DF', borderRadius: 999, background: c.on ? '#171717' : '#FFFFFF', color: c.on ? '#FFFFFF' : '#171717', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+                        >
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Main category (optional)</span>
+                    <input type="text" value={V.voSubcategory} onChange={V.setVoSubcategory} placeholder="e.g. Buffet Catering, Wedding Venues" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Business name *</span>
+                    <input type="text" value={V.voBusinessName} onChange={V.setVoBusinessName} placeholder="Your business name" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Contact person *</span>
+                    <input type="text" value={V.voContactPerson} onChange={V.setVoContactPerson} placeholder="Your full name" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Country</span>
+                    <input type="text" value="Trinidad and Tobago" disabled style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#ECECEC', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#6E6E6E' }} />
+                  </label>
+                  <div>
+                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>City *</div>
+                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {V.voCityTiles.map((l) => (
+                        <button
+                          key={l.label}
+                          onClick={l.pick}
+                          style={{ border: l.on ? '2px solid #171717' : '1px solid #E4E4DF', borderRadius: 999, background: l.on ? '#171717' : '#FFFFFF', color: l.on ? '#FFFFFF' : '#171717', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+                        >
+                          {l.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Starting price (TT$, optional)</span>
+                    <input type="number" value={V.voStartingPrice} onChange={V.setVoStartingPrice} placeholder="e.g. 500" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                    <span style={{ fontSize: 12, color: '#9A9A9A' }}>Rough figure for now — this updates automatically once you add real packages.</span>
+                  </label>
+
+                  <div style={{ marginTop: 8, paddingTop: 18, borderTop: '1px solid #ECECEC' }}>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>Account</div>
+                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>Login details for your dashboard.</div>
+                  </div>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Email address *</span>
+                    <input type="email" value={V.voEmail} onChange={V.setVoEmail} placeholder="your@email.com" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Phone number *</span>
+                    <input type="tel" value={V.voPhone} onChange={V.setVoPhone} placeholder="868 123 4567" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Password * (min. 6 characters)</span>
+                    <input type="password" value={V.voPassword} onChange={V.setVoPassword} placeholder="Create a strong password" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Confirm password *</span>
+                    <input type="password" value={V.voConfirmPassword} onChange={V.setVoConfirmPassword} placeholder="Re-enter your password" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button onClick={V.toggleVoAgreeTerms} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, border: `1px solid ${V.voAgreeTerms ? '#171717' : '#C8C8C2'}`, borderRadius: 5, background: V.voAgreeTerms ? '#171717' : 'transparent', color: '#FFFFFF', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                        {V.voAgreeTerms ? '✓' : ''}
+                      </span>
+                      <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>I agree to the Terms of Service</span>
+                    </button>
+                    <button onClick={V.toggleVoAgreePrivacy} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, border: `1px solid ${V.voAgreePrivacy ? '#171717' : '#C8C8C2'}`, borderRadius: 5, background: V.voAgreePrivacy ? '#171717' : 'transparent', color: '#FFFFFF', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                        {V.voAgreePrivacy ? '✓' : ''}
+                      </span>
+                      <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>I agree to the Privacy Policy</span>
+                    </button>
+                  </div>
+
+                  {V.voStep1Error && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.voStep1Error}</div>}
+                  <button
+                    onClick={V.voStep1Next}
+                    disabled={V.voStep1Disabled || V.voStep1Submitting}
+                    style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.voStep1Disabled || V.voStep1Submitting ? 0.5 : 1 }}
+                  >
+                    {V.voStep1Submitting ? 'Creating account…' : 'Continue →'}
+                  </button>
+                </div>
+              )}
+
+              {V.voStep === 2 && (
+                <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 26 }}>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>Cover &amp; logo</div>
+                    <div style={{ marginTop: 12, display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer' }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Cover photo</span>
+                        {V.voCoverUrl ? (
+                          <img src={V.voCoverUrl} alt="Cover" style={{ width: 180, height: 100, borderRadius: 12, objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: 180, height: 100, borderRadius: 12, background: '#F7F7F5', border: '1px dashed #D7D7D2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9A9A9A' }}>
+                            {V.voUploadingCover ? 'Uploading…' : 'Add photo'}
+                          </div>
+                        )}
+                        <input type="file" accept="image/*" onChange={V.uploadVoCover} style={{ fontSize: 12 }} />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer' }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Logo</span>
+                        {V.voLogoUrl ? (
+                          <img src={V.voLogoUrl} alt="Logo" style={{ width: 100, height: 100, borderRadius: 999, objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: 100, height: 100, borderRadius: 999, background: '#F7F7F5', border: '1px dashed #D7D7D2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#9A9A9A', textAlign: 'center' }}>
+                            {V.voUploadingLogo ? 'Uploading…' : 'Add logo'}
+                          </div>
+                        )}
+                        <input type="file" accept="image/*" onChange={V.uploadVoLogo} style={{ fontSize: 12 }} />
+                      </label>
+                    </div>
+                  </div>
+
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>About us *</div>
+                    <span style={{ fontSize: 13, color: '#5B5B5B' }}>
+                      Share your story, strengths, and what makes your services unique.
+                    </span>
+                    <textarea value={V.voAbout} onChange={V.setVoAbout} rows={4} placeholder="Tell planners about your experience and what clients can expect." style={{ marginTop: 4, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, resize: 'vertical' }} />
+                  </label>
+
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>Contact details</div>
+                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>How clients can reach you on your profile.</div>
+                    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div style={{ fontSize: 13, color: '#4A4A4A' }}>Phone: {V.voPhone} · Email: {V.voEmail}</div>
+                      <input type="text" value={V.voInstagram} onChange={V.setVoInstagram} placeholder="Instagram handle" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <input type="text" value={V.voTiktok} onChange={V.setVoTiktok} placeholder="TikTok handle" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <input type="text" value={V.voMapLink} onChange={V.setVoMapLink} placeholder="Map link (Google Maps URL)" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>Service albums</div>
+                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>Showcase your work, grouped by event type.</div>
+                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {V.suggestedAlbumChips.map((c) => (
+                        <button key={c.name} onClick={c.pick} style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '7px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: '#4A4A4A' }}>
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <input type="text" value={V.voAlbumName} onChange={V.setVoAlbumName} placeholder="Album name" style={{ flex: '1 1 160px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <input type="file" accept="image/*" disabled={!V.voAlbumName.trim()} onChange={V.uploadVoAlbumPhoto} style={{ fontSize: 12 }} />
+                      {V.voUploadingAlbumPhoto && <span style={{ fontSize: 12, color: '#9A9A9A' }}>Uploading…</span>}
+                    </div>
+                    {V.voAlbums.length > 0 && (
+                      <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {V.voAlbums.map((a) => (
+                          <div key={a.name} style={{ border: '1px solid #ECECEC', borderRadius: 14, padding: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <strong style={{ fontSize: 13.5 }}>{a.name}</strong>
+                              <button onClick={() => V.removeVoAlbum(a.name)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                            </div>
+                            <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                              {a.photos.map((p, i) => (
+                                <img key={i} src={p} alt={a.name} style={{ width: 56, height: 56, borderRadius: 8, objectFit: 'cover' }} />
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>Packages</div>
+                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>Pricing and service bundles.</div>
+                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {V.suggestedPackageChips.map((c) => (
+                        <button key={c.name} onClick={c.pick} style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '7px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: '#4A4A4A' }}>
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <input type="text" value={V.voPkgName} onChange={V.setVoPkgName} placeholder="Package name" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <input type="file" accept="image/*" onChange={V.uploadVoPkgPhoto} style={{ fontSize: 12 }} />
+                        {V.voUploadingPkgPhoto && <span style={{ fontSize: 12, color: '#9A9A9A' }}>Uploading…</span>}
+                        {V.voPkgPhotoUrl && <img src={V.voPkgPhotoUrl} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover' }} />}
+                      </div>
+                      <textarea value={V.voPkgDescription} onChange={V.setVoPkgDescription} placeholder="Description" rows={2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
+                      <input type="text" value={V.voPkgInclusionsText} onChange={V.setVoPkgInclusionsText} placeholder="Inclusions, comma separated" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        <input type="number" value={V.voPkgPriceMin} onChange={V.setVoPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                        <input type="number" value={V.voPkgPriceMax} onChange={V.setVoPkgPriceMax} placeholder="Price max (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      </div>
+                      <button onClick={V.voAddPackage} disabled={V.voAddPackageDisabled} style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.voAddPackageDisabled ? 0.4 : 1 }}>
+                        Add package
+                      </button>
+                    </div>
+                    {V.voPackages.length > 0 && (
+                      <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {V.voPackages.map((p, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #ECECEC', padding: '10px 2px' }}>
+                            <div style={{ fontSize: 13, color: '#4A4A4A' }}><strong>{p.name}</strong> — TT${p.priceMin}–TT${p.priceMax}</div>
+                            <button onClick={() => V.removeVoPackage(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>Menu (optional)</div>
+                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>For food-service vendors — list your dishes or items.</div>
+                    <div style={{ marginTop: 10, display: 'flex', gap: 10 }}>
+                      <input type="text" value={V.voMenuDraft} onChange={V.setVoMenuDraft} placeholder="e.g. Grilled Chicken Platter" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <button onClick={V.voAddMenuItem} style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>Add item</button>
+                    </div>
+                    {V.voMenu.length > 0 && (
+                      <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {V.voMenu.map((name, i) => (
+                          <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #E4E4DF', borderRadius: 999, background: '#F7F7F5', padding: '7px 8px 7px 14px', fontSize: 13, fontWeight: 600 }}>
+                            {name}
+                            <button onClick={() => V.removeVoMenuItem(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', color: '#B3261E', fontWeight: 800 }}>✕</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>Frequently asked questions</div>
+                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {V.suggestedFaqChips.map((c) => (
+                        <button key={c.q} onClick={c.pick} style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '7px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: '#4A4A4A' }}>
+                          {c.q}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      {V.voFaqs.map((f, i) => (
+                        <div key={i} style={{ border: '1px solid #ECECEC', borderRadius: 16, padding: 14 }}>
+                          <input type="text" value={f.q} onChange={(e) => V.setVoFaqQ(i, e)} placeholder="Question" style={{ width: '100%', border: 0, borderBottom: '1px solid #E4E4DF', background: 'transparent', padding: '6px 2px', fontFamily: SANS, fontSize: 14, fontWeight: 700 }} />
+                          <textarea value={f.a} onChange={(e) => V.setVoFaqA(i, e)} placeholder="Answer" rows={2} style={{ marginTop: 8, width: '100%', border: 0, background: 'transparent', padding: '2px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
+                          <button onClick={() => V.removeVoFaq(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={V.voAddFaqRow} style={{ marginTop: 12, border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>+ Add question</button>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>Terms &amp; policies</div>
+                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {V.suggestedPolicyChips.map((c) => (
+                        <button key={c.title} onClick={c.pick} style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '7px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: '#4A4A4A' }}>
+                          {c.title}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      {V.voPolicies.map((p, i) => (
+                        <div key={i} style={{ border: '1px solid #ECECEC', borderRadius: 16, padding: 14 }}>
+                          <input type="text" value={p.title} onChange={(e) => V.setVoPolicyTitle(i, e)} placeholder="Policy title" style={{ width: '100%', border: 0, borderBottom: '1px solid #E4E4DF', background: 'transparent', padding: '6px 2px', fontFamily: SANS, fontSize: 14, fontWeight: 700 }} />
+                          <textarea value={p.body} onChange={(e) => V.setVoPolicyBody(i, e)} placeholder="Details" rows={2} style={{ marginTop: 8, width: '100%', border: 0, background: 'transparent', padding: '2px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
+                          <button onClick={() => V.removeVoPolicy(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={V.voAddPolicyRow} style={{ marginTop: 12, border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>+ Add policy</button>
+                  </div>
+
+                  {V.voStep2Error && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.voStep2Error}</div>}
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={() => patch({ voStep: 1 })} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '14px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Previous</button>
+                    <button
+                      onClick={V.voSubmitApplication}
+                      disabled={V.voStep2Submitting}
+                      style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.voStep2Submitting ? 0.5 : 1 }}
+                    >
+                      {V.voStep2Submitting ? 'Submitting…' : 'Submit application'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
