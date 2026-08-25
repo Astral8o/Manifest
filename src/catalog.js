@@ -16,19 +16,23 @@ function reshapeVendor(v) {
   const products = (v.products || [])
     .slice()
     .sort((a, b) => a.sort_order - b.sort_order)
-    .map((p) => {
-      const tuple = [
-        p.name,
-        p.description,
-        Number(p.price_min),
-        Number(p.price_max),
-        p.unit,
-        Number(p.min_qty),
-        Number(p.lead_time_days),
-      ];
-      if (p.group_label) tuple.push(p.group_label);
-      return tuple;
-    });
+    .map((p) => [
+      p.name,
+      p.description,
+      Number(p.price_min),
+      Number(p.price_max),
+      p.unit,
+      Number(p.min_qty),
+      Number(p.lead_time_days),
+      p.group_label || '',
+      p.photo_url || '',
+      p.inclusions || [],
+    ]);
+
+  const gallery = (v.vendor_gallery || [])
+    .slice()
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((g) => ({ eventType: g.event_type, photoUrl: g.photo_url }));
 
   return {
     id: v.id,
@@ -45,12 +49,17 @@ function reshapeVendor(v) {
     rating: formatRating(v.rating, v.rating_count),
     response: v.response_time_text,
     priceOnRequest: !!v.price_on_request,
+    verified: !!v.verified,
     email: v.email,
     phone: v.phone,
     instagram: v.instagram,
     facebook: v.facebook,
     logoUrl: v.logo_url,
     coverUrl: v.cover_photo_url,
+    paymentTerms: v.payment_terms,
+    depositTerms: v.deposit_terms,
+    reschedulePolicy: v.reschedule_policy,
+    cancellationPolicy: v.cancellation_policy,
     promos: (v.vendor_promos || []).map((p) => ({
       title: p.title,
       discount: p.discount,
@@ -63,6 +72,7 @@ function reshapeVendor(v) {
       text: r.body,
     })),
     faqs: (v.vendor_faqs || []).map((f) => ({ q: f.question, a: f.answer })),
+    gallery,
     products,
   };
 }
@@ -76,7 +86,7 @@ export async function fetchCatalog() {
     supabase
       .from('vendors')
       .select(
-        '*, vendor_promos(*), vendor_reviews(*), vendor_faqs(*), products(*)'
+        '*, vendor_promos(*), vendor_reviews(*), vendor_faqs(*), products(*), vendor_gallery(*)'
       )
       .eq('published', true)
       .order('name'),

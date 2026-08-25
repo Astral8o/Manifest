@@ -423,6 +423,8 @@ export default function App() {
           unit: p[4],
           minQty: p[5],
           group: p[7] || 'General',
+          photoUrl: p[8] || '',
+          inclusions: p[9] || [],
           priceOnRequest: !!s.priceOnRequest,
         })
       )
@@ -562,6 +564,9 @@ export default function App() {
   );
   const svcVisibleCount = st.svcVisible || 8;
   const svcVisible = svcFiltered.slice(0, svcVisibleCount);
+  const hasPolicies = [sup.paymentTerms, sup.depositTerms, sup.reschedulePolicy, sup.cancellationPolicy].some(
+    (t) => t && t.trim()
+  );
 
   const chip = (on) =>
     on ? { bg: '#171717', fg: '#FFFFFF', border: '#171717' } : { bg: '#FFFFFF', fg: '#171717', border: '#D7D7D2' };
@@ -869,6 +874,9 @@ export default function App() {
       description: sup.bio,
       about: sup.desc,
       categoryName: catName(sup.code),
+      verified: !!sup.verified,
+      ratingLabel: sup.rating,
+      startPriceLabel: sup.priceOnRequest ? 'Price on request' : 'From ' + money(startPrice(sup)),
       facts: [
         { label: 'Based in', value: sup.city },
         { label: 'Service radius', value: sup.radius ? sup.radius + ' km' : 'On site only' },
@@ -895,19 +903,38 @@ export default function App() {
         text: r.text,
       })),
       faqs: (sup.faqs || []).map((f) => ({ key: f.q, q: f.q, a: f.a })),
+      gallery: Object.entries(
+        (sup.gallery || []).reduce((acc, g) => {
+          const key = g.eventType || 'General';
+          (acc[key] = acc[key] || []).push(g.photoUrl);
+          return acc;
+        }, {})
+      ).map(([eventType, photos]) => ({ key: eventType, eventType, photos })),
+      policies: [
+        { key: 'payment', label: 'Payment', text: sup.paymentTerms },
+        { key: 'deposit', label: 'Deposit', text: sup.depositTerms },
+        { key: 'reschedule', label: 'Rescheduling', text: sup.reschedulePolicy },
+        { key: 'cancellation', label: 'Cancellation & refunds', text: sup.cancellationPolicy },
+      ].filter((p) => p.text && p.text.trim()),
     },
+    openFaqKey: st.openFaqKey || null,
+    toggleFaq: (key) => patch((s) => ({ openFaqKey: s.openFaqKey === key ? null : key })),
     supplierTab: st.supplierTab || 'services',
     supplierTabs: [
       { key: 'about', label: 'About' },
-      { key: 'services', label: 'Services (' + supProducts.length + ')' },
+      { key: 'services', label: 'Packages (' + supProducts.length + ')' },
+      (sup.gallery || []).length > 0 && { key: 'gallery', label: 'Gallery' },
       { key: 'reviews', label: 'Reviews (' + (sup.reviews || []).length + ')' },
       { key: 'faq', label: 'FAQ' },
       { key: 'promos', label: 'Promos' + ((sup.promos || []).length ? ' (' + sup.promos.length + ')' : '') },
-    ].map((t) => ({
-      ...t,
-      active: (st.supplierTab || 'services') === t.key,
-      go: () => patch({ supplierTab: t.key }),
-    })),
+      hasPolicies && { key: 'policies', label: 'Policies' },
+    ]
+      .filter(Boolean)
+      .map((t) => ({
+        ...t,
+        active: (st.supplierTab || 'services') === t.key,
+        go: () => patch({ supplierTab: t.key }),
+      })),
 
     reviewFormOpen: !!st.reviewFormOpen,
     reviewSent: !!st.reviewSent,
@@ -974,9 +1001,10 @@ export default function App() {
     loadMoreSvc: () => patch((s) => ({ svcVisible: (s.svcVisible || 8) + 8 })),
     supplierProducts: svcVisible.map((p) => ({
       key: p.id,
-      photo: photoUrl(p.id, 300, 220),
+      photo: p.photoUrl || photoUrl(p.id, 300, 220),
       name: p.name,
       description: p.description,
+      inclusions: p.inclusions || [],
       termsLabel: 'Min ' + p.minQty + ' ' + (p.unit === 'flat' ? 'booking' : 'units'),
       priceLabel: priceLabel(p),
       btnLabel: has(p.id) ? 'Added' : '+ Add',
@@ -2496,9 +2524,71 @@ export default function App() {
                     alt={V.sup.name + ' logo'}
                     style={{ width: 64, height: 64, borderRadius: 999, marginTop: -50, border: '4px solid #FFFFFF', background: '#171717', flexShrink: 0 }}
                   />
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                     <h1 style={{ margin: 0, fontSize: isMobile ? 26 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.sup.name}</h1>
+                    {V.sup.verified && (
+                      <span
+                        title="Verified vendor"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          border: '1px solid #171717',
+                          borderRadius: 999,
+                          background: '#171717',
+                          color: '#FFFFFF',
+                          padding: '4px 11px',
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        ✓ Verified
+                      </span>
+                    )}
                   </div>
+                </div>
+                <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <span
+                    style={{
+                      border: '1px solid #E4E4DF',
+                      borderRadius: 999,
+                      background: '#F7F7F5',
+                      padding: '6px 14px',
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: '#171717',
+                    }}
+                  >
+                    {V.sup.categoryName}
+                  </span>
+                  {V.sup.ratingLabel && (
+                    <span
+                      style={{
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: '#F7F7F5',
+                        padding: '6px 14px',
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: '#171717',
+                      }}
+                    >
+                      ★ {V.sup.ratingLabel}
+                    </span>
+                  )}
+                  <span
+                    style={{
+                      border: '1px solid #E4E4DF',
+                      borderRadius: 999,
+                      background: '#F7F7F5',
+                      padding: '6px 14px',
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: '#171717',
+                    }}
+                  >
+                    {V.sup.startPriceLabel}
+                  </span>
                 </div>
                 <p style={{ margin: '14px 0 0', maxWidth: 620, fontSize: 16, lineHeight: 1.55, color: '#4A4A4A' }}>{V.sup.description}</p>
                 {V.sup.whatsappUrl && (
@@ -2608,7 +2698,7 @@ export default function App() {
               {V.supplierTab === 'services' && (
                 <div style={{ marginTop: 24 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                    <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Services</h2>
+                    <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Packages</h2>
                     <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                       Adding does not send anything
                     </span>
@@ -2654,87 +2744,96 @@ export default function App() {
                       ))}
                     </div>
                   )}
-                  <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
                     {V.supplierProducts.map((p) => (
                       <div
                         key={p.key}
                         style={{
                           display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 24,
-                          flexWrap: 'wrap',
-                          borderTop: '1px solid #ECECEC',
-                          padding: '20px 2px',
+                          flexDirection: 'column',
+                          border: '1px solid #ECECEC',
+                          borderRadius: 20,
+                          overflow: 'hidden',
+                          background: '#FFFFFF',
                         }}
                       >
-                        <div style={{ flex: '1 1 340px', minWidth: 260, display: 'flex', gap: 16 }}>
-                          <img
-                            src={p.photo}
-                            alt={p.name}
-                            style={{ width: 88, height: 66, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }}
-                          />
-                          <div>
-                            <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>{p.name}</div>
-                            <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>{p.description}</div>
-                            <div style={{ marginTop: 8, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{p.termsLabel}</div>
+                        <img
+                          src={p.photo}
+                          alt={p.name}
+                          style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }}
+                        />
+                        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', flex: 1 }}>
+                          <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>{p.name}</div>
+                          <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>{p.description}</div>
+                          {p.inclusions.length > 0 && (
+                            <ul style={{ margin: '12px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {p.inclusions.map((inc) => (
+                                <li key={inc} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13.5, lineHeight: 1.5, color: '#4A4A4A' }}>
+                                  <span style={{ flexShrink: 0, color: '#16A34A', fontWeight: 800 }}>✓</span>
+                                  {inc}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          <div style={{ marginTop: 12, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{p.termsLabel}</div>
+                          <div style={{ marginTop: 14, fontFamily: MONO, fontSize: 17, fontWeight: 700 }}>{p.priceLabel}</div>
+                          <div style={{ marginTop: 'auto', paddingTop: 16, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <button
+                              onClick={p.toggleSave}
+                              aria-label={p.saveLabel}
+                              style={{
+                                border: '1px solid #D7D7D2',
+                                borderRadius: 999,
+                                background: p.saved ? '#171717' : 'transparent',
+                                color: p.saved ? '#FFFFFF' : '#171717',
+                                padding: '9px 14px',
+                                cursor: 'pointer',
+                                fontSize: 13,
+                                fontWeight: 700,
+                              }}
+                            >
+                              {p.saveLabel}
+                            </button>
+                            <button
+                              onClick={p.share}
+                              style={{
+                                border: '1px solid #D7D7D2',
+                                borderRadius: 999,
+                                background: 'transparent',
+                                color: '#171717',
+                                padding: '9px 14px',
+                                cursor: 'pointer',
+                                fontSize: 13,
+                                fontWeight: 700,
+                              }}
+                            >
+                              {p.shareLabel}
+                            </button>
+                            <button
+                              onClick={p.add}
+                              style={{
+                                marginLeft: 'auto',
+                                border: '1px solid #171717',
+                                borderRadius: 999,
+                                background: p.btnBg,
+                                color: p.btnFg,
+                                padding: '11px 20px',
+                                cursor: 'pointer',
+                                fontSize: 14,
+                                fontWeight: 700,
+                                minWidth: 92,
+                              }}
+                            >
+                              {p.btnLabel}
+                            </button>
                           </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                          <button
-                            onClick={p.toggleSave}
-                            style={{
-                              border: '1px solid #D7D7D2',
-                              borderRadius: 999,
-                              background: p.saved ? '#171717' : 'transparent',
-                              color: p.saved ? '#FFFFFF' : '#171717',
-                              padding: '9px 14px',
-                              cursor: 'pointer',
-                              fontSize: 13,
-                              fontWeight: 700,
-                            }}
-                          >
-                            {p.saveLabel}
-                          </button>
-                          <button
-                            onClick={p.share}
-                            style={{
-                              border: '1px solid #D7D7D2',
-                              borderRadius: 999,
-                              background: 'transparent',
-                              color: '#171717',
-                              padding: '9px 14px',
-                              cursor: 'pointer',
-                              fontSize: 13,
-                              fontWeight: 700,
-                            }}
-                          >
-                            {p.shareLabel}
-                          </button>
-                          <div style={{ fontFamily: MONO, fontSize: 15, textAlign: 'right', minWidth: isMobile ? 0 : 150 }}>{p.priceLabel}</div>
-                          <button
-                            onClick={p.add}
-                            style={{
-                              border: '1px solid #171717',
-                              borderRadius: 999,
-                              background: p.btnBg,
-                              color: p.btnFg,
-                              padding: '11px 20px',
-                              cursor: 'pointer',
-                              fontSize: 14,
-                              fontWeight: 700,
-                              minWidth: 108,
-                            }}
-                          >
-                            {p.btnLabel}
-                          </button>
                         </div>
                       </div>
                     ))}
-                    {V.supplierProducts.length === 0 && (
-                      <div style={{ padding: '28px 2px', fontSize: 14, color: '#9A9A9A' }}>No services match your search.</div>
-                    )}
                   </div>
+                  {V.supplierProducts.length === 0 && (
+                    <div style={{ padding: '28px 2px', fontSize: 14, color: '#9A9A9A' }}>No packages match your search.</div>
+                  )}
                   {V.svcShowMore && (
                     <button
                       onClick={V.loadMoreSvc}
@@ -2753,6 +2852,38 @@ export default function App() {
                       {V.svcRemainingLabel}
                     </button>
                   )}
+                </div>
+              )}
+
+              {V.supplierTab === 'gallery' && (
+                <div style={{ marginTop: 24 }}>
+                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Gallery</h2>
+                  <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 28 }}>
+                    {V.sup.gallery.map((g) => (
+                      <div key={g.key}>
+                        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          {g.eventType}
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 10,
+                            display: 'grid',
+                            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(180px, 1fr))',
+                            gap: 10,
+                          }}
+                        >
+                          {g.photos.map((photo, i) => (
+                            <img
+                              key={photo + i}
+                              src={photo}
+                              alt={g.eventType + ' photo'}
+                              style={{ width: '100%', height: 160, borderRadius: 14, objectFit: 'cover', display: 'block' }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -2894,10 +3025,49 @@ export default function App() {
                 <div style={{ marginTop: 24 }}>
                   <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>FAQ</h2>
                   <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {V.sup.faqs.map((f) => (
-                      <div key={f.key} style={{ borderTop: '1px solid #ECECEC', padding: '18px 2px' }}>
-                        <div style={{ fontSize: 15, fontWeight: 700 }}>{f.q}</div>
-                        <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>{f.a}</p>
+                    {V.sup.faqs.map((f) => {
+                      const open = V.openFaqKey === f.key;
+                      return (
+                        <div key={f.key} style={{ borderTop: '1px solid #ECECEC' }}>
+                          <button
+                            onClick={() => V.toggleFaq(f.key)}
+                            style={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: 16,
+                              border: 0,
+                              background: 'transparent',
+                              padding: '18px 2px',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              fontSize: 15,
+                              fontWeight: 700,
+                              color: '#171717',
+                            }}
+                          >
+                            {f.q}
+                            <span style={{ flexShrink: 0, fontSize: 18, color: '#9A9A9A' }}>{open ? '−' : '+'}</span>
+                          </button>
+                          {open && (
+                            <p style={{ margin: '0 2px 18px', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>{f.a}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {V.supplierTab === 'policies' && (
+                <div style={{ marginTop: 24 }}>
+                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Policies</h2>
+                  <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {V.sup.policies.map((p) => (
+                      <div key={p.key} style={{ borderTop: '1px solid #ECECEC', padding: '18px 2px' }}>
+                        <div style={{ fontSize: 15, fontWeight: 700 }}>{p.label}</div>
+                        <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>{p.text}</p>
                       </div>
                     ))}
                   </div>
