@@ -321,7 +321,7 @@ export async function signUpVendor(email, password) {
   }
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) throw error;
-  return data.user;
+  return data;
 }
 
 export async function signInVendor(email, password) {
@@ -357,9 +357,14 @@ export async function createVendorAccount(payload) {
   if (!supabaseConfigured) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
-  const user = await signUpVendor(payload.email, payload.password);
+  const { user, session } = await signUpVendor(payload.email, payload.password);
   if (!user) {
-    throw new Error('Could not create your account. Please check your email and try again.');
+    throw new Error('Could not create your account. Please try again.');
+  }
+  if (!session) {
+    throw new Error(
+      'That email already has an account, or needs to be confirmed before continuing. Check your inbox for a confirmation link, or sign in instead if you already have an account.'
+    );
   }
   const { data: vendor, error } = await supabase
     .from('vendors')
