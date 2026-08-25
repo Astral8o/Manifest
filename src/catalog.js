@@ -197,6 +197,103 @@ export async function joinWaitlist(email) {
   if (error) throw error;
 }
 
+export async function adminListVendors() {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase
+    .from('vendors')
+    .select('id, name, category_code, city, published, created_at')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function adminSetPublished(vendorId, published) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('vendors').update({ published }).eq('id', vendorId);
+  if (error) throw error;
+}
+
+// Creates a vendor plus its packages, gallery photos and FAQs in one call.
+// Not wrapped in a database transaction (the JS client can't span tables),
+// so a failure partway through can leave an incomplete draft — acceptable
+// for a single-admin tool; the draft row is easy to fix or delete by hand.
+export async function adminCreateVendor(v) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data: vendor, error: vendorError } = await supabase
+    .from('vendors')
+    .insert({
+      category_code: v.categoryCode,
+      name: v.name,
+      city: v.city,
+      region: v.region,
+      bio: v.bio,
+      description: v.description,
+      phone: v.phone,
+      logo_url: v.logoUrl || null,
+      cover_photo_url: v.coverUrl || null,
+      payment_terms: v.paymentTerms || null,
+      deposit_terms: v.depositTerms || null,
+      reschedule_policy: v.reschedulePolicy || null,
+      cancellation_policy: v.cancellationPolicy || null,
+      min_group: 1,
+      lead_time_days: 0,
+      radius_km: 0,
+      price_on_request: false,
+      published: !!v.published,
+    })
+    .select('id')
+    .single();
+  if (vendorError) throw vendorError;
+  const vendorId = vendor.id;
+
+  if (v.packages && v.packages.length) {
+    const { error } = await supabase.from('products').insert(
+      v.packages.map((p, i) => ({
+        vendor_id: vendorId,
+        name: p.name,
+        description: p.description,
+        price_min: p.priceMin,
+        price_max: p.priceMax,
+        unit: p.unit || 'event',
+        min_qty: 1,
+        lead_time_days: 0,
+        photo_url: p.photoUrl || null,
+        inclusions: p.inclusions || [],
+        sort_order: i,
+      }))
+    );
+    if (error) throw error;
+  }
+
+  if (v.gallery && v.gallery.length) {
+    const { error } = await supabase.from('vendor_gallery').insert(
+      v.gallery.map((g, i) => ({
+        vendor_id: vendorId,
+        event_type: g.eventType,
+        photo_url: g.photoUrl,
+        sort_order: i,
+      }))
+    );
+    if (error) throw error;
+  }
+
+  if (v.faqs && v.faqs.length) {
+    const { error } = await supabase.from('vendor_faqs').insert(
+      v.faqs.map((f) => ({ vendor_id: vendorId, question: f.q, answer: f.a }))
+    );
+    if (error) throw error;
+  }
+
+  return vendorId;
+}
+
 export async function submitPlanningRequest(request) {
   if (!supabaseConfigured) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');

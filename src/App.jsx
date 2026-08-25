@@ -6,7 +6,16 @@ import {
   FIELDS_DEFAULT,
   money,
 } from './data';
-import { fetchCatalog, submitInquiry, submitVendorReview, sendMagicLink, submitPlanningRequest } from './catalog';
+import {
+  fetchCatalog,
+  submitInquiry,
+  submitVendorReview,
+  sendMagicLink,
+  submitPlanningRequest,
+  adminListVendors,
+  adminSetPublished,
+  adminCreateVendor,
+} from './catalog';
 import { supabase } from './supabaseClient';
 import heroPhoto from './assets/hero-photo.jpg';
 import cateringPhoto from './assets/categories/catering.jpg';
@@ -40,6 +49,48 @@ const SANS = 'Manrope, sans-serif';
 const DISPLAY = 'Archivo, Helvetica, sans-serif';
 const DISPLAY_BLACK = "'Archivo Black', Archivo, sans-serif";
 const ACCOUNT_KEY = 'eventoryAccount';
+const ADMIN_EMAIL = 'astral.ochoa@hotmail.com';
+// Fallback so pages that assume "there's always at least one vendor" don't
+// crash on a fresh catalog with zero vendors published yet (e.g. the admin
+// tool has to be usable before any vendor exists).
+const EMPTY_SUPPLIER = {
+  id: '',
+  code: '',
+  name: '',
+  city: '',
+  region: '',
+  desc: '',
+  bio: '',
+  tags: [],
+  minGroup: 0,
+  lead: 0,
+  radius: 0,
+  rating: '',
+  response: '',
+  priceOnRequest: false,
+  verified: false,
+  email: '',
+  phone: '',
+  instagram: '',
+  facebook: '',
+  logoUrl: '',
+  coverUrl: '',
+  paymentTerms: '',
+  depositTerms: '',
+  reschedulePolicy: '',
+  cancellationPolicy: '',
+  promos: [],
+  reviews: [],
+  faqs: [],
+  gallery: [],
+  products: [],
+};
+const DEFAULT_FAQ_TEMPLATES = [
+  { q: 'What types of events do you handle?', a: '' },
+  { q: 'How far in advance should I book?', a: '' },
+  { q: 'Can packages be customized?', a: '' },
+  { q: 'Is a deposit required?', a: '' },
+];
 const POST_AUTH_RETURN_KEY = 'eventoryPostAuthReturn';
 const PROMO_ACCENT = '#FF5A36';
 const ACCENT = '#E0512B';
@@ -241,6 +292,9 @@ export default function App() {
     const base = { ...initialState, ...loadAccount() };
     const shared = sharedProductFromUrl();
     if (shared) return { ...base, screen: 'supplier', supId: shared.supId, supplierTab: 'services' };
+    if (new URLSearchParams(window.location.search).get('admin')) {
+      return { ...base, screen: 'admin' };
+    }
     const resumed = history.state;
     if (resumed && resumed.screen) {
       return {
@@ -269,6 +323,18 @@ export default function App() {
   }, []);
   const CATS = catalog.cats;
   const SUPPLIERS = catalog.suppliers;
+
+  // Load the admin's vendor list (including drafts) whenever the signed-in
+  // admin lands on the dashboard — RLS only allows this for ADMIN_EMAIL.
+  useEffect(() => {
+    if (st.screen !== 'admin' || (st.adminSubScreen || 'dashboard') !== 'dashboard') return;
+    if (!st.signedIn || st.email !== ADMIN_EMAIL) return;
+    patch({ adminVendorsLoading: true, adminVendorsError: null });
+    adminListVendors()
+      .then((rows) => patch({ adminVendorsLoading: false, adminVendors: rows }))
+      .catch((err) => patch({ adminVendorsLoading: false, adminVendorsError: err.message || 'Could not load vendors.' }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [st.screen, st.adminSubScreen, st.signedIn, st.email]);
 
   // Real auth: restore any existing Supabase session on load, then stay in
   // sync as the user signs in (via magic link) or out. A magic link click
@@ -548,7 +614,7 @@ export default function App() {
     return inSupplier || inProducts;
   });
 
-  const sup = supplier(st.supId) || SUPPLIERS[0];
+  const sup = supplier(st.supId) || SUPPLIERS[0] || EMPTY_SUPPLIER;
   const supProducts = allProducts().filter((p) => p.supId === sup.id);
   const has = (pid) => st.items.some((i) => i.pid === pid);
 
@@ -1259,6 +1325,226 @@ export default function App() {
       })
       .filter(Boolean),
     hasSaved: (st.saved || []).length > 0,
+
+    isAdmin: st.screen === 'admin',
+    adminIsAuthed: st.signedIn && st.email === ADMIN_EMAIL,
+    adminSubScreen: st.adminSubScreen || 'dashboard',
+    adminVendors: st.adminVendors || [],
+    adminVendorsLoading: !!st.adminVendorsLoading,
+    adminVendorsError: st.adminVendorsError || '',
+    loadAdminVendors: async () => {
+      patch({ adminVendorsLoading: true, adminVendorsError: null });
+      try {
+        const rows = await adminListVendors();
+        patch({ adminVendorsLoading: false, adminVendors: rows });
+      } catch (err) {
+        patch({ adminVendorsLoading: false, adminVendorsError: err.message || 'Could not load vendors.' });
+      }
+    },
+    togglePublish: async (vendorId, next) => {
+      patch({ adminVendorsError: null });
+      try {
+        await adminSetPublished(vendorId, next);
+        patch((s) => ({
+          adminVendors: (s.adminVendors || []).map((v) => (v.id === vendorId ? { ...v, published: next } : v)),
+        }));
+      } catch (err) {
+        patch({ adminVendorsError: err.message || 'Could not update that vendor.' });
+      }
+    },
+    goAdminDashboard: () => patch({ adminSubScreen: 'dashboard' }),
+    goAdminNewVendor: () =>
+      patch({
+        adminSubScreen: 'wizard',
+        adminStep: 1,
+        adminSaveError: null,
+        adminName: '',
+        adminCategoryCode: null,
+        adminRegion: null,
+        adminCity: '',
+        adminWhatsapp: '',
+        adminBio: '',
+        adminDescription: '',
+        adminCoverUrl: '',
+        adminLogoUrl: '',
+        adminGallery: [],
+        adminGalleryEventType: '',
+        adminGalleryPhotoUrl: '',
+        adminPackages: [],
+        adminPkgName: '',
+        adminPkgPhotoUrl: '',
+        adminPkgDescription: '',
+        adminPkgInclusionsText: '',
+        adminPkgPriceMin: '',
+        adminPkgPriceMax: '',
+        adminFaqs: DEFAULT_FAQ_TEMPLATES.map((f) => ({ ...f })),
+        adminPaymentTerms: '',
+        adminDepositTerms: '',
+        adminReschedulePolicy: '',
+        adminCancellationPolicy: '',
+      }),
+
+    adminStep: st.adminStep || 1,
+    adminTotalSteps: 7,
+    adminStepBack: () => patch((s) => ({ adminStep: Math.max(1, (s.adminStep || 1) - 1) })),
+
+    adminName: st.adminName || '',
+    setAdminName: (e) => patch({ adminName: e.target.value }),
+    adminCategoryTiles: CATS.map((c) => ({
+      code: c[0],
+      name: c[1],
+      on: st.adminCategoryCode === c[0],
+      pick: () => patch({ adminCategoryCode: c[0] }),
+    })),
+    adminRegionTiles: LOCATIONS.filter((l) => l !== 'All areas').map((l) => ({
+      label: l,
+      on: st.adminRegion === l,
+      pick: () => patch({ adminRegion: l }),
+    })),
+    adminCity: st.adminCity || '',
+    setAdminCity: (e) => patch({ adminCity: e.target.value }),
+    adminWhatsapp: st.adminWhatsapp || '',
+    setAdminWhatsapp: (e) => patch({ adminWhatsapp: e.target.value }),
+    adminBio: st.adminBio || '',
+    setAdminBio: (e) => patch({ adminBio: e.target.value }),
+    adminStep1NextDisabled: !(
+      (st.adminName || '').trim() &&
+      st.adminCategoryCode &&
+      st.adminRegion &&
+      (st.adminCity || '').trim()
+    ),
+    adminStep1Next: () => patch({ adminStep: 2 }),
+
+    adminDescription: st.adminDescription || '',
+    setAdminDescription: (e) => patch({ adminDescription: e.target.value }),
+    adminCoverUrl: st.adminCoverUrl || '',
+    setAdminCoverUrl: (e) => patch({ adminCoverUrl: e.target.value }),
+    adminLogoUrl: st.adminLogoUrl || '',
+    setAdminLogoUrl: (e) => patch({ adminLogoUrl: e.target.value }),
+    adminStep2Next: () => patch({ adminStep: 3 }),
+
+    adminGallery: st.adminGallery || [],
+    adminGalleryEventType: st.adminGalleryEventType || '',
+    setAdminGalleryEventType: (e) => patch({ adminGalleryEventType: e.target.value }),
+    adminGalleryPhotoUrl: st.adminGalleryPhotoUrl || '',
+    setAdminGalleryPhotoUrl: (e) => patch({ adminGalleryPhotoUrl: e.target.value }),
+    adminAddGalleryPhotoDisabled: !((st.adminGalleryEventType || '').trim() && (st.adminGalleryPhotoUrl || '').trim()),
+    adminAddGalleryPhoto: () => {
+      const eventType = (st.adminGalleryEventType || '').trim();
+      const photoUrl = (st.adminGalleryPhotoUrl || '').trim();
+      if (!eventType || !photoUrl) return;
+      patch((s) => ({
+        adminGallery: (s.adminGallery || []).concat([{ eventType, photoUrl }]),
+        adminGalleryPhotoUrl: '',
+      }));
+    },
+    adminRemoveGalleryPhoto: (i) =>
+      patch((s) => ({ adminGallery: (s.adminGallery || []).filter((_, idx) => idx !== i) })),
+    adminStep3Next: () => patch({ adminStep: 4 }),
+
+    adminPackages: st.adminPackages || [],
+    adminPkgName: st.adminPkgName || '',
+    setAdminPkgName: (e) => patch({ adminPkgName: e.target.value }),
+    adminPkgPhotoUrl: st.adminPkgPhotoUrl || '',
+    setAdminPkgPhotoUrl: (e) => patch({ adminPkgPhotoUrl: e.target.value }),
+    adminPkgDescription: st.adminPkgDescription || '',
+    setAdminPkgDescription: (e) => patch({ adminPkgDescription: e.target.value }),
+    adminPkgInclusionsText: st.adminPkgInclusionsText || '',
+    setAdminPkgInclusionsText: (e) => patch({ adminPkgInclusionsText: e.target.value }),
+    adminPkgPriceMin: st.adminPkgPriceMin || '',
+    setAdminPkgPriceMin: (e) => patch({ adminPkgPriceMin: e.target.value }),
+    adminPkgPriceMax: st.adminPkgPriceMax || '',
+    setAdminPkgPriceMax: (e) => patch({ adminPkgPriceMax: e.target.value }),
+    adminAddPackageDisabled: !(
+      (st.adminPkgName || '').trim() &&
+      Number(st.adminPkgPriceMin) > 0 &&
+      Number(st.adminPkgPriceMax) >= Number(st.adminPkgPriceMin)
+    ),
+    adminAddPackage: () => {
+      const name = (st.adminPkgName || '').trim();
+      const priceMin = Number(st.adminPkgPriceMin);
+      const priceMax = Number(st.adminPkgPriceMax);
+      if (!name || !(priceMin > 0) || !(priceMax >= priceMin)) return;
+      patch((s) => ({
+        adminPackages: (s.adminPackages || []).concat([
+          {
+            name,
+            photoUrl: (s.adminPkgPhotoUrl || '').trim(),
+            description: (s.adminPkgDescription || '').trim(),
+            inclusions: (s.adminPkgInclusionsText || '')
+              .split(',')
+              .map((x) => x.trim())
+              .filter(Boolean),
+            priceMin,
+            priceMax,
+            unit: 'event',
+          },
+        ]),
+        adminPkgName: '',
+        adminPkgPhotoUrl: '',
+        adminPkgDescription: '',
+        adminPkgInclusionsText: '',
+        adminPkgPriceMin: '',
+        adminPkgPriceMax: '',
+      }));
+    },
+    adminRemovePackage: (i) => patch((s) => ({ adminPackages: (s.adminPackages || []).filter((_, idx) => idx !== i) })),
+    adminStep4Next: () => patch({ adminStep: 5 }),
+
+    adminFaqs: st.adminFaqs || [],
+    setAdminFaqQ: (i, e) =>
+      patch((s) => ({
+        adminFaqs: (s.adminFaqs || []).map((f, idx) => (idx === i ? { ...f, q: e.target.value } : f)),
+      })),
+    setAdminFaqA: (i, e) =>
+      patch((s) => ({
+        adminFaqs: (s.adminFaqs || []).map((f, idx) => (idx === i ? { ...f, a: e.target.value } : f)),
+      })),
+    adminAddFaqRow: () => patch((s) => ({ adminFaqs: (s.adminFaqs || []).concat([{ q: '', a: '' }]) })),
+    adminRemoveFaqRow: (i) => patch((s) => ({ adminFaqs: (s.adminFaqs || []).filter((_, idx) => idx !== i) })),
+    adminStep5Next: () => patch({ adminStep: 6 }),
+
+    adminPaymentTerms: st.adminPaymentTerms || '',
+    setAdminPaymentTerms: (e) => patch({ adminPaymentTerms: e.target.value }),
+    adminDepositTerms: st.adminDepositTerms || '',
+    setAdminDepositTerms: (e) => patch({ adminDepositTerms: e.target.value }),
+    adminReschedulePolicy: st.adminReschedulePolicy || '',
+    setAdminReschedulePolicy: (e) => patch({ adminReschedulePolicy: e.target.value }),
+    adminCancellationPolicy: st.adminCancellationPolicy || '',
+    setAdminCancellationPolicy: (e) => patch({ adminCancellationPolicy: e.target.value }),
+    adminStep6Next: () => patch({ adminStep: 7 }),
+
+    adminSaving: !!st.adminSaving,
+    adminSaveError: st.adminSaveError || '',
+    adminSaveVendor: async (published) => {
+      if (st.adminSaving) return;
+      patch({ adminSaving: true, adminSaveError: null });
+      try {
+        await adminCreateVendor({
+          categoryCode: st.adminCategoryCode,
+          name: (st.adminName || '').trim(),
+          city: (st.adminCity || '').trim(),
+          region: st.adminRegion,
+          bio: (st.adminBio || '').trim(),
+          description: (st.adminDescription || '').trim(),
+          phone: (st.adminWhatsapp || '').trim(),
+          coverUrl: (st.adminCoverUrl || '').trim(),
+          logoUrl: (st.adminLogoUrl || '').trim(),
+          gallery: st.adminGallery || [],
+          packages: st.adminPackages || [],
+          faqs: (st.adminFaqs || []).filter((f) => f.q.trim() && f.a.trim()),
+          paymentTerms: (st.adminPaymentTerms || '').trim(),
+          depositTerms: (st.adminDepositTerms || '').trim(),
+          reschedulePolicy: (st.adminReschedulePolicy || '').trim(),
+          cancellationPolicy: (st.adminCancellationPolicy || '').trim(),
+          published,
+        });
+        patch({ adminSaving: false, adminSubScreen: 'dashboard' });
+        loadCatalog();
+      } catch (err) {
+        patch({ adminSaving: false, adminSaveError: err.message || 'Could not save this vendor.' });
+      }
+    },
   };
 
   return (
@@ -5045,6 +5331,365 @@ export default function App() {
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {V.isAdmin && (
+        <div style={{ padding: '34px 0 0', maxWidth: 760 }}>
+          <button
+            onClick={V.goHome}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← Back
+          </button>
+          <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 28 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
+            Admin
+          </h1>
+
+          {!V.adminIsAuthed ? (
+            <div style={{ marginTop: 24, maxWidth: 420, border: '1px solid #ECECEC', borderRadius: 24, padding: 26 }}>
+              {V.signedIn ? (
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                  Signed in as {V.email}, but this account doesn't have admin access.
+                </p>
+              ) : V.authSent ? (
+                <>
+                  <div style={{ fontSize: 18, fontWeight: 700 }}>Check your email</div>
+                  <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                    We sent a sign-in link to {V.email}. Click it to come back here signed in.
+                  </p>
+                  <button
+                    onClick={V.useDifferentEmail}
+                    style={{ marginTop: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#5B5B5B', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+                  >
+                    Use a different email
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 18, fontWeight: 700 }}>Admin sign-in</div>
+                  <label style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Email
+                    </span>
+                    <input
+                      type="email"
+                      value={V.email}
+                      onChange={V.setEmail}
+                      placeholder="you@organisation.tt"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    />
+                  </label>
+                  <button
+                    onClick={V.signIn}
+                    disabled={V.signInDisabled}
+                    style={{ marginTop: 14, border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: V.signInDisabled ? 0.4 : 1 }}
+                  >
+                    {V.authSending ? 'Sending link…' : 'Continue with email'}
+                  </button>
+                  {V.authError && <div style={{ marginTop: 10, fontSize: 13, color: '#B3261E' }}>{V.authError}</div>}
+                </>
+              )}
+            </div>
+          ) : V.adminSubScreen === 'dashboard' ? (
+            <div style={{ marginTop: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 14, color: '#5B5B5B' }}>{V.adminVendors.length} vendors (drafts included)</div>
+                <button
+                  onClick={V.goAdminNewVendor}
+                  style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
+                >
+                  + Add vendor
+                </button>
+              </div>
+              {V.adminVendorsError && (
+                <div style={{ marginTop: 14, fontSize: 13, color: '#B3261E' }}>{V.adminVendorsError}</div>
+              )}
+              {V.adminVendorsLoading ? (
+                <div style={{ marginTop: 20, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>
+              ) : (
+                <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {V.adminVendors.map((v) => (
+                    <div
+                      key={v.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 16,
+                        flexWrap: 'wrap',
+                        borderTop: '1px solid #ECECEC',
+                        padding: '16px 2px',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: 700 }}>{v.name}</div>
+                        <div style={{ marginTop: 2, fontFamily: MONO, fontSize: 12, color: '#9A9A9A' }}>{v.city}</div>
+                      </div>
+                      <button
+                        onClick={() => V.togglePublish(v.id, !v.published)}
+                        style={{
+                          border: '1px solid #D7D7D2',
+                          borderRadius: 999,
+                          background: v.published ? '#171717' : 'transparent',
+                          color: v.published ? '#FFFFFF' : '#171717',
+                          padding: '9px 16px',
+                          cursor: 'pointer',
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {v.published ? 'Published' : 'Draft — publish'}
+                      </button>
+                    </div>
+                  ))}
+                  {V.adminVendors.length === 0 && (
+                    <div style={{ padding: '20px 2px', fontSize: 14, color: '#9A9A9A' }}>No vendors yet.</div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ marginTop: 24 }}>
+              <button
+                onClick={V.goAdminDashboard}
+                style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+              >
+                ← Dashboard
+              </button>
+              <div style={{ marginTop: 14, display: 'flex', gap: 4 }}>
+                {Array.from({ length: V.adminTotalSteps }).map((_, i) => (
+                  <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < V.adminStep ? '#171717' : '#ECECEC' }} />
+                ))}
+              </div>
+              <div style={{ marginTop: 10, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                Step {V.adminStep} of {V.adminTotalSteps}
+              </div>
+
+              {V.adminStep === 1 && (
+                <>
+                  <h2 style={{ margin: '6px 0 0', fontSize: 24, letterSpacing: '-0.02em', fontWeight: 800 }}>Business basics</h2>
+                  <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Business name</span>
+                      <input type="text" value={V.adminName} onChange={V.setAdminName} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }} />
+                    </label>
+                    <div>
+                      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Category</div>
+                      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {V.adminCategoryTiles.map((c) => (
+                          <button key={c.code} onClick={c.pick} style={{ border: c.on ? '2px solid #171717' : '1px solid #E4E4DF', borderRadius: 999, background: c.on ? '#171717' : '#FFFFFF', color: c.on ? '#FFFFFF' : '#171717', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+                            {c.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Region</div>
+                      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {V.adminRegionTiles.map((l) => (
+                          <button key={l.label} onClick={l.pick} style={{ border: l.on ? '2px solid #171717' : '1px solid #E4E4DF', borderRadius: 999, background: l.on ? '#171717' : '#FFFFFF', color: l.on ? '#FFFFFF' : '#171717', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+                            {l.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>City</span>
+                      <input type="text" value={V.adminCity} onChange={V.setAdminCity} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }} />
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>WhatsApp number</span>
+                      <input type="tel" value={V.adminWhatsapp} onChange={V.setAdminWhatsapp} placeholder="e.g. 868 123 4567" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }} />
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Short description</span>
+                      <textarea value={V.adminBio} onChange={V.setAdminBio} rows={2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15, resize: 'vertical' }} />
+                    </label>
+                  </div>
+                  <button
+                    onClick={V.adminStep1Next}
+                    disabled={V.adminStep1NextDisabled}
+                    style={{ marginTop: 22, border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: V.adminStep1NextDisabled ? 0.4 : 1 }}
+                  >
+                    Continue →
+                  </button>
+                </>
+              )}
+
+              {V.adminStep === 2 && (
+                <>
+                  <h2 style={{ margin: '6px 0 0', fontSize: 24, letterSpacing: '-0.02em', fontWeight: 800 }}>Full profile</h2>
+                  <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Full description</span>
+                      <textarea value={V.adminDescription} onChange={V.setAdminDescription} rows={5} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15, resize: 'vertical' }} />
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Cover photo URL</span>
+                      <input type="text" value={V.adminCoverUrl} onChange={V.setAdminCoverUrl} placeholder="https://…" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }} />
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Logo URL</span>
+                      <input type="text" value={V.adminLogoUrl} onChange={V.setAdminLogoUrl} placeholder="https://…" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }} />
+                    </label>
+                    <div style={{ fontSize: 12.5, lineHeight: 1.5, color: '#9A9A9A' }}>
+                      Starting price isn't set here — it's calculated automatically from the cheapest package you add in the next steps.
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 22, display: 'flex', gap: 10 }}>
+                    <button onClick={V.adminStepBack} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '13px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Back</button>
+                    <button onClick={V.adminStep2Next} style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>Continue →</button>
+                  </div>
+                </>
+              )}
+
+              {V.adminStep === 3 && (
+                <>
+                  <h2 style={{ margin: '6px 0 0', fontSize: 24, letterSpacing: '-0.02em', fontWeight: 800 }}>Gallery</h2>
+                  <p style={{ margin: '8px 0 0', fontSize: 14, color: '#5B5B5B' }}>Add photos grouped by event type (e.g. Weddings, Birthdays).</p>
+                  <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <input type="text" value={V.adminGalleryEventType} onChange={V.setAdminGalleryEventType} placeholder="Event type, e.g. Weddings" style={{ flex: '1 1 180px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <input type="text" value={V.adminGalleryPhotoUrl} onChange={V.setAdminGalleryPhotoUrl} placeholder="Photo URL" style={{ flex: '1 1 220px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <button onClick={V.adminAddGalleryPhoto} disabled={V.adminAddGalleryPhotoDisabled} style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.adminAddGalleryPhotoDisabled ? 0.4 : 1 }}>
+                      Add photo
+                    </button>
+                  </div>
+                  {V.adminGallery.length > 0 && (
+                    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {V.adminGallery.map((g, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #ECECEC', padding: '10px 2px' }}>
+                          <div style={{ fontSize: 13, color: '#4A4A4A' }}>
+                            <strong>{g.eventType}</strong> — {g.photoUrl}
+                          </div>
+                          <button onClick={() => V.adminRemoveGalleryPhoto(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 13, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ marginTop: 22, display: 'flex', gap: 10 }}>
+                    <button onClick={V.adminStepBack} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '13px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Back</button>
+                    <button onClick={V.adminStep3Next} style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>Continue →</button>
+                  </div>
+                </>
+              )}
+
+              {V.adminStep === 4 && (
+                <>
+                  <h2 style={{ margin: '6px 0 0', fontSize: 24, letterSpacing: '-0.02em', fontWeight: 800 }}>Packages</h2>
+                  <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <input type="text" value={V.adminPkgName} onChange={V.setAdminPkgName} placeholder="Package name" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <input type="text" value={V.adminPkgPhotoUrl} onChange={V.setAdminPkgPhotoUrl} placeholder="Photo URL (optional)" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <textarea value={V.adminPkgDescription} onChange={V.setAdminPkgDescription} placeholder="Description" rows={2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
+                    <input type="text" value={V.adminPkgInclusionsText} onChange={V.setAdminPkgInclusionsText} placeholder="Inclusions, comma separated" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <input type="number" value={V.adminPkgPriceMin} onChange={V.setAdminPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <input type="number" value={V.adminPkgPriceMax} onChange={V.setAdminPkgPriceMax} placeholder="Price max (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    </div>
+                    <button onClick={V.adminAddPackage} disabled={V.adminAddPackageDisabled} style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.adminAddPackageDisabled ? 0.4 : 1 }}>
+                      Add package
+                    </button>
+                  </div>
+                  {V.adminPackages.length > 0 && (
+                    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {V.adminPackages.map((p, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #ECECEC', padding: '10px 2px' }}>
+                          <div style={{ fontSize: 13, color: '#4A4A4A' }}>
+                            <strong>{p.name}</strong> — TT${p.priceMin}–TT${p.priceMax}
+                          </div>
+                          <button onClick={() => V.adminRemovePackage(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 13, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ marginTop: 22, display: 'flex', gap: 10 }}>
+                    <button onClick={V.adminStepBack} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '13px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Back</button>
+                    <button onClick={V.adminStep4Next} style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>Continue →</button>
+                  </div>
+                </>
+              )}
+
+              {V.adminStep === 5 && (
+                <>
+                  <h2 style={{ margin: '6px 0 0', fontSize: 24, letterSpacing: '-0.02em', fontWeight: 800 }}>FAQ</h2>
+                  <p style={{ margin: '8px 0 0', fontSize: 14, color: '#5B5B5B' }}>Edit the defaults, remove ones that don't apply, or add your own.</p>
+                  <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {V.adminFaqs.map((f, i) => (
+                      <div key={i} style={{ border: '1px solid #ECECEC', borderRadius: 16, padding: 14 }}>
+                        <input type="text" value={f.q} onChange={(e) => V.setAdminFaqQ(i, e)} placeholder="Question" style={{ width: '100%', border: 0, borderBottom: '1px solid #E4E4DF', background: 'transparent', padding: '6px 2px', fontFamily: SANS, fontSize: 14, fontWeight: 700 }} />
+                        <textarea value={f.a} onChange={(e) => V.setAdminFaqA(i, e)} placeholder="Answer" rows={2} style={{ marginTop: 8, width: '100%', border: 0, background: 'transparent', padding: '2px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
+                        <button onClick={() => V.adminRemoveFaqRow(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={V.adminAddFaqRow} style={{ marginTop: 12, border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+                    + Add question
+                  </button>
+                  <div style={{ marginTop: 22, display: 'flex', gap: 10 }}>
+                    <button onClick={V.adminStepBack} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '13px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Back</button>
+                    <button onClick={V.adminStep5Next} style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>Continue →</button>
+                  </div>
+                </>
+              )}
+
+              {V.adminStep === 6 && (
+                <>
+                  <h2 style={{ margin: '6px 0 0', fontSize: 24, letterSpacing: '-0.02em', fontWeight: 800 }}>Policies</h2>
+                  <p style={{ margin: '8px 0 0', fontSize: 14, color: '#5B5B5B' }}>All optional — leave blank to hide a section on the live profile.</p>
+                  <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Payment</span>
+                      <textarea value={V.adminPaymentTerms} onChange={V.setAdminPaymentTerms} rows={2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Deposit</span>
+                      <textarea value={V.adminDepositTerms} onChange={V.setAdminDepositTerms} rows={2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Rescheduling</span>
+                      <textarea value={V.adminReschedulePolicy} onChange={V.setAdminReschedulePolicy} rows={2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Cancellation &amp; refunds</span>
+                      <textarea value={V.adminCancellationPolicy} onChange={V.setAdminCancellationPolicy} rows={2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
+                    </label>
+                  </div>
+                  <div style={{ marginTop: 22, display: 'flex', gap: 10 }}>
+                    <button onClick={V.adminStepBack} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '13px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Back</button>
+                    <button onClick={V.adminStep6Next} style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>Continue to review →</button>
+                  </div>
+                </>
+              )}
+
+              {V.adminStep === 7 && (
+                <>
+                  <h2 style={{ margin: '6px 0 0', fontSize: 24, letterSpacing: '-0.02em', fontWeight: 800 }}>Review &amp; publish</h2>
+                  <div style={{ marginTop: 16, borderRadius: 20, background: '#F7F7F5', padding: 20, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14 }}>
+                    <div><strong>{V.adminName || '(no name)'}</strong> · {catName(st.adminCategoryCode)} · {st.adminRegion}, {V.adminCity}</div>
+                    <div style={{ color: '#5B5B5B' }}>{V.adminGallery.length} gallery photos · {V.adminPackages.length} packages · {(st.adminFaqs || []).filter((f) => f.q.trim() && f.a.trim()).length} FAQ entries</div>
+                  </div>
+                  {V.adminSaveError && <div style={{ marginTop: 12, fontSize: 13, color: '#B3261E' }}>{V.adminSaveError}</div>}
+                  <div style={{ marginTop: 22, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <button onClick={V.adminStepBack} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '13px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Back</button>
+                    <button
+                      onClick={() => V.adminSaveVendor(false)}
+                      disabled={V.adminSaving}
+                      style={{ border: '1px solid #171717', borderRadius: 999, background: 'transparent', color: '#171717', padding: '13px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: V.adminSaving ? 0.5 : 1 }}
+                    >
+                      Save as draft
+                    </button>
+                    <button
+                      onClick={() => V.adminSaveVendor(true)}
+                      disabled={V.adminSaving}
+                      style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '13px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: V.adminSaving ? 0.5 : 1 }}
+                    >
+                      {V.adminSaving ? 'Publishing…' : 'Publish'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
 
