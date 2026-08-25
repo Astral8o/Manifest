@@ -496,6 +496,32 @@ export async function submitQuoteRequest(request) {
   if (error) throw error;
 }
 
+// The signed-in buyer's own quote requests, newest first. RLS already
+// restricts quote_requests SELECT to the caller's own buyer_user_id, so no
+// explicit filter is needed here.
+export async function fetchMyQuoteRequests() {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase
+    .from('quote_requests')
+    .select('id, vendor_id, event_type, event_type_other, event_date, venue, status, created_at, vendors(name, category_code)')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data || []).map((r) => ({
+    id: r.id,
+    vendorId: r.vendor_id,
+    vendorName: r.vendors ? r.vendors.name : 'Vendor',
+    categoryCode: r.vendors ? r.vendors.category_code : null,
+    eventType: r.event_type_other || r.event_type,
+    eventDate: r.event_date,
+    venue: r.venue,
+    status: r.status,
+    createdAt: r.created_at,
+  }));
+}
+
 export async function submitPlanningRequest(request) {
   if (!supabaseConfigured) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');

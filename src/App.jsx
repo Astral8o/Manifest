@@ -12,6 +12,7 @@ import {
   sendMagicLink,
   submitPlanningRequest,
   submitQuoteRequest,
+  fetchMyQuoteRequests,
   adminListVendors,
   adminSetPublished,
   adminCreateVendor,
@@ -193,17 +194,16 @@ function useIsMobile() {
 const loadAccount = () => {
   try {
     const raw = localStorage.getItem(ACCOUNT_KEY);
-    if (!raw) return { email: '', history: [], saved: [], savedVendors: [], promoOptIn: false };
+    if (!raw) return { email: '', saved: [], savedVendors: [], promoOptIn: false };
     const parsed = JSON.parse(raw);
     return {
       email: parsed.email || '',
-      history: parsed.history || [],
       saved: parsed.saved || [],
       savedVendors: parsed.savedVendors || [],
       promoOptIn: !!parsed.promoOptIn,
     };
   } catch {
-    return { email: '', history: [], saved: [], savedVendors: [], promoOptIn: false };
+    return { email: '', saved: [], savedVendors: [], promoOptIn: false };
   }
 };
 
@@ -245,7 +245,6 @@ const initialState = {
   authSending: false,
   authSent: false,
   authError: null,
-  history: [],
   saved: [],
   savedVendors: [],
   promoOptIn: false,
@@ -282,6 +281,9 @@ const initialState = {
   quoteSubmitting: false,
   quoteSubmitError: null,
   quoteSent: false,
+  dashboardQuotes: [],
+  dashboardQuotesLoading: false,
+  dashboardQuotesError: null,
 };
 
 export default function App() {
@@ -333,6 +335,17 @@ export default function App() {
       .catch((err) => patch({ adminVendorsLoading: false, adminVendorsError: err.message || 'Could not load vendors.' }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [st.screen, st.adminSubScreen, st.signedIn, st.email]);
+
+  // Load the signed-in planner's own quote requests whenever they land on
+  // their dashboard (the account screen).
+  useEffect(() => {
+    if (st.screen !== 'account' || !st.signedIn) return;
+    patch({ dashboardQuotesLoading: true, dashboardQuotesError: null });
+    fetchMyQuoteRequests()
+      .then((rows) => patch({ dashboardQuotesLoading: false, dashboardQuotes: rows }))
+      .catch((err) => patch({ dashboardQuotesLoading: false, dashboardQuotesError: err.message || 'Could not load your inquiries.' }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [st.screen, st.signedIn]);
 
   // Real auth: restore any existing Supabase session on load, then stay in
   // sync as the user signs in (via magic link) or out. A magic link click
@@ -394,7 +407,6 @@ export default function App() {
         ACCOUNT_KEY,
         JSON.stringify({
           email: st.email,
-          history: st.history,
           saved: st.saved,
           savedVendors: st.savedVendors,
           promoOptIn: st.promoOptIn,
@@ -403,7 +415,7 @@ export default function App() {
     } catch {
       // ignore storage failures (private browsing, quota, etc.)
     }
-  }, [st.email, st.history, st.saved, st.savedVendors, st.promoOptIn]);
+  }, [st.email, st.saved, st.savedVendors, st.promoOptIn]);
 
   const pendingScrollAnchorRef = useRef(null);
 
@@ -1204,17 +1216,6 @@ export default function App() {
     },
     promoOptIn: !!st.promoOptIn,
     togglePromoOptIn: () => patch((s) => ({ promoOptIn: !s.promoOptIn })),
-    accountHistory: (st.history || []).map((h) => ({
-      key: h.id,
-      date: h.date,
-      suppliersLabel: h.suppliers.join(', '),
-      itemLabel:
-        h.itemCount +
-        (h.itemCount === 1 ? ' product · ' : ' products · ') +
-        h.suppliers.length +
-        (h.suppliers.length === 1 ? ' vendor' : ' vendors'),
-    })),
-    hasHistory: (st.history || []).length > 0,
 
     savedProducts: (st.saved || [])
       .map((pid) => {
@@ -1236,6 +1237,37 @@ export default function App() {
       })
       .filter(Boolean),
     hasSaved: (st.saved || []).length > 0,
+
+    savedVendorRows: (st.savedVendors || [])
+      .map((vid) => {
+        const s = supplier(vid);
+        if (!s) return null;
+        return {
+          key: vid,
+          logo: s.logoUrl || avatarUrl(s.name),
+          name: s.name,
+          categoryName: catName(s.code),
+          open: () =>
+            patch({ screen: 'supplier', supId: vid, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+          unsave: () => toggleSaveVendor(vid),
+        };
+      })
+      .filter(Boolean),
+    hasSavedVendors: (st.savedVendors || []).length > 0,
+
+    dashboardQuotesLoading: !!st.dashboardQuotesLoading,
+    dashboardQuotesError: st.dashboardQuotesError || '',
+    dashboardInquiries: (st.dashboardQuotes || []).map((q) => ({
+      key: q.id,
+      vendorName: q.vendorName,
+      eventType: q.eventType,
+      eventDate: q.eventDate,
+      venue: q.venue,
+      statusLabel: q.status === 'new' ? 'Sent' : q.status,
+      open: () =>
+        patch({ screen: 'supplier', supId: q.vendorId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+    })),
+    hasDashboardInquiries: (st.dashboardQuotes || []).length > 0,
 
     isAdmin: st.screen === 'admin',
     adminIsAuthed: st.signedIn && st.email === ADMIN_EMAIL,
@@ -4258,23 +4290,185 @@ export default function App() {
       )}
 
       {V.isAccount && (
-        <div style={{ padding: '34px 0 0', maxWidth: 560 }}>
+        <div style={{ padding: '34px 0 0', maxWidth: 680 }}>
           <button
             onClick={V.goHome}
             style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
           >
             ← Back
           </button>
-          <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Your account</h1>
+          <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
+            {V.isSignedIn ? 'Your dashboard' : 'Your account'}
+          </h1>
 
-          <div style={{ marginTop: 26 }}>
-            <h2 style={{ margin: 0, fontSize: 22, letterSpacing: '-0.02em', fontWeight: 800 }}>Saved products</h2>
-            {!V.hasSaved && (
+          {V.isSignedIn && (
+            <div
+              style={{
+                marginTop: 22,
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                gap: 12,
+              }}
+            >
+              <button
+                onClick={V.startPlanning}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  border: 0,
+                  borderRadius: 20,
+                  background: '#171717',
+                  color: '#FFFFFF',
+                  padding: '20px 22px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 17, fontWeight: 800 }}>Plan a new event</div>
+                  <div style={{ marginTop: 4, fontSize: 13, color: '#B3B3B3' }}>Tell us what you need, we'll match you to vendors</div>
+                </div>
+                <span style={{ fontSize: 20 }}>→</span>
+              </button>
+              <button
+                onClick={V.goSuppliers}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  border: '1px solid #ECECEC',
+                  borderRadius: 20,
+                  background: '#FFFFFF',
+                  color: '#171717',
+                  padding: '20px 22px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 17, fontWeight: 800 }}>Browse vendors</div>
+                  <div style={{ marginTop: 4, fontSize: 13, color: '#8A8A8A' }}>Explore every vendor on Eventory</div>
+                </div>
+                <span style={{ fontSize: 20 }}>→</span>
+              </button>
+            </div>
+          )}
+
+          {V.isSignedIn && (
+            <div style={{ marginTop: 32 }}>
+              <h2 style={{ margin: 0, fontSize: 22, letterSpacing: '-0.02em', fontWeight: 800 }}>Inquiries made</h2>
+              {V.dashboardQuotesLoading && (
+                <div style={{ marginTop: 12, fontSize: 14, color: '#8A8A8A' }}>Loading…</div>
+              )}
+              {V.dashboardQuotesError && (
+                <div style={{ marginTop: 12, fontSize: 13, color: '#B3261E' }}>{V.dashboardQuotesError}</div>
+              )}
+              {!V.dashboardQuotesLoading && !V.hasDashboardInquiries && !V.dashboardQuotesError && (
+                <div style={{ marginTop: 12, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '32px 24px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 15, color: '#5B5B5B' }}>
+                    No quote requests yet. Message a vendor on WhatsApp or use Get a quote on their profile.
+                  </div>
+                </div>
+              )}
+              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {V.dashboardInquiries.map((q) => (
+                  <button
+                    key={q.key}
+                    onClick={q.open}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      border: '1px solid #ECECEC',
+                      borderRadius: 20,
+                      background: 'transparent',
+                      padding: '16px 18px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: 15, fontWeight: 700 }}>{q.vendorName}</div>
+                      <span
+                        style={{
+                          fontFamily: MONO,
+                          fontSize: 10.5,
+                          letterSpacing: '0.06em',
+                          textTransform: 'uppercase',
+                          color: '#5B5B5B',
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 999,
+                          padding: '3px 10px',
+                        }}
+                      >
+                        {q.statusLabel}
+                      </span>
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: 13, color: '#5B5B5B' }}>
+                      {q.eventType}
+                      {q.eventDate ? ' · ' + q.eventDate : ''}
+                      {q.venue ? ' · ' + q.venue : ''}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginTop: 32 }}>
+            <h2 style={{ margin: 0, fontSize: 22, letterSpacing: '-0.02em', fontWeight: 800 }}>Saved</h2>
+            {!V.hasSaved && !V.hasSavedVendors && (
               <div style={{ marginTop: 12, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '32px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 15, color: '#5B5B5B' }}>Nothing saved yet. Tap Save on any product to keep it here.</div>
+                <div style={{ fontSize: 15, color: '#5B5B5B' }}>Nothing saved yet. Tap Save on a vendor or product to keep it here.</div>
               </div>
             )}
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {V.savedVendorRows.map((s) => (
+                <div
+                  key={s.key}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 16,
+                    flexWrap: 'wrap',
+                    border: '1px solid #ECECEC',
+                    borderRadius: 20,
+                    padding: '16px 18px',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: 14, alignItems: 'center', minWidth: 220 }}>
+                    <img src={s.logo} alt={s.name} style={{ width: 44, height: 44, borderRadius: 999, objectFit: 'cover', flexShrink: 0, background: '#171717' }} />
+                    <div>
+                      <button
+                        onClick={s.open}
+                        style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 15, fontWeight: 700, color: '#171717', textAlign: 'left' }}
+                      >
+                        {s.name}
+                      </button>
+                      <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{s.categoryName}</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={s.unsave}
+                    style={{
+                      border: 0,
+                      background: 'transparent',
+                      padding: 0,
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#8A8A8A',
+                      textDecoration: 'underline',
+                      textUnderlineOffset: '3px',
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
               {V.savedProducts.map((p) => (
                 <div
                   key={p.key}
@@ -4350,6 +4544,17 @@ export default function App() {
             </div>
           </div>
 
+          {V.isSignedIn && (
+            <div style={{ marginTop: 32 }}>
+              <h2 style={{ margin: 0, fontSize: 22, letterSpacing: '-0.02em', fontWeight: 800 }}>Bookings</h2>
+              <div style={{ marginTop: 12, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '32px 24px', textAlign: 'center' }}>
+                <div style={{ fontSize: 15, color: '#5B5B5B' }}>
+                  No bookings yet. Once a vendor confirms your event, it'll show up here.
+                </div>
+              </div>
+            </div>
+          )}
+
           {V.accountNeedsSignIn && (
             <div style={{ marginTop: 26, border: '1px solid #ECECEC', borderRadius: 24, padding: 26 }}>
               {V.authSent ? (
@@ -4370,8 +4575,8 @@ export default function App() {
                 <>
                   <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Sign in</div>
                   <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-                    No password, we email you a link. New here? The same link creates your account and saves your
-                    Eventories so you can find them again.
+                    No password, we email you a link. New here? The same link creates your account so you can
+                    save vendors, send quote requests, and find them again.
                   </p>
                   <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
@@ -4516,26 +4721,6 @@ export default function App() {
                 >
                   Sign out
                 </button>
-              </div>
-
-              <div style={{ marginTop: 24 }}>
-                <h2 style={{ margin: 0, fontSize: 22, letterSpacing: '-0.02em', fontWeight: 800 }}>Past Eventories</h2>
-                {!V.hasHistory && (
-                  <div style={{ marginTop: 12, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '32px 24px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 15, color: '#5B5B5B' }}>Nothing sent yet. Eventories you send while signed in will show up here.</div>
-                  </div>
-                )}
-                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {V.accountHistory.map((h) => (
-                    <div key={h.key} style={{ border: '1px solid #ECECEC', borderRadius: 20, padding: '18px 20px' }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                        <div style={{ fontSize: 15, fontWeight: 700 }}>{h.date}</div>
-                        <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{h.itemLabel}</div>
-                      </div>
-                      <div style={{ marginTop: 6, fontSize: 13, color: '#5B5B5B' }}>{h.suppliersLabel}</div>
-                    </div>
-                  ))}
-                </div>
               </div>
             </>
           )}
