@@ -468,6 +468,34 @@ export async function submitVendorOnboarding(vendorId, v) {
   }
 }
 
+// A single-vendor quote request from a signed-in buyer. Distinct from the
+// old multi-vendor inquiries table: one submission always targets exactly
+// one vendor.
+export async function submitQuoteRequest(request) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('You need to be signed in to send a quote request.');
+
+  const { error } = await supabase.from('quote_requests').insert({
+    vendor_id: request.vendorId,
+    buyer_user_id: user.id,
+    event_type: request.eventType,
+    event_type_other: request.eventTypeOther || null,
+    event_date: request.eventDate || null,
+    venue: request.venue || null,
+    category_answers: request.categoryAnswers || {},
+    contact_name: request.contactName,
+    contact_email: request.contactEmail,
+    contact_phone: request.contactPhone || null,
+  });
+
+  if (error) throw error;
+}
+
 export async function submitPlanningRequest(request) {
   if (!supabaseConfigured) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');

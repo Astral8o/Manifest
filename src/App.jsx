@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import {
   LOCATIONS,
   GROUPS,
+  FIELDS,
+  FIELDS_DEFAULT,
   money,
 } from './data';
 import {
@@ -9,6 +11,7 @@ import {
   submitVendorReview,
   sendMagicLink,
   submitPlanningRequest,
+  submitQuoteRequest,
   adminListVendors,
   adminSetPublished,
   adminCreateVendor,
@@ -190,16 +193,17 @@ function useIsMobile() {
 const loadAccount = () => {
   try {
     const raw = localStorage.getItem(ACCOUNT_KEY);
-    if (!raw) return { email: '', history: [], saved: [], promoOptIn: false };
+    if (!raw) return { email: '', history: [], saved: [], savedVendors: [], promoOptIn: false };
     const parsed = JSON.parse(raw);
     return {
       email: parsed.email || '',
       history: parsed.history || [],
       saved: parsed.saved || [],
+      savedVendors: parsed.savedVendors || [],
       promoOptIn: !!parsed.promoOptIn,
     };
   } catch {
-    return { email: '', history: [], saved: [], promoOptIn: false };
+    return { email: '', history: [], saved: [], savedVendors: [], promoOptIn: false };
   }
 };
 
@@ -243,8 +247,11 @@ const initialState = {
   authError: null,
   history: [],
   saved: [],
+  savedVendors: [],
   promoOptIn: false,
   copiedPid: null,
+  copiedVendorId: null,
+  supCarouselIndex: 0,
   contactSent: false,
   sourcingOpen: false,
   sourcingSent: false,
@@ -262,6 +269,19 @@ const initialState = {
   reviewSending: false,
   reviewError: null,
   reviewSent: false,
+  quoteModalOpen: false,
+  quoteStep: 1,
+  quoteEventType: null,
+  quoteEventTypeOther: '',
+  quoteEventDate: '',
+  quoteVenue: '',
+  quoteAnswers: {},
+  quoteContactName: '',
+  quoteContactEmail: '',
+  quoteContactPhone: '',
+  quoteSubmitting: false,
+  quoteSubmitError: null,
+  quoteSent: false,
 };
 
 export default function App() {
@@ -331,7 +351,29 @@ export default function App() {
           const raw = localStorage.getItem(POST_AUTH_RETURN_KEY);
           if (raw) {
             const parsed = JSON.parse(raw);
-            if (parsed && parsed.screen) extra = { screen: parsed.screen };
+            if (parsed && parsed.screen) {
+              extra = {
+                screen: parsed.screen,
+                ...(parsed.supId ? { supId: parsed.supId } : {}),
+                ...(parsed.openQuote
+                  ? {
+                      quoteModalOpen: true,
+                      quoteStep: 1,
+                      quoteEventType: null,
+                      quoteEventTypeOther: '',
+                      quoteEventDate: '',
+                      quoteVenue: '',
+                      quoteAnswers: {},
+                      quoteContactName: '',
+                      quoteContactEmail: session.user.email || '',
+                      quoteContactPhone: '',
+                      quoteSubmitting: false,
+                      quoteSubmitError: null,
+                      quoteSent: false,
+                    }
+                  : {}),
+              };
+            }
           }
           localStorage.removeItem(POST_AUTH_RETURN_KEY);
         } catch {
@@ -354,13 +396,14 @@ export default function App() {
           email: st.email,
           history: st.history,
           saved: st.saved,
+          savedVendors: st.savedVendors,
           promoOptIn: st.promoOptIn,
         })
       );
     } catch {
       // ignore storage failures (private browsing, quota, etc.)
     }
-  }, [st.email, st.history, st.saved, st.promoOptIn]);
+  }, [st.email, st.history, st.saved, st.savedVendors, st.promoOptIn]);
 
   const pendingScrollAnchorRef = useRef(null);
 
@@ -374,6 +417,14 @@ export default function App() {
       window.scrollTo(0, 0);
     }
   }, [st.screen]);
+
+  useEffect(() => {
+    if (st.screen !== 'supplier') return;
+    const id = setInterval(() => {
+      patch((s) => ({ supCarouselIndex: (s.supCarouselIndex || 0) + 1 }));
+    }, 4000);
+    return () => clearInterval(id);
+  }, [st.screen, st.supId]);
 
   const isPoppingRef = useRef(false);
   const isFirstScreenRef = useRef(true);
@@ -487,6 +538,34 @@ export default function App() {
     }
   };
 
+  const toggleSaveVendor = (supId) => {
+    patch((s) => {
+      const savedVendors = s.savedVendors || [];
+      return {
+        savedVendors: savedVendors.indexOf(supId) >= 0 ? savedVendors.filter((x) => x !== supId) : savedVendors.concat([supId]),
+      };
+    });
+  };
+  const shareVendor = (supId) => {
+    const s = supplier(supId);
+    if (!s) return;
+    const url = window.location.origin + window.location.pathname + '?supplier=' + encodeURIComponent(supId);
+    const text = s.name + ' on Eventory';
+    if (navigator.share) {
+      navigator.share({ title: s.name, text, url }).catch(() => {});
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          patch({ copiedVendorId: supId });
+          setTimeout(() => patch((s2) => (s2.copiedVendorId === supId ? { copiedVendorId: null } : {})), 1800);
+        })
+        .catch(() => {});
+    }
+  };
+
   // ---- derived view-model ----
   const nav = (screen, extra) => () => patch({ screen, navMenuOpen: false, ...(extra || {}) });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
@@ -531,6 +610,25 @@ export default function App() {
 
   const sup = supplier(st.supId) || SUPPLIERS[0] || EMPTY_SUPPLIER;
   const supProducts = allProducts().filter((p) => p.supId === sup.id);
+  const socialUrl = (platform, handle) => {
+    if (!handle) return null;
+    const h = handle
+      .trim()
+      .replace(/^https?:\/\//, '')
+      .replace(/^(www\.)?(instagram|facebook|tiktok)\.com\//i, '')
+      .replace(/^@/, '');
+    if (!h) return null;
+    if (platform === 'instagram') return 'https://instagram.com/' + h;
+    if (platform === 'facebook') return 'https://facebook.com/' + h;
+    if (platform === 'tiktok') return 'https://tiktok.com/@' + h;
+    return null;
+  };
+  const supCoverFallback = sup.coverUrl || photoUrl(sup.id + '-cover', 960, 360);
+  const supCarouselPhotos = (() => {
+    const galleryPhotos = (sup.gallery || []).map((g) => g.photoUrl).filter(Boolean);
+    const photos = [supCoverFallback, ...galleryPhotos].filter(Boolean).slice(0, 3);
+    return photos.length ? photos : [supCoverFallback];
+  })();
 
   const svcGroups = Array.from(new Set(supProducts.map((p) => p.group)));
   const svcGroupFilter = st.svcGroup || 'All';
@@ -743,7 +841,7 @@ export default function App() {
         location: s.city,
         categoryName: catName(s.code),
         rating: s.rating,
-        open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false }),
+        open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
       })),
 
     featuredProducts: SUPPLIERS.slice()
@@ -759,7 +857,7 @@ export default function App() {
           supplierName: s.name,
           categoryName: catName(s.code),
           priceLabel: priceLabel(p),
-          open: () => patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false }),
+          open: () => patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
         };
       })
       .filter(Boolean),
@@ -775,7 +873,7 @@ export default function App() {
       location: s.city,
       description: s.bio,
       tags: s.tags,
-      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false }),
+      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
     })),
 
     dirCategoryFilters: [{ code: 'ALL', name: 'All categories' }, ...CATS.map((c) => ({ code: c[0], name: c[1] }))].map((c) => {
@@ -805,7 +903,7 @@ export default function App() {
       categoryName: catName(s.code),
       description: s.bio,
       tags: s.tags,
-      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false }),
+      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
     })),
     dirShowSeeAll: dirFiltered.length > (st.dirVisible || 6),
     dirSeeAllLabel: 'See all ' + dirFiltered.length + ' vendors',
@@ -814,6 +912,12 @@ export default function App() {
     sup: {
       logo: sup.logoUrl || avatarUrl(sup.name),
       cover: sup.coverUrl || photoUrl(sup.id + '-cover', 960, 360),
+      carouselPhotos: supCarouselPhotos,
+      carouselIndex: (st.supCarouselIndex || 0) % supCarouselPhotos.length,
+      isSaved: (st.savedVendors || []).indexOf(sup.id) >= 0,
+      toggleSaved: () => toggleSaveVendor(sup.id),
+      share: () => shareVendor(sup.id),
+      justCopied: st.copiedVendorId === sup.id,
       name: sup.name,
       code: sup.code,
       description: sup.bio,
@@ -837,8 +941,9 @@ export default function App() {
           encodeURIComponent(`Hi ${sup.name}, I found you on Eventory and I'm interested in your services.`)
         : null,
       social: [
-        sup.instagram ? { key: 'instagram', label: 'Instagram', value: sup.instagram } : null,
-        sup.facebook ? { key: 'facebook', label: 'Facebook', value: sup.facebook } : null,
+        sup.instagram ? { key: 'instagram', label: 'Instagram', href: socialUrl('instagram', sup.instagram) } : null,
+        sup.facebook ? { key: 'facebook', label: 'Facebook', href: socialUrl('facebook', sup.facebook) } : null,
+        sup.tiktok ? { key: 'tiktok', label: 'TikTok', href: socialUrl('tiktok', sup.tiktok) } : null,
       ].filter(Boolean),
       promos: (sup.promos || []).map((p) => ({ key: p.title, ...p })),
       reviews: (sup.reviews || []).map((r) => ({
@@ -858,6 +963,99 @@ export default function App() {
       policies: (sup.policies || []).map((p) => ({ key: p.title, label: p.title, text: p.body })),
       menuItems: sup.menuItems || [],
     },
+
+    startQuote: () => {
+      if (!st.signedIn) {
+        try {
+          localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: 'supplier', supId: sup.id, openQuote: true }));
+        } catch {
+          // ignore storage failures — worst case the user has to click again after signing in
+        }
+        patch({ screen: 'account', navMenuOpen: false });
+        return;
+      }
+      patch({
+        quoteModalOpen: true,
+        quoteStep: 1,
+        quoteEventType: null,
+        quoteEventTypeOther: '',
+        quoteEventDate: '',
+        quoteVenue: '',
+        quoteAnswers: {},
+        quoteContactName: st.quoteContactName || '',
+        quoteContactEmail: st.quoteContactEmail || st.email || '',
+        quoteContactPhone: st.quoteContactPhone || '',
+        quoteSubmitting: false,
+        quoteSubmitError: null,
+        quoteSent: false,
+      });
+    },
+    quoteModalOpen: !!st.quoteModalOpen,
+    closeQuoteModal: () => patch({ quoteModalOpen: false }),
+    quoteStep: st.quoteStep || 1,
+    quoteTotalSteps: 6,
+    quoteStepBack: () => patch((s) => ({ quoteStep: Math.max(1, (s.quoteStep || 1) - 1) })),
+    quoteEventTypeTiles: EVENT_TYPES.map((t) => ({
+      key: t.key,
+      label: t.label,
+      on: st.quoteEventType === t.key,
+      pick: () => patch({ quoteEventType: t.key }),
+    })),
+    quoteEventTypeOther: st.quoteEventTypeOther || '',
+    setQuoteEventTypeOther: (e) => patch({ quoteEventTypeOther: e.target.value }),
+    quoteStep1Valid: !!st.quoteEventType && (st.quoteEventType !== 'other' || !!(st.quoteEventTypeOther || '').trim()),
+    quoteEventDate: st.quoteEventDate || '',
+    setQuoteEventDate: (e) => patch({ quoteEventDate: e.target.value }),
+    quoteStep2Valid: !!st.quoteEventDate,
+    quoteVenue: st.quoteVenue || '',
+    setQuoteVenue: (e) => patch({ quoteVenue: e.target.value }),
+    quoteStep3Valid: !!(st.quoteVenue || '').trim(),
+    quoteCategoryFields: FIELDS[sup.code] || FIELDS_DEFAULT,
+    quoteAnswer: (k) => (st.quoteAnswers || {})[k] || '',
+    setQuoteAnswer: (k) => (e) => patch((s) => ({ quoteAnswers: { ...(s.quoteAnswers || {}), [k]: e.target.value } })),
+    pickQuoteAnswer: (k, v) => () => patch((s) => ({ quoteAnswers: { ...(s.quoteAnswers || {}), [k]: v } })),
+    quoteContactName: st.quoteContactName || '',
+    setQuoteContactName: (e) => patch({ quoteContactName: e.target.value }),
+    quoteContactEmail: st.quoteContactEmail || '',
+    setQuoteContactEmail: (e) => patch({ quoteContactEmail: e.target.value }),
+    quoteContactPhone: st.quoteContactPhone || '',
+    setQuoteContactPhone: (e) => patch({ quoteContactPhone: e.target.value }),
+    quoteStep5Valid: !!(st.quoteContactName || '').trim() && !!(st.quoteContactEmail || '').trim() && st.quoteContactEmail.indexOf('@') > 0,
+    quoteNextStep: () => patch((s) => ({ quoteStep: Math.min(6, (s.quoteStep || 1) + 1) })),
+    quoteEventLabel:
+      st.quoteEventType === 'other'
+        ? st.quoteEventTypeOther || 'Other'
+        : (EVENT_TYPES.find((t) => t.key === st.quoteEventType) || {}).label || '',
+    quoteReviewAnswers: (FIELDS[sup.code] || FIELDS_DEFAULT)
+      .map((f) => ({ key: f.k, label: f.label, value: (st.quoteAnswers || {})[f.k] }))
+      .filter((r) => r.value),
+    quoteSubmitting: !!st.quoteSubmitting,
+    quoteSubmitError: st.quoteSubmitError || '',
+    quoteSent: !!st.quoteSent,
+    submitQuote: async () => {
+      if (st.quoteSubmitting) return;
+      patch({ quoteSubmitting: true, quoteSubmitError: null });
+      try {
+        await submitQuoteRequest({
+          vendorId: sup.id,
+          eventType:
+            st.quoteEventType === 'other'
+              ? st.quoteEventTypeOther || 'Other'
+              : (EVENT_TYPES.find((t) => t.key === st.quoteEventType) || {}).label || st.quoteEventType,
+          eventTypeOther: st.quoteEventType === 'other' ? st.quoteEventTypeOther : null,
+          eventDate: st.quoteEventDate,
+          venue: st.quoteVenue,
+          categoryAnswers: st.quoteAnswers || {},
+          contactName: st.quoteContactName,
+          contactEmail: st.quoteContactEmail,
+          contactPhone: st.quoteContactPhone,
+        });
+        patch({ quoteSubmitting: false, quoteSent: true });
+      } catch (err) {
+        patch({ quoteSubmitting: false, quoteSubmitError: err.message || 'Could not send your request. Please try again.' });
+      }
+    },
+
     openFaqKey: st.openFaqKey || null,
     toggleFaq: (key) => patch((s) => ({ openFaqKey: s.openFaqKey === key ? null : key })),
     supplierTab: st.supplierTab || 'services',
@@ -975,7 +1173,21 @@ export default function App() {
       if (!st.email || st.email.indexOf('@') < 1 || st.authSending) return;
       patch({ authSending: true, authError: null });
       try {
-        localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: st.screen }));
+        let existing = {};
+        try {
+          const raw = localStorage.getItem(POST_AUTH_RETURN_KEY);
+          if (raw) existing = JSON.parse(raw) || {};
+        } catch {
+          // ignore malformed/inaccessible storage
+        }
+        localStorage.setItem(
+          POST_AUTH_RETURN_KEY,
+          JSON.stringify({
+            screen: existing.screen || st.screen,
+            ...(existing.supId ? { supId: existing.supId } : {}),
+            ...(existing.openQuote ? { openQuote: true } : {}),
+          })
+        );
       } catch {
         // ignore storage failures — worst case the user lands back on home
       }
@@ -1016,7 +1228,7 @@ export default function App() {
           supplierName: s ? s.name : '',
           priceLabel: priceLabel(p),
           openSupplier: () =>
-            patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false }),
+            patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
           remove: () => toggleSave(pid),
           share: () => shareProduct(pid),
           shareLabel: st.copiedPid === pid ? 'Copied!' : 'Share',
@@ -2765,44 +2977,166 @@ export default function App() {
           >
             ← {V.sup.categoryName}
           </button>
-          <div style={{ marginTop: 22, borderRadius: 24, overflow: 'hidden', height: isMobile ? 140 : 220 }}>
-            <img
-              src={V.sup.cover}
-              alt={V.sup.name + ' cover photo'}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
+          <div style={{ marginTop: 22, position: 'relative', borderRadius: 24, overflow: 'hidden', height: isMobile ? 200 : 320 }}>
+            <div
+              style={{
+                display: 'flex',
+                width: '100%',
+                height: '100%',
+                transform: `translateX(-${V.sup.carouselIndex * 100}%)`,
+                transition: 'transform 0.7s ease',
+              }}
+            >
+              {V.sup.carouselPhotos.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt={V.sup.name + ' photo ' + (i + 1)}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', flex: '0 0 100%' }}
+                />
+              ))}
+            </div>
+            {V.sup.carouselPhotos.length > 1 && (
+              <div style={{ position: 'absolute', bottom: 14, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 6 }}>
+                {V.sup.carouselPhotos.map((_, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 999,
+                      background: i === V.sup.carouselIndex ? '#FFFFFF' : 'rgba(255,255,255,0.45)',
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           <div style={{ marginTop: 20 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 20 : 28 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                   <img
                     src={V.sup.logo}
                     alt={V.sup.name + ' logo'}
                     style={{ width: 64, height: 64, borderRadius: 999, marginTop: -50, border: '4px solid #FFFFFF', background: '#171717', flexShrink: 0 }}
                   />
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                    <h1 style={{ margin: 0, fontSize: isMobile ? 26 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.sup.name}</h1>
-                    {V.sup.verified && (
-                      <span
-                        title="Verified vendor"
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                      onClick={V.sup.toggleSaved}
+                      aria-label={V.sup.isSaved ? 'Unsave vendor' : 'Save vendor'}
+                      title={V.sup.isSaved ? 'Unsave vendor' : 'Save vendor'}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 38,
+                        height: 38,
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: V.sup.isSaved ? '#171717' : '#FFFFFF',
+                        color: V.sup.isSaved ? '#FFFFFF' : '#171717',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill={V.sup.isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={V.sup.share}
+                      aria-label="Share vendor"
+                      title={V.sup.justCopied ? 'Link copied' : 'Share vendor'}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 38,
+                        height: 38,
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: '#FFFFFF',
+                        color: '#171717',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {V.sup.justCopied ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="18" cy="5" r="3" />
+                          <circle cx="6" cy="12" r="3" />
+                          <circle cx="18" cy="19" r="3" />
+                          <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+                          <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+                        </svg>
+                      )}
+                    </button>
+                    {V.sup.social.map((s) => (
+                      <a
+                        key={s.key}
+                        href={s.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={s.label}
+                        title={s.label}
                         style={{
-                          display: 'inline-flex',
+                          display: 'flex',
                           alignItems: 'center',
-                          gap: 5,
-                          border: '1px solid #171717',
+                          justifyContent: 'center',
+                          width: 38,
+                          height: 38,
+                          border: '1px solid #E4E4DF',
                           borderRadius: 999,
-                          background: '#171717',
-                          color: '#FFFFFF',
-                          padding: '4px 11px',
-                          fontSize: 12,
-                          fontWeight: 700,
+                          background: '#FFFFFF',
+                          color: '#171717',
+                          textDecoration: 'none',
                         }}
                       >
-                        ✓ Verified
-                      </span>
-                    )}
+                        {s.key === 'instagram' && (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                          </svg>
+                        )}
+                        {s.key === 'facebook' && (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+                          </svg>
+                        )}
+                        {s.key === 'tiktok' && (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+                          </svg>
+                        )}
+                      </a>
+                    ))}
                   </div>
+                </div>
+                <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                  <h1 style={{ margin: 0, fontSize: isMobile ? 26 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Meet {V.sup.name}</h1>
+                  {V.sup.verified && (
+                    <span
+                      title="Verified vendor"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        border: '1px solid #171717',
+                        borderRadius: 999,
+                        background: '#171717',
+                        color: '#FFFFFF',
+                        padding: '4px 11px',
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      ✓ Verified
+                    </span>
+                  )}
                 </div>
                 <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   <span
@@ -2848,33 +3182,53 @@ export default function App() {
                   </span>
                 </div>
                 <p style={{ margin: '14px 0 0', maxWidth: 620, fontSize: 16, lineHeight: 1.55, color: '#4A4A4A' }}>{V.sup.description}</p>
-                {V.sup.whatsappUrl && (
-                  <a
-                    href={V.sup.whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <div style={{ marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                  {V.sup.whatsappUrl && (
+                    <a
+                      href={V.sup.whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        border: 0,
+                        borderRadius: 999,
+                        background: '#25D366',
+                        color: '#FFFFFF',
+                        padding: '13px 24px',
+                        cursor: 'pointer',
+                        fontFamily: DISPLAY,
+                        fontSize: 15,
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      Message on WhatsApp →
+                    </a>
+                  )}
+                  <button
+                    onClick={V.startQuote}
                     style={{
-                      marginTop: 18,
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 8,
-                      border: 0,
+                      border: '1px solid #171717',
                       borderRadius: 999,
-                      background: '#25D366',
+                      background: '#171717',
                       color: '#FFFFFF',
                       padding: '13px 24px',
                       cursor: 'pointer',
                       fontFamily: DISPLAY,
                       fontSize: 15,
                       fontWeight: 700,
-                      textDecoration: 'none',
                     }}
                   >
-                    Message on WhatsApp →
-                  </a>
-                )}
-                <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {V.sup.phone && (
+                    Get a quote →
+                  </button>
+                </div>
+                {V.sup.phone && (
+                  <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     <span
                       style={{
                         border: '1px solid #E4E4DF',
@@ -2889,25 +3243,8 @@ export default function App() {
                     >
                       {V.sup.phone}
                     </span>
-                  )}
-                  {V.sup.social.map((s) => (
-                    <span
-                      key={s.key}
-                      style={{
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 999,
-                        background: '#F7F7F5',
-                        padding: '6px 14px',
-                        fontFamily: MONO,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: '#171717',
-                      }}
-                    >
-                      {s.label} · {s.value}
-                    </span>
-                  ))}
-                </div>
+                  </div>
+                )}
               </div>
 
               <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', gap: 8, borderBottom: '1px solid #ECECEC', paddingBottom: 16 }}>
@@ -2954,12 +3291,7 @@ export default function App() {
 
               {V.supplierTab === 'services' && (
                 <div style={{ marginTop: 24 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                    <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Packages</h2>
-                    <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Adding does not send anything
-                    </span>
-                  </div>
+                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Packages</h2>
                   <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
                     <input
                       type="search"
@@ -5460,6 +5792,479 @@ export default function App() {
                 </button>
                 {V.planSubmitError && (
                   <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.planSubmitError}</div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {V.quoteModalOpen && (
+        <div
+          onClick={V.closeQuoteModal}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 50,
+            background: 'rgba(23,23,23,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: isMobile ? 12 : 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 640,
+              maxHeight: '88vh',
+              overflowY: 'auto',
+              background: '#FFFFFF',
+              borderRadius: 28,
+              padding: isMobile ? 20 : 32,
+            }}
+          >
+            {V.quoteSent ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                  <h2 style={{ margin: 0, fontSize: isMobile ? 22 : 28, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
+                    Request sent
+                  </h2>
+                  <button
+                    onClick={V.closeQuoteModal}
+                    aria-label="Close"
+                    style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#6E6E6E', padding: 4, lineHeight: 1, flexShrink: 0 }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p style={{ margin: '14px 0 0', fontSize: 15, lineHeight: 1.6, color: '#4A4A4A' }}>
+                  {V.sup.name} received your quote request and will message you back directly at {V.quoteContactEmail}.
+                </p>
+                <button
+                  onClick={V.closeQuoteModal}
+                  style={{
+                    marginTop: 22,
+                    width: '100%',
+                    border: 0,
+                    borderRadius: 999,
+                    background: '#171717',
+                    color: '#FFFFFF',
+                    padding: '15px 26px',
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  Done
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                  <div>
+                    {V.quoteStep > 1 && (
+                      <button
+                        onClick={V.quoteStepBack}
+                        style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+                      >
+                        ← Back
+                      </button>
+                    )}
+                    <div style={{ marginTop: V.quoteStep > 1 ? 10 : 0, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Step {V.quoteStep} of {V.quoteTotalSteps} · Quote from {V.sup.name}
+                    </div>
+                    <h2 style={{ margin: '6px 0 0', fontSize: isMobile ? 22 : 28, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
+                      {V.quoteStep === 1 && 'What are you planning for?'}
+                      {V.quoteStep === 2 && 'When is your event?'}
+                      {V.quoteStep === 3 && "What's the venue?"}
+                      {V.quoteStep === 4 && 'A few details'}
+                      {V.quoteStep === 5 && 'How should they reach you?'}
+                      {V.quoteStep === 6 && 'Review & submit'}
+                    </h2>
+                  </div>
+                  <button
+                    onClick={V.closeQuoteModal}
+                    aria-label="Close"
+                    style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#6E6E6E', padding: 4, lineHeight: 1, flexShrink: 0 }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {V.quoteStep === 1 && (
+                  <>
+                    <div
+                      style={{
+                        marginTop: 22,
+                        display: 'grid',
+                        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+                        gap: 12,
+                      }}
+                    >
+                      {V.quoteEventTypeTiles.map((t) => (
+                        <button
+                          key={t.key}
+                          onClick={t.pick}
+                          style={{
+                            border: t.on ? '2px solid #171717' : '1px solid #E4E4DF',
+                            borderRadius: 16,
+                            background: t.on ? '#171717' : '#FFFFFF',
+                            color: t.on ? '#FFFFFF' : '#171717',
+                            padding: '18px 16px',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            fontSize: 15,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                    {st.quoteEventType === 'other' && (
+                      <input
+                        type="text"
+                        value={V.quoteEventTypeOther}
+                        onChange={V.setQuoteEventTypeOther}
+                        placeholder="Tell us what you're planning"
+                        style={{
+                          marginTop: 14,
+                          width: '100%',
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 14,
+                          background: '#F7F7F5',
+                          padding: '11px 14px',
+                          fontFamily: SANS,
+                          fontSize: 14,
+                          color: '#171717',
+                        }}
+                      />
+                    )}
+                    <button
+                      onClick={V.quoteNextStep}
+                      disabled={!V.quoteStep1Valid}
+                      style={{
+                        marginTop: 22,
+                        width: '100%',
+                        border: 0,
+                        borderRadius: 999,
+                        background: '#171717',
+                        color: '#FFFFFF',
+                        padding: '15px 26px',
+                        cursor: V.quoteStep1Valid ? 'pointer' : 'not-allowed',
+                        opacity: V.quoteStep1Valid ? 1 : 0.4,
+                        fontSize: 15,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Continue →
+                    </button>
+                  </>
+                )}
+
+                {V.quoteStep === 2 && (
+                  <>
+                    <div style={{ marginTop: 18 }}>
+                      <input
+                        type="date"
+                        value={V.quoteEventDate}
+                        onChange={V.setQuoteEventDate}
+                        style={{
+                          width: '100%',
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 14,
+                          background: '#F7F7F5',
+                          padding: '11px 14px',
+                          fontFamily: SANS,
+                          fontSize: 14,
+                          color: '#171717',
+                        }}
+                      />
+                    </div>
+                    <button
+                      onClick={V.quoteNextStep}
+                      disabled={!V.quoteStep2Valid}
+                      style={{
+                        marginTop: 22,
+                        width: '100%',
+                        border: 0,
+                        borderRadius: 999,
+                        background: '#171717',
+                        color: '#FFFFFF',
+                        padding: '15px 26px',
+                        cursor: V.quoteStep2Valid ? 'pointer' : 'not-allowed',
+                        opacity: V.quoteStep2Valid ? 1 : 0.4,
+                        fontSize: 15,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Continue →
+                    </button>
+                  </>
+                )}
+
+                {V.quoteStep === 3 && (
+                  <>
+                    <div style={{ marginTop: 18 }}>
+                      <input
+                        type="text"
+                        value={V.quoteVenue}
+                        onChange={V.setQuoteVenue}
+                        placeholder="Venue name or address"
+                        style={{
+                          width: '100%',
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 14,
+                          background: '#F7F7F5',
+                          padding: '11px 14px',
+                          fontFamily: SANS,
+                          fontSize: 14,
+                          color: '#171717',
+                        }}
+                      />
+                    </div>
+                    <button
+                      onClick={V.quoteNextStep}
+                      disabled={!V.quoteStep3Valid}
+                      style={{
+                        marginTop: 22,
+                        width: '100%',
+                        border: 0,
+                        borderRadius: 999,
+                        background: '#171717',
+                        color: '#FFFFFF',
+                        padding: '15px 26px',
+                        cursor: V.quoteStep3Valid ? 'pointer' : 'not-allowed',
+                        opacity: V.quoteStep3Valid ? 1 : 0.4,
+                        fontSize: 15,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Continue →
+                    </button>
+                  </>
+                )}
+
+                {V.quoteStep === 4 && (
+                  <>
+                    <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
+                      Optional — helps {V.sup.name} put together an accurate quote.
+                    </p>
+                    <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      {V.quoteCategoryFields.map((f) => (
+                        <div key={f.k}>
+                          <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                            {f.label}
+                          </div>
+                          {f.type === 'choice' ? (
+                            <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                              {f.options.map((opt) => (
+                                <button
+                                  key={opt}
+                                  onClick={V.pickQuoteAnswer(f.k, opt)}
+                                  style={{
+                                    border: V.quoteAnswer(f.k) === opt ? '2px solid #171717' : '1px solid #E4E4DF',
+                                    borderRadius: 999,
+                                    background: V.quoteAnswer(f.k) === opt ? '#171717' : '#FFFFFF',
+                                    color: V.quoteAnswer(f.k) === opt ? '#FFFFFF' : '#171717',
+                                    padding: '9px 16px',
+                                    cursor: 'pointer',
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <input
+                              type="text"
+                              value={V.quoteAnswer(f.k)}
+                              onChange={V.setQuoteAnswer(f.k)}
+                              placeholder={f.ph || ''}
+                              style={{
+                                marginTop: 8,
+                                width: '100%',
+                                border: '1px solid #E4E4DF',
+                                borderRadius: 14,
+                                background: '#F7F7F5',
+                                padding: '11px 14px',
+                                fontFamily: SANS,
+                                fontSize: 14,
+                                color: '#171717',
+                              }}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={V.quoteNextStep}
+                      style={{
+                        marginTop: 22,
+                        width: '100%',
+                        border: 0,
+                        borderRadius: 999,
+                        background: '#171717',
+                        color: '#FFFFFF',
+                        padding: '15px 26px',
+                        cursor: 'pointer',
+                        fontSize: 15,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Continue →
+                    </button>
+                  </>
+                )}
+
+                {V.quoteStep === 5 && (
+                  <>
+                    <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      <div>
+                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Your name
+                        </div>
+                        <input
+                          type="text"
+                          value={V.quoteContactName}
+                          onChange={V.setQuoteContactName}
+                          placeholder="Full name"
+                          style={{
+                            marginTop: 8,
+                            width: '100%',
+                            border: '1px solid #E4E4DF',
+                            borderRadius: 14,
+                            background: '#F7F7F5',
+                            padding: '11px 14px',
+                            fontFamily: SANS,
+                            fontSize: 14,
+                            color: '#171717',
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Email
+                        </div>
+                        <input
+                          type="email"
+                          value={V.quoteContactEmail}
+                          onChange={V.setQuoteContactEmail}
+                          placeholder="you@organisation.tt"
+                          style={{
+                            marginTop: 8,
+                            width: '100%',
+                            border: '1px solid #E4E4DF',
+                            borderRadius: 14,
+                            background: '#F7F7F5',
+                            padding: '11px 14px',
+                            fontFamily: SANS,
+                            fontSize: 14,
+                            color: '#171717',
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                          Phone number (optional)
+                        </div>
+                        <input
+                          type="tel"
+                          value={V.quoteContactPhone}
+                          onChange={V.setQuoteContactPhone}
+                          placeholder="e.g. 868 123 4567"
+                          style={{
+                            marginTop: 8,
+                            width: '100%',
+                            border: '1px solid #E4E4DF',
+                            borderRadius: 14,
+                            background: '#F7F7F5',
+                            padding: '11px 14px',
+                            fontFamily: SANS,
+                            fontSize: 14,
+                            color: '#171717',
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <button
+                      onClick={V.quoteNextStep}
+                      disabled={!V.quoteStep5Valid}
+                      style={{
+                        marginTop: 22,
+                        width: '100%',
+                        border: 0,
+                        borderRadius: 999,
+                        background: '#171717',
+                        color: '#FFFFFF',
+                        padding: '15px 26px',
+                        cursor: V.quoteStep5Valid ? 'pointer' : 'not-allowed',
+                        opacity: V.quoteStep5Valid ? 1 : 0.4,
+                        fontSize: 15,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Continue →
+                    </button>
+                  </>
+                )}
+
+                {V.quoteStep === 6 && (
+                  <>
+                    <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div style={{ borderRadius: 16, background: '#F7F7F5', padding: '14px 16px' }}>
+                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Event</div>
+                        <div style={{ marginTop: 4, fontSize: 14, fontWeight: 600 }}>{V.quoteEventLabel}</div>
+                      </div>
+                      <div style={{ borderRadius: 16, background: '#F7F7F5', padding: '14px 16px' }}>
+                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Date</div>
+                        <div style={{ marginTop: 4, fontSize: 14, fontWeight: 600 }}>{V.quoteEventDate}</div>
+                      </div>
+                      <div style={{ borderRadius: 16, background: '#F7F7F5', padding: '14px 16px' }}>
+                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Venue</div>
+                        <div style={{ marginTop: 4, fontSize: 14, fontWeight: 600 }}>{V.quoteVenue}</div>
+                      </div>
+                      {V.quoteReviewAnswers.map((r) => (
+                        <div key={r.key} style={{ borderRadius: 16, background: '#F7F7F5', padding: '14px 16px' }}>
+                          <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>{r.label}</div>
+                          <div style={{ marginTop: 4, fontSize: 14, fontWeight: 600 }}>{r.value}</div>
+                        </div>
+                      ))}
+                      <div style={{ borderRadius: 16, background: '#F7F7F5', padding: '14px 16px' }}>
+                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Contact</div>
+                        <div style={{ marginTop: 4, fontSize: 14, fontWeight: 600 }}>
+                          {V.quoteContactName} · {V.quoteContactEmail}
+                          {V.quoteContactPhone ? ' · ' + V.quoteContactPhone : ''}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={V.submitQuote}
+                      disabled={V.quoteSubmitting}
+                      style={{
+                        marginTop: 22,
+                        width: '100%',
+                        border: 0,
+                        borderRadius: 999,
+                        background: ACCENT,
+                        color: '#FFFFFF',
+                        padding: '15px 26px',
+                        cursor: V.quoteSubmitting ? 'not-allowed' : 'pointer',
+                        opacity: V.quoteSubmitting ? 0.6 : 1,
+                        fontSize: 15,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {V.quoteSubmitting ? 'Sending…' : 'Send request →'}
+                    </button>
+                    {V.quoteSubmitError && (
+                      <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.quoteSubmitError}</div>
+                    )}
+                  </>
                 )}
               </>
             )}
