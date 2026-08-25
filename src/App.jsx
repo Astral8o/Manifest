@@ -587,6 +587,24 @@ export default function App() {
     submitSourcing: () => patch({ sourcingSent: true }),
     sourcingSent: !!st.sourcingSent,
     goJoin: nav('join', { joinSubmitted: false, joinFormStep: 1 }),
+    goCategories: () => {
+      patch({ navMenuOpen: false });
+      if (st.screen === 'home') {
+        document.getElementById('top-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        pendingScrollAnchorRef.current = 'top-categories';
+        patch({ screen: 'home' });
+      }
+    },
+    goHowItWorks: () => {
+      patch({ navMenuOpen: false });
+      if (st.screen === 'home') {
+        document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        pendingScrollAnchorRef.current = 'how-it-works';
+        patch({ screen: 'home' });
+      }
+    },
     goGoFurther: () => {
       pendingScrollAnchorRef.current = 'go-further';
       patch({ screen: 'join', joinSubmitted: false, joinFormStep: 1, navMenuOpen: false });
@@ -679,9 +697,6 @@ export default function App() {
     clearDirPlan: () => patch({ dirCats: [], dirPlanLabel: '' }),
     scrollToJoinForm: () => {
       document.getElementById('join-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    },
-    scrollToFeatured: () => {
-      document.getElementById('featured-vendors')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     },
     backToCategory: () => patch({ screen: 'category', catCode: sup.code }),
 
@@ -1219,19 +1234,19 @@ export default function App() {
                   onClick={V.goSuppliers}
                   style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
                 >
-                  Discover Vendors
+                  Vendors
                 </button>
                 <button
-                  onClick={V.goJoin}
+                  onClick={V.goCategories}
                   style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
                 >
-                  Join Eventory
+                  Categories
                 </button>
                 <button
-                  onClick={V.goAbout}
+                  onClick={V.goHowItWorks}
                   style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
                 >
-                  About
+                  How It Works
                 </button>
               </div>
             )}
@@ -1257,19 +1272,19 @@ export default function App() {
                 onClick={V.goSuppliers}
                 style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
               >
-                Discover Vendors
+                Vendors
               </button>
               <button
-                onClick={V.goJoin}
+                onClick={V.goCategories}
                 style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
               >
-                Join Eventory
+                Categories
               </button>
               <button
-                onClick={V.goAbout}
+                onClick={V.goHowItWorks}
                 style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
               >
-                About
+                How It Works
               </button>
             </div>
           )}
@@ -1390,6 +1405,7 @@ export default function App() {
             <button
               onClick={V.startPlanning}
               style={{
+                flex: isMobile ? '1 1 auto' : '0 0 auto',
                 border: 0,
                 borderRadius: 999,
                 background: ACCENT,
@@ -1401,15 +1417,16 @@ export default function App() {
                 fontWeight: 600,
               }}
             >
-              Plan Your Event
+              Start Planning
             </button>
             <button
-              onClick={V.scrollToFeatured}
+              onClick={V.goJoin}
               style={{
-                border: '1px solid #D7D7D2',
+                flex: isMobile ? '1 1 auto' : '0 0 auto',
+                border: 0,
                 borderRadius: 999,
-                background: 'transparent',
-                color: '#171717',
+                background: '#171717',
+                color: '#FFFFFF',
                 padding: '15px 32px',
                 cursor: 'pointer',
                 fontFamily: DISPLAY,
@@ -1417,19 +1434,20 @@ export default function App() {
                 fontWeight: 600,
               }}
             >
-              See our Featured Vendors
+              Join as a Vendor
             </button>
           </div>
 
-          <div style={{ marginTop: 22, maxWidth: 560, marginLeft: 'auto', marginRight: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #E4E4DF', borderRadius: 999, background: '#F7F7F5', padding: '6px 8px 6px 18px' }}>
+          <div style={{ marginTop: 30, maxWidth: 560, marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#171717' }}>What are you looking for?</div>
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #E4E4DF', borderRadius: 999, background: '#F7F7F5', padding: '6px 8px 6px 18px' }}>
               <span style={{ fontSize: 15, color: '#9A9A9A', flexShrink: 0 }}>🔍</span>
               <input
                 type="search"
                 value={V.homeQuery}
                 onChange={V.setHomeQuery}
                 onKeyDown={V.homeSearchKeyDown}
-                placeholder="Search vendors or products..."
+                placeholder="Caterers, photographers, venues..."
                 style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', padding: '9px 0', fontFamily: SANS, fontSize: 14, color: '#171717' }}
               />
               <button
@@ -1453,7 +1471,7 @@ export default function App() {
 
           <div id="top-categories" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-              <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>What are you looking for?</h2>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Browse by category</h2>
               <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
                 <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
                   Pick the category that fits your event to see who's available.
@@ -1524,7 +1542,7 @@ export default function App() {
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Featured Vendors</h2>
               <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
-                Find vendors for your next event.
+                From birthday parties to corporate functions, here's who's ready to help.
               </p>
             </div>
             <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
@@ -1586,7 +1604,7 @@ export default function App() {
                 color: CTA_ACCENT,
               }}
             >
-              See more vendors
+              Explore all →
             </button>
           </div>
 
@@ -1705,7 +1723,7 @@ export default function App() {
             </button>
           </div>
 
-          <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
+          <div id="how-it-works" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
             <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>How Eventory Works</h2>
             <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div
