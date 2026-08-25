@@ -671,7 +671,6 @@ export default function App() {
     closeSourcing: () => patch({ sourcingOpen: false, sourcingSent: false }),
     submitSourcing: () => patch({ sourcingSent: true }),
     sourcingSent: !!st.sourcingSent,
-    goJoin: nav('join'),
     goCategories: () => {
       patch({ navMenuOpen: false });
       if (st.screen === 'home') {
@@ -2089,7 +2088,7 @@ export default function App() {
               Start Planning
             </button>
             <button
-              onClick={V.goJoin}
+              onClick={V.goVendorOnboarding}
               style={{
                 flex: isMobile ? '1 1 auto' : '0 0 auto',
                 border: 0,
@@ -4737,7 +4736,7 @@ export default function App() {
                 </p>
               </div>
               <button
-                onClick={V.goJoin}
+                onClick={V.goVendorOnboarding}
                 style={{
                   marginTop: 22,
                   border: 0,
@@ -6657,7 +6656,7 @@ export default function App() {
             </div>
             <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <button
-                onClick={V.goJoin}
+                onClick={V.goVendorOnboarding}
                 style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
               >
                 Join Eventory
