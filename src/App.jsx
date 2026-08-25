@@ -2,13 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import {
   LOCATIONS,
   GROUPS,
-  FIELDS,
-  FIELDS_DEFAULT,
   money,
 } from './data';
 import {
   fetchCatalog,
-  submitInquiry,
   submitVendorReview,
   sendMagicLink,
   submitPlanningRequest,
@@ -143,11 +140,11 @@ const ABOUT_FAQS = [
   },
   {
     q: 'How do I request a quote from a vendor?',
-    a: "Add what you need to your Broadcast Request as you browse, then send it once. Each vendor gets a separate request with only the items relevant to them.",
+    a: 'Sign in, then use the Get a quote button on their profile. It walks you through your event details and sends them straight to that vendor.',
   },
   {
-    q: 'What if I only need one vendor?',
-    a: 'Message them directly from their profile. No need to build a Broadcast Request for a single ask.',
+    q: 'Can I message a vendor instantly?',
+    a: 'Yes. Most vendor profiles have a WhatsApp button for a quick, direct message — no sign-in required.',
   },
   {
     q: "Can't find what you're looking for?",
@@ -188,41 +185,21 @@ function useIsMobile() {
   return isMobile;
 }
 
-const emptyCart = {
-  items: [],
-  spec: {},
-  fulfil: 'Delivery',
-  eventDate: '',
-  guestsExpected: '',
-  eventTime: '',
-  venueAddress: '',
-  accessNotes: '',
-  sent: null,
-};
-
 // signedIn is intentionally not restored here — it now reflects a real
 // Supabase auth session, synced separately once the app mounts.
 const loadAccount = () => {
   try {
     const raw = localStorage.getItem(ACCOUNT_KEY);
-    if (!raw) return { email: '', history: [], saved: [], promoOptIn: false, ...emptyCart };
+    if (!raw) return { email: '', history: [], saved: [], promoOptIn: false };
     const parsed = JSON.parse(raw);
     return {
       email: parsed.email || '',
       history: parsed.history || [],
       saved: parsed.saved || [],
       promoOptIn: !!parsed.promoOptIn,
-      items: parsed.items || [],
-      spec: parsed.spec || {},
-      fulfil: parsed.fulfil || 'Delivery',
-      eventDate: parsed.eventDate || '',
-      guestsExpected: parsed.guestsExpected || '',
-      eventTime: parsed.eventTime || '',
-      venueAddress: parsed.venueAddress || '',
-      accessNotes: parsed.accessNotes || '',
     };
   } catch {
-    return { email: '', history: [], saved: [], promoOptIn: false, ...emptyCart };
+    return { email: '', history: [], saved: [], promoOptIn: false };
   }
 };
 
@@ -244,11 +221,6 @@ const initialState = {
   screen: 'home',
   catCode: 'CAT.01',
   supId: null,
-  items: [],
-  sent: null,
-  sending: false,
-  sendError: null,
-  noteByVendor: {},
   loc: 0,
   grp: 0,
   dirCat: 'ALL',
@@ -264,15 +236,6 @@ const initialState = {
   planEventType: null,
   planOtherLabel: '',
   planCats: [],
-  fulfil: 'Delivery',
-  spec: {},
-  openSpec: {},
-  checkoutStep: 1,
-  eventDate: '',
-  guestsExpected: '',
-  eventTime: '',
-  venueAddress: '',
-  accessNotes: '',
   email: '',
   signedIn: false,
   authSending: false,
@@ -368,7 +331,7 @@ export default function App() {
           const raw = localStorage.getItem(POST_AUTH_RETURN_KEY);
           if (raw) {
             const parsed = JSON.parse(raw);
-            if (parsed && parsed.screen) extra = { screen: parsed.screen, checkoutStep: parsed.checkoutStep || 1 };
+            if (parsed && parsed.screen) extra = { screen: parsed.screen };
           }
           localStorage.removeItem(POST_AUTH_RETURN_KEY);
         } catch {
@@ -392,37 +355,12 @@ export default function App() {
           history: st.history,
           saved: st.saved,
           promoOptIn: st.promoOptIn,
-          items: st.items,
-          spec: st.spec,
-          fulfil: st.fulfil,
-          eventDate: st.eventDate,
-          guestsExpected: st.guestsExpected,
-          eventTime: st.eventTime,
-          venueAddress: st.venueAddress,
-          accessNotes: st.accessNotes,
         })
       );
     } catch {
       // ignore storage failures (private browsing, quota, etc.)
     }
-  }, [
-    st.email,
-    st.history,
-    st.saved,
-    st.promoOptIn,
-    st.items,
-    st.spec,
-    st.fulfil,
-    st.eventDate,
-    st.guestsExpected,
-    st.eventTime,
-    st.venueAddress,
-    st.accessNotes,
-  ]);
-
-  useEffect(() => {
-    if (st.sent) window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [st.sent]);
+  }, [st.email, st.history, st.saved, st.promoOptIn]);
 
   const pendingScrollAnchorRef = useRef(null);
 
@@ -522,29 +460,6 @@ export default function App() {
     p.priceOnRequest ? 'Inquire for pricing' : money(p.min) + '–' + money(p.max) + (p.unit === 'flat' ? '' : ' ' + p.unit);
   const startPrice = (s) => (s.priceOnRequest ? null : Math.min(...s.products.map((p) => p[2])));
 
-  const add = (pid) => {
-    patch((s) => {
-      const hit = s.items.find((i) => i.pid === pid);
-      const items = hit
-        ? s.items.map((i) => (i.pid === pid ? { ...i, qty: i.qty + 1 } : i))
-        : s.items.concat([{ pid, qty: 1 }]);
-      return { items, sent: null };
-    });
-  };
-  const bump = (pid, d) => {
-    patch((s) => ({ items: s.items.map((i) => (i.pid === pid ? { ...i, qty: Math.max(1, i.qty + d) } : i)) }));
-  };
-  const remove = (pid) => patch((s) => ({ items: s.items.filter((i) => i.pid !== pid) }));
-  const removeSupplier = (supId) =>
-    patch((s) => ({ items: s.items.filter((i) => { const p = product(i.pid); return p && p.supId !== supId; }) }));
-  const setSpec = (pid, key, val) => {
-    patch((s) => {
-      const spec = { ...(s.spec || {}) };
-      spec[pid] = { ...(spec[pid] || {}), [key]: val };
-      return { spec };
-    });
-  };
-
   const toggleSave = (pid) => {
     patch((s) => {
       const saved = s.saved || [];
@@ -572,23 +487,8 @@ export default function App() {
     }
   };
 
-  const groups = () => {
-    const bySup = {};
-    st.items.forEach((it) => {
-      const p = product(it.pid);
-      if (!p) return;
-      (bySup[p.supId] = bySup[p.supId] || []).push({ ...it, p });
-    });
-    return Object.keys(bySup).map((sid) => ({ sup: supplier(sid), rows: bySup[sid] }));
-  };
-
   // ---- derived view-model ----
-  const grp = groups();
-  const itemCount = st.items.reduce((n, i) => n + i.qty, 0);
-  const checkoutTotalSteps = 2 + grp.length;
-  const checkoutStep = Math.min(Math.max(st.checkoutStep || 1, 1), checkoutTotalSteps);
-  const nav = (screen, extra) => () =>
-    patch({ screen, sent: screen === 'eventory' ? st.sent : null, navMenuOpen: false, ...(extra || {}) });
+  const nav = (screen, extra) => () => patch({ screen, navMenuOpen: false, ...(extra || {}) });
   const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
   const catTile = (c) => {
     const n = SUPPLIERS.filter((s) => s.code === c[0]).length;
@@ -631,7 +531,6 @@ export default function App() {
 
   const sup = supplier(st.supId) || SUPPLIERS[0] || EMPTY_SUPPLIER;
   const supProducts = allProducts().filter((p) => p.supId === sup.id);
-  const has = (pid) => st.items.some((i) => i.pid === pid);
 
   const svcGroups = Array.from(new Set(supProducts.map((p) => p.group)));
   const svcGroupFilter = st.svcGroup || 'All';
@@ -652,21 +551,16 @@ export default function App() {
     on ? { bg: '#171717', fg: '#FFFFFF', border: '#171717' } : { bg: '#FFFFFF', fg: '#171717', border: '#D7D7D2' };
 
   const V = {
-    itemCount,
-    counterBg: itemCount ? ACCENT : '#FFFFFF',
-    counterFg: itemCount ? '#FFFFFF' : '#171717',
     isHome: st.screen === 'home',
     isCategory: st.screen === 'category',
     isSuppliers: st.screen === 'suppliers',
     isSupplier: st.screen === 'supplier',
-    isEventory: st.screen === 'eventory',
     isJoin: st.screen === 'join',
     isAccount: st.screen === 'account',
     isAbout: st.screen === 'about',
     sourcingOpen: st.sourcingOpen,
     goHome: nav('home'),
     goSuppliers: nav('suppliers'),
-    goEventory: nav('eventory', { checkoutStep: 1 }),
     goSourcing: () => patch({ sourcingOpen: true, sourcingSent: false }),
     closeSourcing: () => patch({ sourcingOpen: false, sourcingSent: false }),
     submitSourcing: () => patch({ sourcingSent: true }),
@@ -866,10 +760,6 @@ export default function App() {
           categoryName: catName(s.code),
           priceLabel: priceLabel(p),
           open: () => patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false }),
-          btnLabel: has(p.id) ? 'Added' : '+ Add',
-          btnBg: has(p.id) ? ACCENT : '#171717',
-          btnFg: '#FFFFFF',
-          add: () => add(p.id),
         };
       })
       .filter(Boolean),
@@ -1059,168 +949,13 @@ export default function App() {
       inclusions: p.inclusions || [],
       termsLabel: 'Min ' + p.minQty + ' ' + (p.unit === 'flat' ? 'booking' : 'units'),
       priceLabel: priceLabel(p),
-      btnLabel: has(p.id) ? 'Added' : '+ Add',
-      btnBg: has(p.id) ? ACCENT : '#171717',
-      btnFg: '#FFFFFF',
-      add: () => add(p.id),
       saved: (st.saved || []).indexOf(p.id) >= 0,
       saveLabel: (st.saved || []).indexOf(p.id) >= 0 ? '★ Saved' : '☆ Save',
       toggleSave: () => toggleSave(p.id),
       shareLabel: st.copiedPid === p.id ? 'Copied!' : 'Share',
       share: () => shareProduct(p.id),
     })),
-    summaryLine:
-      itemCount +
-      (itemCount === 1 ? ' product · ' : ' products · ') +
-      grp.length +
-      (grp.length === 1 ? ' vendor' : ' vendors'),
-    eventoryBrief: grp.map((g) => ({
-      key: g.sup.id,
-      supplierName: g.sup.name,
-      itemLabel: g.rows.length + (g.rows.length === 1 ? ' item' : ' items'),
-    })),
-
-    eventoryHeading: st.sent ? 'Inquiries are out' : 'Your Eventory',
-    eventorySub: st.sent
-      ? 'Sent ' + st.sent.length + (st.sent.length === 1 ? ' inquiry' : ' separate inquiries')
-      : itemCount + ' products across ' + grp.length + (grp.length === 1 ? ' vendor' : ' vendors'),
-    isEmpty: st.items.length === 0,
-    notSent: !st.sent,
-    sent: !!st.sent,
-    eventoryGroups: grp.map((g) => ({
-      key: g.sup.id,
-      supplierName: g.sup.name,
-      location: g.sup.city,
-      inquiryLabel: '1 inquiry · ' + g.rows.length + (g.rows.length === 1 ? ' line item' : ' line items'),
-      removeAll: () => removeSupplier(g.sup.id),
-      notePlaceholder:
-        g.sup.code === 'CAT.01'
-          ? 'Two guests need vegetarian plates. Can you hold the pepper on the side?'
-          : 'Anything this vendor should know about your setup or timing.',
-      note: (st.noteByVendor || {})[g.sup.id] || '',
-      setNote: (e) =>
-        patch((s) => ({ noteByVendor: { ...(s.noteByVendor || {}), [g.sup.id]: e.target.value } })),
-      items: g.rows.map((r) => {
-        const defs = FIELDS[g.sup.code] || FIELDS_DEFAULT;
-        const spec = (st.spec || {})[r.pid] || {};
-        const setCount = defs.filter((d) => spec[d.k]).length;
-        return {
-          key: r.pid,
-          name: r.p.name,
-          qty: r.qty,
-          termsLabel: 'Min ' + r.p.minQty,
-          priceLabel: priceLabel(r.p),
-          inc: () => bump(r.pid, 1),
-          dec: () => bump(r.pid, -1),
-          remove: () => remove(r.pid),
-          expanded: !!(st.openSpec || {})[r.pid],
-          detailLabel: setCount ? setCount + ' of ' + defs.length + ' set' : 'Add details',
-          detailBg: setCount ? ACCENT : '#171717',
-          detailFg: '#FFFFFF',
-          toggle: () =>
-            patch((s) => ({ openSpec: { ...(s.openSpec || {}), [r.pid]: !(s.openSpec || {})[r.pid] } })),
-          fields: defs.map((d) => ({
-            key: d.k,
-            label: d.label,
-            isChoice: d.type === 'choice',
-            isText: d.type !== 'choice',
-            ph: d.ph || '',
-            value: spec[d.k] || '',
-            set: (e) => setSpec(r.pid, d.k, e.target.value),
-            options: (d.options || []).map((o) => ({
-              key: o,
-              label: o,
-              ...chip(spec[d.k] === o),
-              pick: () => setSpec(r.pid, d.k, spec[d.k] === o ? '' : o),
-            })),
-          })),
-        };
-      }),
-    })),
-    sendStats: [
-      { key: 'suppliers', label: 'Vendors', value: grp.length },
-      { key: 'products', label: 'Products', value: itemCount },
-      { key: 'inquiries', label: 'Inquiries to send', value: grp.length },
-    ],
-
-    checkoutStep,
-    checkoutTotalSteps,
-    checkoutStepLabel: 'Step ' + checkoutStep + ' of ' + checkoutTotalSteps,
-    checkoutIsDetails: checkoutStep === 1,
-    checkoutIsSend: checkoutStep === checkoutTotalSteps,
-    nextCheckoutStep: () => patch((s) => ({ checkoutStep: Math.min((s.checkoutStep || 1) + 1, checkoutTotalSteps) })),
-    prevCheckoutStep: () => patch((s) => ({ checkoutStep: Math.max((s.checkoutStep || 1) - 1, 1) })),
-
-    fulfilmentOptions: ['Delivery', 'Pickup by us', 'On site at venue'].map((l) => ({
-      key: l,
-      label: l,
-      ...chip(st.fulfil === l),
-      pick: () => patch({ fulfil: l }),
-    })),
-    addressLabel: st.fulfil === 'Pickup by us' ? 'Pickup area' : 'Delivery or venue address',
-    eventDate: st.eventDate || '',
-    setEventDate: (e) => patch({ eventDate: e.target.value }),
-    guestsExpected: st.guestsExpected || '',
-    setGuestsExpected: (e) => patch({ guestsExpected: e.target.value }),
-    eventTime: st.eventTime || '',
-    setEventTime: (e) => patch({ eventTime: e.target.value }),
-    venueAddress: st.venueAddress || '',
-    setVenueAddress: (e) => patch({ venueAddress: e.target.value }),
-    accessNotes: st.accessNotes || '',
-    setAccessNotes: (e) => patch({ accessNotes: e.target.value }),
-
-    sendOpacity: st.items.length && st.signedIn && !st.sending ? 1 : 0.4,
-    sending: !!st.sending,
-    sendError: st.sendError || '',
     signInDisabled: !(st.email && st.email.indexOf('@') > 0) || !!st.authSending,
-    send: async () => {
-      if (!st.signedIn || !st.items.length || st.sending) return;
-      const grpNow = groups();
-      const sentNames = grpNow.map((g) => g.sup.name);
-      patch({ sending: true, sendError: null });
-      try {
-        await submitInquiry({
-          buyer: {
-            email: st.email,
-            eventDate: st.eventDate,
-            guestsExpected: st.guestsExpected,
-            eventTime: st.eventTime,
-            fulfilment: st.fulfil,
-            venueAddress: st.venueAddress,
-            accessNotes: st.accessNotes,
-            promoOptIn: st.promoOptIn,
-          },
-          groups: grpNow.map((g) => ({
-            vendorId: g.sup.id,
-            note: (st.noteByVendor || {})[g.sup.id] || '',
-            items: g.rows.map((r) => ({
-              productId: null,
-              name: r.p.name,
-              qty: r.qty,
-              specAnswers: (st.spec || {})[r.pid] || {},
-            })),
-          })),
-        });
-        patch((s) => ({
-          sending: false,
-          sent: sentNames,
-          history: [
-            {
-              id: Date.now(),
-              date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-              suppliers: sentNames,
-              itemCount: s.items.reduce((n, i) => n + i.qty, 0),
-            },
-            ...(s.history || []),
-          ],
-        }));
-      } catch (err) {
-        patch({ sending: false, sendError: err.message || 'Something went wrong sending your inquiries. Please try again.' });
-      }
-    },
-    sentSummary: st.sent ? 'One inquiry per vendor, each scoped to their own items.' : '',
-    sentList: (st.sent || []).map((n) => ({ key: n, name: n, status: 'Sent' })),
-    reset: () => patch({ ...emptyCart, screen: 'home' }),
 
     email: st.email || '',
     setEmail: (e) => patch({ email: e.target.value, authSent: false, authError: null }),
@@ -1240,7 +975,7 @@ export default function App() {
       if (!st.email || st.email.indexOf('@') < 1 || st.authSending) return;
       patch({ authSending: true, authError: null });
       try {
-        localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: st.screen, checkoutStep: st.checkoutStep || 1 }));
+        localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: st.screen }));
       } catch {
         // ignore storage failures — worst case the user lands back on home
       }
@@ -1964,57 +1699,22 @@ export default function App() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              width: 36,
-              height: 36,
-              border: 0,
-              borderRadius: 999,
-              background: 'transparent',
-              padding: 0,
-              cursor: 'pointer',
-              color: V.isSignedIn ? '#6E6E6E' : '#171717',
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </button>
-          <button
-            onClick={V.goEventory}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
               gap: 10,
               border: '1px solid #171717',
               borderRadius: 999,
-              background: V.counterBg,
-              color: V.counterFg,
-              padding: '9px 8px 9px 18px',
+              background: V.isSignedIn ? '#171717' : '#FFFFFF',
+              color: V.isSignedIn ? '#FFFFFF' : '#171717',
+              padding: '9px 18px',
               cursor: 'pointer',
               fontSize: 14,
               fontWeight: 700,
             }}
           >
-            Request
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: 26,
-                height: 26,
-                padding: '0 8px',
-                borderRadius: 999,
-                background: '#171717',
-                color: '#FFFFFF',
-                fontFamily: MONO,
-                fontSize: 12,
-                fontWeight: 500,
-              }}
-            >
-              {V.itemCount}
-            </span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            {V.isSignedIn ? 'Dashboard' : 'Sign in'}
           </button>
           </div>
         </div>
@@ -2353,22 +2053,6 @@ export default function App() {
                     }}
                   >
                     <span style={{ fontFamily: MONO, fontSize: isMobile ? 12 : 14, fontWeight: 700 }}>{f.priceLabel}</span>
-                    <button
-                      onClick={f.add}
-                      style={{
-                        flexShrink: 0,
-                        border: 0,
-                        borderRadius: 999,
-                        background: f.btnBg,
-                        color: f.btnFg,
-                        padding: '7px 14px',
-                        cursor: 'pointer',
-                        fontSize: 12,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {f.btnLabel}
-                    </button>
                   </div>
                 </div>
               ))}
@@ -2429,10 +2113,10 @@ export default function App() {
                 }}
               >
                 <div style={{ maxWidth: 720 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Build your Broadcast Request</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Reach out</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#A8A8A8' }}>
-                    Add what you need from multiple vendors as you browse. Only need one? Message them on
-                    WhatsApp straight from their profile instead.
+                    Message a vendor on WhatsApp straight from their profile, or sign in and send them a
+                    detailed quote request.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#4A4A4A' }}>02</div>
@@ -2452,8 +2136,7 @@ export default function App() {
                 <div style={{ maxWidth: 720 }}>
                   <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Connect</div>
                   <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#4A4A4A' }}>
-                    Fill in your details once, then send to everyone on your list at the same time. Each vendor
-                    messages you back directly with availability, pricing and details.
+                    The vendor replies directly with availability, pricing and details for your event.
                   </div>
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 34, color: '#C2C2BC' }}>03</div>
@@ -3089,7 +2772,7 @@ export default function App() {
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
           </div>
-          <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
+          <div style={{ marginTop: 20 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 20 : 28 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
@@ -3382,23 +3065,6 @@ export default function App() {
                               }}
                             >
                               {p.shareLabel}
-                            </button>
-                            <button
-                              onClick={p.add}
-                              style={{
-                                marginLeft: 'auto',
-                                border: '1px solid #171717',
-                                borderRadius: 999,
-                                background: p.btnBg,
-                                color: p.btnFg,
-                                padding: '11px 20px',
-                                cursor: 'pointer',
-                                fontSize: 14,
-                                fontWeight: 700,
-                                minWidth: 92,
-                              }}
-                            >
-                              {p.btnLabel}
                             </button>
                           </div>
                         </div>
@@ -3717,627 +3383,7 @@ export default function App() {
                 </div>
               )}
             </div>
-
-            <div style={{ position: isMobile ? 'static' : 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
-              <div style={{ borderRadius: 24, background: '#171717', color: '#FFFFFF', padding: 26 }}>
-                <div style={{ fontSize: 18, fontWeight: 700 }}>Your Eventory</div>
-                <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: ACCENT }}>{V.summaryLine}</div>
-                <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {V.eventoryBrief.map((g) => (
-                    <div key={g.key} style={{ borderTop: '1px solid #2B2B2B', paddingTop: 10 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600 }}>{g.supplierName}</div>
-                      <div style={{ marginTop: 2, fontFamily: MONO, fontSize: 11, color: '#9C9C9C' }}>{g.itemLabel}</div>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  onClick={V.goEventory}
-                  style={{
-                    marginTop: 22,
-                    width: '100%',
-                    border: 0,
-                    borderRadius: 999,
-                    background: ACCENT,
-                    color: '#FFFFFF',
-                    padding: '14px 20px',
-                    cursor: 'pointer',
-                    fontSize: 15,
-                    fontWeight: 700,
-                  }}
-                >
-                  Review Eventory and send
-                </button>
-              </div>
-            </div>
           </div>
-        </div>
-      )}
-
-      {V.isEventory && (
-        <div style={{ padding: '34px 0 0' }}>
-          <button
-            onClick={V.goSuppliers}
-            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
-          >
-            ← Back to vendor listings
-          </button>
-          <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.eventoryHeading}</h1>
-            <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.eventorySub}</div>
-          </div>
-
-          {V.notSent && V.isEmpty && (
-            <div style={{ marginTop: 26, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '44px 28px', textAlign: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 700 }}>Nothing in your Eventory yet</div>
-              <div style={{ marginTop: 8, fontSize: 15, color: '#5B5B5B' }}>
-                Add products from any category and they will collect here, grouped by vendor.
-              </div>
-              <button
-                onClick={V.goHome}
-                style={{
-                  marginTop: 20,
-                  border: 0,
-                  borderRadius: 999,
-                  background: '#171717',
-                  color: '#FFFFFF',
-                  padding: '13px 24px',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  fontWeight: 700,
-                }}
-              >
-                Discover Vendors
-              </button>
-            </div>
-          )}
-
-          {V.notSent && !V.isEmpty && (
-            <div style={{ marginTop: 26, maxWidth: 640 }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                {V.checkoutStepLabel}
-              </div>
-              <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
-                {Array.from({ length: V.checkoutTotalSteps }).map((_, i) => (
-                  <div key={i} style={{ flex: 1, height: 4, borderRadius: 999, background: i < V.checkoutStep ? '#171717' : '#ECECEC' }} />
-                ))}
-              </div>
-
-              <div style={{ marginTop: 22, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? '18px 18px' : '24px 26px' }}>
-                {V.checkoutIsDetails && (
-                  <>
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Event details</div>
-                      <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                        Sent with every inquiry
-                      </div>
-                    </div>
-                    <div style={{ marginTop: 4, fontSize: 14, color: '#5B5B5B' }}>
-                      Vendors need these to quote you. Fill them once and they go out with each inquiry.
-                    </div>
-                    <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          Event date
-                        </span>
-                        <input
-                          type="date"
-                          value={V.eventDate}
-                          onChange={V.setEventDate}
-                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                        />
-                      </label>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          Guests expected
-                        </span>
-                        <input
-                          type="number"
-                          placeholder="120"
-                          value={V.guestsExpected}
-                          onChange={V.setGuestsExpected}
-                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                        />
-                      </label>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          Start and end time
-                        </span>
-                        <input
-                          type="text"
-                          placeholder="4pm to 11pm"
-                          value={V.eventTime}
-                          onChange={V.setEventTime}
-                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                        />
-                      </label>
-                    </div>
-                    <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                        Fulfilment
-                      </span>
-                      {V.fulfilmentOptions.map((f) => (
-                        <button
-                          key={f.key}
-                          onClick={f.pick}
-                          style={{
-                            border: `1px solid ${f.border}`,
-                            borderRadius: 999,
-                            background: f.bg,
-                            color: f.fg,
-                            padding: '8px 16px',
-                            cursor: 'pointer',
-                            fontSize: 13,
-                            fontWeight: 600,
-                          }}
-                        >
-                          {f.label}
-                        </button>
-                      ))}
-                    </div>
-                    <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                        {V.addressLabel}
-                      </span>
-                      <input
-                        type="text"
-                        placeholder="Venue name, street, town"
-                        value={V.venueAddress}
-                        onChange={V.setVenueAddress}
-                        style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                      />
-                    </label>
-                    <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                        Access notes, optional
-                      </span>
-                      <textarea
-                        placeholder="Load in through the back gate on Henry Street. No lift, one flight of stairs. Security needs names by the Friday before."
-                        value={V.accessNotes}
-                        onChange={V.setAccessNotes}
-                        style={{
-                          minHeight: 84,
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 14,
-                          background: '#F7F7F5',
-                          padding: 14,
-                          fontFamily: SANS,
-                          fontSize: 15,
-                          lineHeight: 1.5,
-                          color: '#171717',
-                          resize: 'vertical',
-                        }}
-                      />
-                    </label>
-                    <button
-                      onClick={V.nextCheckoutStep}
-                      style={{
-                        marginTop: 22,
-                        border: 0,
-                        borderRadius: 999,
-                        background: '#171717',
-                        color: '#FFFFFF',
-                        padding: '13px 24px',
-                        cursor: 'pointer',
-                        fontSize: 14,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Continue →
-                    </button>
-                  </>
-                )}
-
-                {!V.checkoutIsDetails && !V.checkoutIsSend && V.eventoryGroups[V.checkoutStep - 2] && (() => {
-                  const g = V.eventoryGroups[V.checkoutStep - 2];
-                  return (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-                          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{g.supplierName}</div>
-                          <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{g.location}</div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                          <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                            {g.inquiryLabel}
-                          </div>
-                          <button
-                            onClick={g.removeAll}
-                            style={{
-                              border: 0,
-                              background: 'transparent',
-                              padding: 0,
-                              cursor: 'pointer',
-                              fontSize: 12,
-                              fontWeight: 600,
-                              color: '#8A8A8A',
-                              textDecoration: 'underline',
-                              textUnderlineOffset: '3px',
-                            }}
-                          >
-                            Remove vendor
-                          </button>
-                        </div>
-                      </div>
-                      <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        {g.items.map((it) => (
-                          <div key={it.key} style={{ borderTop: '1px solid #ECECEC', padding: '14px 0' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
-                              <div style={{ flex: '1 1 260px', minWidth: 220 }}>
-                                <div style={{ fontSize: 16, fontWeight: 600 }}>{it.name}</div>
-                                <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{it.termsLabel}</div>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', columnGap: 16, flexWrap: 'wrap', rowGap: 10 }}>
-                                <div
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 10,
-                                    border: '1px solid #E4E4DF',
-                                    borderRadius: 999,
-                                    padding: '5px 6px',
-                                  }}
-                                >
-                                  <button
-                                    onClick={it.dec}
-                                    style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
-                                  >
-                                    −
-                                  </button>
-                                  <span style={{ fontFamily: MONO, fontSize: 13, minWidth: 22, textAlign: 'center' }}>{it.qty}</span>
-                                  <button
-                                    onClick={it.inc}
-                                    style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: '#F2F2F0', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                                <div style={{ fontFamily: MONO, fontSize: 14, minWidth: isMobile ? 0 : 148, textAlign: 'right' }}>{it.priceLabel}</div>
-                                <button
-                                  onClick={it.toggle}
-                                  style={{
-                                    border: '1px solid #171717',
-                                    borderRadius: 999,
-                                    background: it.detailBg,
-                                    padding: '8px 14px',
-                                    cursor: 'pointer',
-                                    fontSize: 13,
-                                    fontWeight: 700,
-                                    color: it.detailFg,
-                                  }}
-                                >
-                                  {it.detailLabel}
-                                </button>
-                                <button
-                                  onClick={it.remove}
-                                  style={{
-                                    border: 0,
-                                    background: 'transparent',
-                                    padding: 0,
-                                    cursor: 'pointer',
-                                    fontSize: 13,
-                                    fontWeight: 600,
-                                    color: '#8A8A8A',
-                                    textDecoration: 'underline',
-                                    textUnderlineOffset: '3px',
-                                  }}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                            {it.expanded && (
-                              <div style={{ marginTop: 12, borderRadius: 18, background: '#F7F7F5', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                {it.fields.map((fd) => (
-                                  <div key={fd.key}>
-                                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                                      {fd.label}
-                                    </div>
-                                    {fd.isChoice && (
-                                      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                                        {fd.options.map((o) => (
-                                          <button
-                                            key={o.key}
-                                            onClick={o.pick}
-                                            style={{
-                                              border: `1px solid ${o.border}`,
-                                              borderRadius: 999,
-                                              background: o.bg,
-                                              color: o.fg,
-                                              padding: '7px 14px',
-                                              cursor: 'pointer',
-                                              fontSize: 13,
-                                              fontWeight: 600,
-                                            }}
-                                          >
-                                            {o.label}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    )}
-                                    {fd.isText && (
-                                      <input
-                                        type="text"
-                                        value={fd.value}
-                                        onChange={fd.set}
-                                        placeholder={fd.ph}
-                                        style={{
-                                          marginTop: 8,
-                                          width: '100%',
-                                          border: '1px solid #E4E4DF',
-                                          borderRadius: 14,
-                                          background: '#FFFFFF',
-                                          padding: '11px 14px',
-                                          fontFamily: SANS,
-                                          fontSize: 14,
-                                          color: '#171717',
-                                        }}
-                                      />
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <label style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                          Note to {g.supplierName}, optional
-                        </span>
-                        <textarea
-                          placeholder={g.notePlaceholder}
-                          value={g.note}
-                          onChange={g.setNote}
-                          style={{
-                            minHeight: 68,
-                            border: '1px solid #E4E4DF',
-                            borderRadius: 14,
-                            background: '#F7F7F5',
-                            padding: '13px 14px',
-                            fontFamily: SANS,
-                            fontSize: 14,
-                            lineHeight: 1.5,
-                            color: '#171717',
-                            resize: 'vertical',
-                          }}
-                        />
-                        <span style={{ fontSize: 12, color: '#9A9A9A' }}>Only {g.supplierName} sees this note.</span>
-                      </label>
-                      <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <button
-                          onClick={V.prevCheckoutStep}
-                          style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '12px 4px', cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600 }}
-                        >
-                          ← Back
-                        </button>
-                        <button
-                          onClick={V.nextCheckoutStep}
-                          style={{
-                            border: 0,
-                            borderRadius: 999,
-                            background: '#171717',
-                            color: '#FFFFFF',
-                            padding: '13px 24px',
-                            cursor: 'pointer',
-                            fontSize: 14,
-                            fontWeight: 700,
-                          }}
-                        >
-                          Continue →
-                        </button>
-                      </div>
-                    </>
-                  );
-                })()}
-
-                {V.checkoutIsSend && (
-                  <>
-                    <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Review &amp; send</div>
-                    <div style={{ marginTop: 4, fontSize: 14, color: '#5B5B5B' }}>
-                      One inquiry per vendor, each scoped to their own items and note.
-                    </div>
-                    <div style={{ marginTop: 20, borderRadius: 20, background: ACCENT, color: ACCENT_ON, padding: 22 }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        {V.sendStats.map((s) => (
-                          <div
-                            key={s.key}
-                            style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, borderTop: `1px solid ${ACCENT_ON_MUTED}`, padding: '11px 0' }}
-                          >
-                            <span style={{ fontSize: 14, fontWeight: 600, color: ACCENT_ON_SOFT }}>{s.label}</span>
-                            <span style={{ fontFamily: MONO, fontSize: 17 }}>{s.value}</span>
-                          </div>
-                        ))}
-                      </div>
-                      {V.needsAccount && (
-                        <div style={{ marginTop: 18, borderTop: `1px solid ${ACCENT_ON_MUTED}`, paddingTop: 16 }}>
-                          {V.authSent ? (
-                            <>
-                              <div style={{ fontSize: 15, fontWeight: 700 }}>Check your email</div>
-                              <p style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
-                                We sent a sign-in link to {V.email}. Click it to come back here and send your
-                                inquiries — you can close this tab.
-                              </p>
-                              <button
-                                onClick={V.useDifferentEmail}
-                                style={{ marginTop: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: ACCENT_ON_SOFT, textDecoration: 'underline', textUnderlineOffset: '3px' }}
-                              >
-                                Use a different email
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT_ON_SOFT }}>
-                                Your email
-                              </div>
-                              <input
-                                type="email"
-                                value={V.email}
-                                onChange={V.setEmail}
-                                placeholder="you@organisation.tt"
-                                style={{
-                                  marginTop: 8,
-                                  width: '100%',
-                                  border: `1px solid ${ACCENT_ON_MUTED}`,
-                                  borderRadius: 14,
-                                  background: '#FFFFFF',
-                                  padding: '12px 14px',
-                                  fontFamily: SANS,
-                                  fontSize: 15,
-                                  color: '#171717',
-                                }}
-                              />
-                              <button
-                                onClick={V.togglePromoOptIn}
-                                style={{
-                                  marginTop: 12,
-                                  display: 'flex',
-                                  alignItems: 'flex-start',
-                                  gap: 10,
-                                  border: 0,
-                                  background: 'transparent',
-                                  padding: 0,
-                                  cursor: 'pointer',
-                                  textAlign: 'left',
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: 18,
-                                    height: 18,
-                                    marginTop: 1,
-                                    border: `1px solid ${V.promoOptIn ? '#171717' : ACCENT_ON_SOFT}`,
-                                    borderRadius: 5,
-                                    background: V.promoOptIn ? '#171717' : 'transparent',
-                                    color: '#FFFFFF',
-                                    fontSize: 11,
-                                    fontWeight: 800,
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {V.promoOptIn ? '✓' : ''}
-                                </span>
-                                <span style={{ fontSize: 13, lineHeight: 1.4, color: ACCENT_ON_SOFT }}>
-                                  Send me promos and offers from vendors
-                                </span>
-                              </button>
-                              <button
-                                onClick={V.signIn}
-                                disabled={V.signInDisabled}
-                                style={{
-                                  marginTop: 12,
-                                  width: '100%',
-                                  border: 0,
-                                  borderRadius: 999,
-                                  background: '#171717',
-                                  color: '#FFFFFF',
-                                  padding: '12px 20px',
-                                  cursor: 'pointer',
-                                  fontSize: 14,
-                                  fontWeight: 700,
-                                  opacity: V.signInDisabled ? 0.4 : 1,
-                                }}
-                              >
-                                {V.authSending ? 'Sending link…' : 'Continue with email'}
-                              </button>
-                              {V.authError && (
-                                <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: '#FDE2DA' }}>{V.authError}</div>
-                              )}
-                              <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
-                                No password, we email you a sign-in link. New here? The same link creates your
-                                account. Signing in is required to send your inquiries and saves this Eventory to
-                                your account.
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-                      {V.signedIn && (
-                        <div style={{ marginTop: 18, borderTop: `1px solid ${ACCENT_ON_MUTED}`, paddingTop: 14, fontSize: 13, color: ACCENT_ON_SOFT }}>
-                          Saved to {V.email}. You can come back to this Eventory any time.
-                        </div>
-                      )}
-                      <button
-                        onClick={V.send}
-                        disabled={V.isEmpty || !V.signedIn || V.sending}
-                        style={{
-                          marginTop: 20,
-                          width: '100%',
-                          border: 0,
-                          borderRadius: 999,
-                          background: '#171717',
-                          color: '#FFFFFF',
-                          padding: '16px 20px',
-                          cursor: 'pointer',
-                          fontSize: 15,
-                          fontWeight: 700,
-                          opacity: V.sendOpacity,
-                        }}
-                      >
-                        {V.sending ? 'Sending…' : 'Send all inquiries'}
-                      </button>
-                      {V.sendError && (
-                        <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.sendError}</div>
-                      )}
-                      <div style={{ marginTop: 14, fontSize: 13, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
-                        Each vendor receives one inquiry with your event details, their own line items and their own
-                        note. No vendor sees the rest of your Eventory, and no payment is taken here.
-                      </div>
-                    </div>
-                    <button
-                      onClick={V.prevCheckoutStep}
-                      style={{ marginTop: 16, border: 0, background: 'transparent', color: '#5B5B5B', padding: '12px 4px', cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600 }}
-                    >
-                      ← Back
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {V.sent && (
-            <div style={{ marginTop: 26, maxWidth: 560 }}>
-              <div style={{ borderRadius: 24, background: '#171717', color: '#FFFFFF', padding: 26 }}>
-                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em' }}>Inquiries sent</div>
-                <div style={{ marginTop: 6, fontSize: 14, color: '#A8A8A8' }}>{V.sentSummary}</div>
-                <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {V.sentList.map((s) => (
-                    <div
-                      key={s.key}
-                      style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #2B2B2B', padding: '11px 0' }}
-                    >
-                      <span style={{ fontSize: 14, fontWeight: 600 }}>{s.name}</span>
-                      <span style={{ fontFamily: MONO, fontSize: 11, color: ACCENT }}>{s.status}</span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ marginTop: 16, fontSize: 13, lineHeight: 1.55, color: '#A8A8A8' }}>
-                  Vendors reply by email or phone, usually within their listed response time. Quotes and payment
-                  happen directly with them.
-                </div>
-                <button
-                  onClick={V.reset}
-                  style={{
-                    marginTop: 20,
-                    width: '100%',
-                    border: '1px solid #3B3B3B',
-                    borderRadius: 999,
-                    background: 'transparent',
-                    color: '#FFFFFF',
-                    padding: '14px 20px',
-                    cursor: 'pointer',
-                    fontSize: 14,
-                    fontWeight: 700,
-                  }}
-                >
-                  Start a new Eventory
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -4672,12 +3718,11 @@ export default function App() {
                   Trinidad &amp; Tobago.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: ACCENT_ON_SOFT }}>
-                  Browse what you need, add vendors to your Broadcast Request, and send everything together when
-                  you're ready. Each vendor receives their own request with only the details that apply to them,
-                  and messages you back directly.
+                  Browse vendor profiles, then message them on WhatsApp for a quick question, or sign in and
+                  send a detailed quote request built around your event.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: ACCENT_ON_SOFT }}>
-                  Already know who you want? Message them straight from their profile.
+                  Either way, the vendor messages you back directly.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, fontWeight: 700, lineHeight: 1.6, color: ACCENT_ON }}>
                   You find the people you need. They take it from there.
@@ -4723,9 +3768,8 @@ export default function App() {
                   People are already looking for what you offer.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#D7D7D2' }}>
-                  Eventory helps them find your business when they're planning an event. They can browse your
-                  profile, see what you offer, and add you to their Broadcast Request. Or message you directly if
-                  they already know it's you they want.
+                  Eventory helps them find your business when they're planning an event. They can message you
+                  on WhatsApp instantly, or sign in and send a detailed quote request from your profile.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#D7D7D2' }}>
                   When they're ready, you receive their request directly, with the event details and what they're
@@ -6643,10 +5687,10 @@ export default function App() {
                 About
               </button>
               <button
-                onClick={V.goEventory}
+                onClick={V.goAccount}
                 style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
               >
-                Your Eventory
+                {V.isSignedIn ? 'Dashboard' : 'Sign in'}
               </button>
             </div>
           </div>
