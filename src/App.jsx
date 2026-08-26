@@ -62,6 +62,26 @@ const EVENT_TYPES = [
   { key: 'other', label: 'Other' },
 ];
 
+// Trinidad's 14 municipal corporations (city/borough/regional). Tobago sits
+// outside this system entirely — it's governed by the Tobago House of
+// Assembly, hence the separate Country field.
+const MUNICIPALITIES = [
+  'Port of Spain',
+  'San Fernando',
+  'Arima',
+  'Chaguanas',
+  'Point Fortin',
+  'Diego Martin',
+  'San Juan/Laventille',
+  'Tunapuna/Piarco',
+  'Sangre Grande',
+  'Couva/Tabaquite/Talparo',
+  'Princes Town',
+  'Mayaro/Rio Claro',
+  'Penal/Debe',
+  'Siparia',
+];
+
 const MONO = "'IBM Plex Mono', monospace";
 const SANS = 'Manrope, sans-serif';
 const DISPLAY = 'Archivo, Helvetica, sans-serif';
@@ -474,7 +494,8 @@ export default function App() {
           vdSubcategory: v.subcategory,
           vdContactPerson: v.contactPerson,
           vdPhone: v.phone,
-          vdCity: v.city,
+          vdCity: v.city && MUNICIPALITIES.includes(v.city) ? v.city : v.city ? 'Other' : '',
+          vdCityOther: v.city && !MUNICIPALITIES.includes(v.city) ? v.city : '',
           vdBio: v.bio,
           vdDescription: v.description,
           vdLogoUrl: v.logoUrl,
@@ -1519,7 +1540,12 @@ export default function App() {
     setVdContactPerson: (e) => patch({ vdContactPerson: e.target.value }),
     vdPhone: st.vdPhone || '',
     setVdPhone: (e) => patch({ vdPhone: e.target.value }),
-    vdCityTiles: LOCATIONS.filter((l) => l !== 'All areas').map((l) => ({ label: l, on: st.vdCity === l, pick: () => patch({ vdCity: l }) })),
+    vdCityOptions: MUNICIPALITIES,
+    vdCity: st.vdCity || '',
+    setVdCity: (e) => patch({ vdCity: e.target.value }),
+    vdCityOtherSelected: st.vdCity === 'Other',
+    vdCityOther: st.vdCityOther || '',
+    setVdCityOther: (e) => patch({ vdCityOther: e.target.value }),
     vdBio: st.vdBio || '',
     setVdBio: (e) => patch({ vdBio: e.target.value }),
     vdDescription: st.vdDescription || '',
@@ -1569,13 +1595,14 @@ export default function App() {
     vdSaved: !!st.vdSaved,
     saveVdProfile: async () => {
       if (!st.vdVendor || st.vdSaving) return;
+      const vdEffectiveCity = st.vdCity === 'Other' ? (st.vdCityOther || '').trim() : st.vdCity;
       patch({ vdSaving: true, vdSaveError: null, vdSaved: false });
       try {
         await updateVendorProfile(st.vdVendor.id, {
           subcategory: st.vdSubcategory,
           contactPerson: st.vdContactPerson,
           phone: st.vdPhone,
-          city: st.vdCity,
+          city: vdEffectiveCity,
           bio: st.vdBio,
           description: st.vdDescription,
           logoUrl: st.vdLogoUrl,
@@ -1596,7 +1623,7 @@ export default function App() {
             subcategory: s.vdSubcategory,
             contactPerson: s.vdContactPerson,
             phone: s.vdPhone,
-            city: s.vdCity,
+            city: vdEffectiveCity,
             bio: s.vdBio,
             description: s.vdDescription,
             logoUrl: s.vdLogoUrl,
@@ -2087,11 +2114,9 @@ export default function App() {
       on: st.voCountry === c,
       pick: () => patch({ voCountry: c }),
     })),
-    voCityTiles: [...LOCATIONS.filter((l) => l !== 'All areas' && l !== 'Tobago'), 'Other'].map((l) => ({
-      label: l,
-      on: st.voCity === l,
-      pick: () => patch({ voCity: l }),
-    })),
+    voCityOptions: MUNICIPALITIES,
+    voCity: st.voCity || '',
+    setVoCity: (e) => patch({ voCity: e.target.value }),
     voCityOtherSelected: st.voCity === 'Other',
     voCityOther: st.voCityOther || '',
     setVoCityOther: (e) => patch({ voCityOther: e.target.value }),
@@ -5459,20 +5484,29 @@ export default function App() {
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Phone number</span>
                     <input type="tel" value={V.vdPhone} onChange={V.setVdPhone} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
                   </label>
-                  <div>
-                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>City</div>
-                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {V.vdCityTiles.map((l) => (
-                        <button
-                          key={l.label}
-                          onClick={l.pick}
-                          style={{ border: l.on ? '2px solid #171717' : '1px solid #E4E4DF', borderRadius: 999, background: l.on ? '#171717' : '#FFFFFF', color: l.on ? '#FFFFFF' : '#171717', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
-                        >
-                          {l.label}
-                        </button>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>City / municipality</span>
+                    <select
+                      value={V.vdCity}
+                      onChange={V.setVdCity}
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    >
+                      <option value="" disabled>Select a municipality</option>
+                      {V.vdCityOptions.map((l) => (
+                        <option key={l} value={l}>{l}</option>
                       ))}
-                    </div>
-                  </div>
+                      <option value="Other">Other</option>
+                    </select>
+                    {V.vdCityOtherSelected && (
+                      <input
+                        type="text"
+                        value={V.vdCityOther}
+                        onChange={V.setVdCityOther}
+                        placeholder="Tell us your city or town"
+                        style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }}
+                      />
+                    )}
+                  </label>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Starting price (TT$, optional)</span>
                     <input type="number" value={V.vdStartingPrice} onChange={V.setVdStartingPrice} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
@@ -6319,29 +6353,29 @@ export default function App() {
                       ))}
                     </div>
                   </div>
-                  <div>
-                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>City *</div>
-                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {V.voCityTiles.map((l) => (
-                        <button
-                          key={l.label}
-                          onClick={l.pick}
-                          style={{ border: l.on ? '2px solid #171717' : '1px solid #E4E4DF', borderRadius: 999, background: l.on ? '#171717' : '#FFFFFF', color: l.on ? '#FFFFFF' : '#171717', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
-                        >
-                          {l.label}
-                        </button>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>City / municipality *</span>
+                    <select
+                      value={V.voCity}
+                      onChange={V.setVoCity}
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                    >
+                      <option value="" disabled>Select a municipality</option>
+                      {V.voCityOptions.map((l) => (
+                        <option key={l} value={l}>{l}</option>
                       ))}
-                    </div>
+                      <option value="Other">Other</option>
+                    </select>
                     {V.voCityOtherSelected && (
                       <input
                         type="text"
                         value={V.voCityOther}
                         onChange={V.setVoCityOther}
                         placeholder="Tell us your city or town"
-                        style={{ marginTop: 8, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }}
+                        style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }}
                       />
                     )}
-                  </div>
+                  </label>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Starting price (TT$, optional)</span>
                     <input type="number" value={V.voStartingPrice} onChange={V.setVoStartingPrice} placeholder="e.g. 500" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
