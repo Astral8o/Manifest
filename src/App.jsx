@@ -3727,24 +3727,6 @@ export default function App() {
                     Get a quote →
                   </button>
                 </div>
-                {V.sup.phone && (
-                  <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    <span
-                      style={{
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 999,
-                        background: '#F7F7F5',
-                        padding: '6px 14px',
-                        fontFamily: MONO,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: '#171717',
-                      }}
-                    >
-                      {V.sup.phone}
-                    </span>
-                  </div>
-                )}
               </div>
 
               <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', gap: 8, borderBottom: '1px solid #ECECEC', paddingBottom: 16 }}>
