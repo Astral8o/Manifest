@@ -335,6 +335,11 @@ const initialState = {
   reviewSending: false,
   reviewError: null,
   reviewSent: false,
+  waModalOpen: false,
+  waEventType: null,
+  waEventTypeOther: '',
+  waEventDate: '',
+  waVenue: '',
   quoteModalOpen: false,
   quoteStep: 1,
   quoteEventType: null,
@@ -763,6 +768,15 @@ export default function App() {
     if (platform === 'tiktok') return 'https://tiktok.com/@' + h;
     return null;
   };
+  const buildWaMessage = (name, { eventTypeLabel, eventDate, venue }) => {
+    let msg = `Hi ${name}, I found you on Eventory and I'm interested in your services`;
+    const details = [];
+    if (eventTypeLabel) details.push(`for a ${eventTypeLabel}`);
+    if (eventDate) details.push(`on ${eventDate}`);
+    if (venue) details.push(`at ${venue}`);
+    if (details.length) msg += ' ' + details.join(' ');
+    return msg + '.';
+  };
   const supCoverFallback = sup.coverUrl || photoUrl(sup.id + '-cover', 960, 360);
   const supCarouselPhotos = (() => {
     const galleryPhotos = (sup.gallery || []).map((g) => g.photoUrl).filter(Boolean);
@@ -1124,6 +1138,39 @@ export default function App() {
       policies: (sup.policies || []).map((p) => ({ key: p.title, label: p.title, text: p.body })),
       menuItems: sup.menuItems || [],
     },
+
+    openWaModal: () =>
+      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '' }),
+    closeWaModal: () => patch({ waModalOpen: false }),
+    waModalOpen: !!st.waModalOpen,
+    waEventTypeTiles: EVENT_TYPES.map((t) => ({
+      key: t.key,
+      label: t.label,
+      on: st.waEventType === t.key,
+      pick: () => patch({ waEventType: t.key }),
+    })),
+    waEventTypeOther: st.waEventTypeOther || '',
+    setWaEventTypeOther: (e) => patch({ waEventTypeOther: e.target.value }),
+    waEventDate: st.waEventDate || '',
+    setWaEventDate: (e) => patch({ waEventDate: e.target.value }),
+    waVenue: st.waVenue || '',
+    setWaVenue: (e) => patch({ waVenue: e.target.value }),
+    waSendDisabled: !st.waEventType || (st.waEventType === 'other' && !(st.waEventTypeOther || '').trim()),
+    waSendUrl: sup.phone
+      ? 'https://wa.me/' +
+        sup.phone.replace(/\D/g, '') +
+        '?text=' +
+        encodeURIComponent(
+          buildWaMessage(sup.name, {
+            eventTypeLabel:
+              st.waEventType === 'other'
+                ? (st.waEventTypeOther || '').trim()
+                : ((EVENT_TYPES.find((t) => t.key === st.waEventType) || {}).label || '').toLowerCase(),
+            eventDate: st.waEventDate,
+            venue: st.waVenue,
+          })
+        )
+      : null,
 
     startQuote: () => {
       if (!st.signedIn) {
@@ -3640,10 +3687,8 @@ export default function App() {
                 <p style={{ margin: '14px 0 0', maxWidth: 620, fontSize: 16, lineHeight: 1.55, color: '#4A4A4A' }}>{V.sup.description}</p>
                 <div style={{ marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                   {V.sup.whatsappUrl && (
-                    <a
-                      href={V.sup.whatsappUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={V.openWaModal}
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -3657,11 +3702,10 @@ export default function App() {
                         fontFamily: DISPLAY,
                         fontSize: 13.5,
                         fontWeight: 600,
-                        textDecoration: 'none',
                       }}
                     >
                       Message on WhatsApp →
-                    </a>
+                    </button>
                   )}
                   <button
                     onClick={V.startQuote}
@@ -6881,6 +6925,181 @@ export default function App() {
                 )}
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {V.waModalOpen && (
+        <div
+          onClick={V.closeWaModal}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 50,
+            background: 'rgba(23,23,23,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: isMobile ? 12 : 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 480,
+              maxHeight: '88vh',
+              overflowY: 'auto',
+              background: '#FFFFFF',
+              borderRadius: 28,
+              padding: isMobile ? 20 : 32,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 20 : 24, lineHeight: 1.15, letterSpacing: '-0.02em', fontWeight: 800 }}>
+                Message {V.sup.name}
+              </h2>
+              <button
+                onClick={V.closeWaModal}
+                aria-label="Close"
+                style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#6E6E6E', padding: 4, lineHeight: 1, flexShrink: 0 }}
+              >
+                ✕
+              </button>
+            </div>
+            <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
+              A quick heads-up on what you need helps them reply faster.
+            </p>
+
+            <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+              {V.waEventTypeTiles.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={t.pick}
+                  style={{
+                    border: t.on ? '2px solid #171717' : '1px solid #E4E4DF',
+                    borderRadius: 14,
+                    background: t.on ? '#171717' : '#FFFFFF',
+                    color: t.on ? '#FFFFFF' : '#171717',
+                    padding: '11px 10px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontSize: 13,
+                    fontWeight: 700,
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {st.waEventType === 'other' && (
+              <input
+                type="text"
+                value={V.waEventTypeOther}
+                onChange={V.setWaEventTypeOther}
+                placeholder="Tell us what you're planning"
+                style={{
+                  marginTop: 10,
+                  width: '100%',
+                  border: '1px solid #E4E4DF',
+                  borderRadius: 14,
+                  background: '#F7F7F5',
+                  padding: '11px 14px',
+                  fontFamily: SANS,
+                  fontSize: 15,
+                  color: '#171717',
+                }}
+              />
+            )}
+
+            <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <label style={{ flex: '1 1 160px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Date (optional)
+                </span>
+                <input
+                  type="date"
+                  value={V.waEventDate}
+                  onChange={V.setWaEventDate}
+                  style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
+                />
+              </label>
+              <label style={{ flex: '1 1 160px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Venue (optional)
+                </span>
+                <input
+                  type="text"
+                  value={V.waVenue}
+                  onChange={V.setWaVenue}
+                  placeholder="e.g. Hyatt Regency"
+                  style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
+                />
+              </label>
+            </div>
+
+            {V.waSendDisabled ? (
+              <div
+                style={{
+                  marginTop: 20,
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  textAlign: 'center',
+                  border: 0,
+                  borderRadius: 999,
+                  background: '#25D366',
+                  color: '#FFFFFF',
+                  padding: '15px 26px',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  opacity: 0.5,
+                }}
+              >
+                Message on WhatsApp →
+              </div>
+            ) : (
+              <a
+                href={V.waSendUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={V.closeWaModal}
+                style={{
+                  marginTop: 20,
+                  display: 'block',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  textAlign: 'center',
+                  border: 0,
+                  borderRadius: 999,
+                  background: '#25D366',
+                  color: '#FFFFFF',
+                  padding: '15px 26px',
+                  cursor: 'pointer',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Message on WhatsApp →
+              </a>
+            )}
+            <a
+              href={V.sup.whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={V.closeWaModal}
+              style={{
+                marginTop: 12,
+                display: 'block',
+                textAlign: 'center',
+                fontSize: 13,
+                color: '#6E6E6E',
+                textDecoration: 'underline',
+                textUnderlineOffset: '3px',
+              }}
+            >
+              Skip — just message directly
+            </a>
           </div>
         </div>
       )}
