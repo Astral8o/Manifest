@@ -361,9 +361,16 @@ export async function createVendorAccount(payload) {
   if (!user) {
     throw new Error('Could not create your account. Please try again.');
   }
+  // Supabase signals "this email already has an account" by returning the
+  // user with an empty identities array — this can happen even when it
+  // still hands back a (non-functional, stale) session, so it must be
+  // checked before the session check below, not instead of it.
+  if (user.identities && user.identities.length === 0) {
+    throw new Error('That email already has an account. Please sign in instead, or use a different email address.');
+  }
   if (!session) {
     throw new Error(
-      'That email already has an account, or needs to be confirmed before continuing. Check your inbox for a confirmation link, or sign in instead if you already have an account.'
+      'That email needs to be confirmed before continuing. Check your inbox for a confirmation link, or sign in instead if you already have an account.'
     );
   }
   const { data: vendor, error } = await supabase
@@ -388,7 +395,12 @@ export async function createVendorAccount(payload) {
     })
     .select('id')
     .single();
-  if (error) throw error;
+  if (error) {
+    if (error.message && /row-level security/i.test(error.message)) {
+      throw new Error('That email already has an account. Please sign in instead, or use a different email address.');
+    }
+    throw error;
+  }
   return vendor.id;
 }
 
