@@ -480,6 +480,242 @@ export async function submitVendorOnboarding(vendorId, v) {
   }
 }
 
+// ---- Vendor self-service dashboard ----
+// Unlike reshapeVendor() (used for the public catalog), these keep each
+// child row's real database id, since the dashboard needs it to edit or
+// delete individual packages/photos/FAQs/policies/menu items.
+
+export async function fetchMyVendor() {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('You need to be signed in.');
+
+  const { data, error } = await supabase
+    .from('vendors')
+    .select('*, products(*), vendor_gallery(*), vendor_faqs(*), vendor_policies(*), menu_items(*)')
+    .eq('owner_user_id', user.id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    name: data.name,
+    categoryCode: data.category_code,
+    subcategory: data.subcategory || '',
+    city: data.city,
+    contactPerson: data.contact_person || '',
+    phone: data.phone || '',
+    email: data.email || '',
+    bio: data.bio || '',
+    description: data.description || '',
+    logoUrl: data.logo_url || '',
+    coverUrl: data.cover_photo_url || '',
+    instagram: data.instagram || '',
+    facebook: data.facebook || '',
+    tiktok: data.tiktok || '',
+    mapLink: data.map_link || '',
+    startingPrice: data.starting_price === null || data.starting_price === undefined ? null : Number(data.starting_price),
+    published: !!data.published,
+    packages: (data.products || [])
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description || '',
+        priceMin: Number(p.price_min),
+        priceMax: Number(p.price_max),
+        unit: p.unit,
+        photoUrl: p.photo_url || '',
+        inclusions: p.inclusions || [],
+      })),
+    gallery: (data.vendor_gallery || [])
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((g) => ({ id: g.id, eventType: g.event_type, photoUrl: g.photo_url })),
+    menu: (data.menu_items || [])
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((m) => ({ id: m.id, name: m.name })),
+    faqs: (data.vendor_faqs || []).map((f) => ({ id: f.id, q: f.question, a: f.answer })),
+    policies: (data.vendor_policies || [])
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((p) => ({ id: p.id, title: p.title, body: p.body })),
+  };
+}
+
+export async function updateVendorProfile(vendorId, v) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase
+    .from('vendors')
+    .update({
+      subcategory: v.subcategory || null,
+      contact_person: v.contactPerson,
+      phone: v.phone,
+      city: v.city,
+      region: v.city,
+      bio: v.bio,
+      description: v.description,
+      logo_url: v.logoUrl || null,
+      cover_photo_url: v.coverUrl || null,
+      instagram: v.instagram || null,
+      facebook: v.facebook || null,
+      tiktok: v.tiktok || null,
+      map_link: v.mapLink || null,
+      starting_price: v.startingPrice || null,
+    })
+    .eq('id', vendorId);
+  if (error) throw error;
+}
+
+export async function addVendorPackage(vendorId, p) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase
+    .from('products')
+    .insert({
+      vendor_id: vendorId,
+      name: p.name,
+      description: p.description || '',
+      price_min: p.priceMin,
+      price_max: p.priceMax,
+      unit: p.unit || 'event',
+      min_qty: 1,
+      lead_time_days: 0,
+      photo_url: p.photoUrl || null,
+      inclusions: p.inclusions || [],
+      sort_order: p.sortOrder || 0,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function removeVendorPackage(id) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('products').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function addVendorGalleryPhoto(vendorId, g) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase
+    .from('vendor_gallery')
+    .insert({ vendor_id: vendorId, event_type: g.eventType, photo_url: g.photoUrl, sort_order: g.sortOrder || 0 })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function removeVendorGalleryPhoto(id) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('vendor_gallery').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function addVendorMenuItem(vendorId, name) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase.from('menu_items').insert({ vendor_id: vendorId, name }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function removeVendorMenuItem(id) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('menu_items').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function addVendorFaq(vendorId, f) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase
+    .from('vendor_faqs')
+    .insert({ vendor_id: vendorId, question: f.q, answer: f.a })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function removeVendorFaq(id) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('vendor_faqs').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function addVendorPolicy(vendorId, p) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase
+    .from('vendor_policies')
+    .insert({ vendor_id: vendorId, title: p.title, body: p.body, sort_order: p.sortOrder || 0 })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function removeVendorPolicy(id) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('vendor_policies').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// Quote requests received by a vendor. Filtered explicitly by vendor_id
+// (rather than relying on RLS alone) so an admin or dual-role account never
+// sees unrelated buyer-side rows mixed in here.
+export async function fetchVendorQuoteRequests(vendorId) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase
+    .from('quote_requests')
+    .select('id, event_type, event_type_other, event_date, venue, category_answers, contact_name, contact_email, contact_phone, status, created_at')
+    .eq('vendor_id', vendorId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((r) => ({
+    id: r.id,
+    eventType: r.event_type_other || r.event_type,
+    eventDate: r.event_date,
+    venue: r.venue,
+    categoryAnswers: r.category_answers || {},
+    contactName: r.contact_name,
+    contactEmail: r.contact_email,
+    contactPhone: r.contact_phone,
+    status: r.status,
+    createdAt: r.created_at,
+  }));
+}
+
 // A single-vendor quote request from a signed-in buyer. Distinct from the
 // old multi-vendor inquiries table: one submission always targets exactly
 // one vendor.

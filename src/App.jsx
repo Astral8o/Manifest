@@ -19,6 +19,20 @@ import {
   createVendorAccount,
   submitVendorOnboarding,
   uploadVendorMedia,
+  signInVendor,
+  fetchMyVendor,
+  updateVendorProfile,
+  addVendorPackage,
+  removeVendorPackage,
+  addVendorGalleryPhoto,
+  removeVendorGalleryPhoto,
+  addVendorMenuItem,
+  removeVendorMenuItem,
+  addVendorFaq,
+  removeVendorFaq,
+  addVendorPolicy,
+  removeVendorPolicy,
+  fetchVendorQuoteRequests,
 } from './catalog';
 import { supabase } from './supabaseClient';
 import heroPhoto from './assets/hero-photo.jpg';
@@ -284,6 +298,52 @@ const initialState = {
   dashboardQuotes: [],
   dashboardQuotesLoading: false,
   dashboardQuotesError: null,
+
+  vsiEmail: '',
+  vsiPassword: '',
+  vsiSubmitting: false,
+  vsiError: null,
+
+  vdTab: 'profile',
+  vdLoading: false,
+  vdError: null,
+  vdVendor: null,
+  vdSubcategory: '',
+  vdContactPerson: '',
+  vdPhone: '',
+  vdCity: '',
+  vdBio: '',
+  vdDescription: '',
+  vdLogoUrl: '',
+  vdCoverUrl: '',
+  vdUploadingLogo: false,
+  vdUploadingCover: false,
+  vdInstagram: '',
+  vdFacebook: '',
+  vdTiktok: '',
+  vdMapLink: '',
+  vdStartingPrice: '',
+  vdSaving: false,
+  vdSaveError: null,
+  vdSaved: false,
+  vdPkgName: '',
+  vdPkgDescription: '',
+  vdPkgPriceMin: '',
+  vdPkgPriceMax: '',
+  vdAddingPkg: false,
+  vdAlbumEventType: '',
+  vdUploadingGalleryPhoto: false,
+  vdMenuDraft: '',
+  vdAddingMenuItem: false,
+  vdFaqQ: '',
+  vdFaqA: '',
+  vdAddingFaq: false,
+  vdPolicyTitle: '',
+  vdPolicyBody: '',
+  vdAddingPolicy: false,
+  vdQuotes: [],
+  vdQuotesLoading: false,
+  vdQuotesError: null,
 };
 
 export default function App() {
@@ -346,6 +406,48 @@ export default function App() {
       .catch((err) => patch({ dashboardQuotesLoading: false, dashboardQuotesError: err.message || 'Could not load your inquiries.' }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [st.screen, st.signedIn]);
+
+  // Load the signed-in vendor's own listing whenever they land on their
+  // dashboard, and seed the edit-form fields from what comes back.
+  useEffect(() => {
+    if (st.screen !== 'vendor-dashboard' || !st.signedIn) return;
+    patch({ vdLoading: true, vdError: null });
+    fetchMyVendor()
+      .then((v) => {
+        if (!v) {
+          patch({ vdLoading: false, vdVendor: null });
+          return;
+        }
+        patch({
+          vdLoading: false,
+          vdVendor: v,
+          vdSubcategory: v.subcategory,
+          vdContactPerson: v.contactPerson,
+          vdPhone: v.phone,
+          vdCity: v.city,
+          vdBio: v.bio,
+          vdDescription: v.description,
+          vdLogoUrl: v.logoUrl,
+          vdCoverUrl: v.coverUrl,
+          vdInstagram: v.instagram,
+          vdFacebook: v.facebook,
+          vdTiktok: v.tiktok,
+          vdMapLink: v.mapLink,
+          vdStartingPrice: v.startingPrice === null ? '' : String(v.startingPrice),
+        });
+      })
+      .catch((err) => patch({ vdLoading: false, vdError: err.message || 'Could not load your listing.' }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [st.screen, st.signedIn]);
+
+  useEffect(() => {
+    if (st.screen !== 'vendor-dashboard' || !st.vdVendor) return;
+    patch({ vdQuotesLoading: true, vdQuotesError: null });
+    fetchVendorQuoteRequests(st.vdVendor.id)
+      .then((rows) => patch({ vdQuotesLoading: false, vdQuotes: rows }))
+      .catch((err) => patch({ vdQuotesLoading: false, vdQuotesError: err.message || 'Could not load your inquiries.' }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [st.screen, st.vdVendor && st.vdVendor.id]);
 
   // Real auth: restore any existing Supabase session on load, then stay in
   // sync as the user signs in (via magic link) or out. A magic link click
@@ -667,6 +769,9 @@ export default function App() {
     isSupplier: st.screen === 'supplier',
     isJoin: st.screen === 'join',
     isAccount: st.screen === 'account',
+    isVendorSignIn: st.screen === 'vendor-signin',
+    isVendorDashboard: st.screen === 'vendor-dashboard',
+    goVendorSignIn: () => patch({ screen: 'vendor-signin', navMenuOpen: false, vsiEmail: '', vsiPassword: '', vsiSubmitting: false, vsiError: null }),
     isAbout: st.screen === 'about',
     sourcingOpen: st.sourcingOpen,
     goHome: nav('home'),
@@ -1268,6 +1373,316 @@ export default function App() {
         patch({ screen: 'supplier', supId: q.vendorId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
     })),
     hasDashboardInquiries: (st.dashboardQuotes || []).length > 0,
+
+    vsiEmail: st.vsiEmail || '',
+    setVsiEmail: (e) => patch({ vsiEmail: e.target.value, vsiError: null }),
+    vsiPassword: st.vsiPassword || '',
+    setVsiPassword: (e) => patch({ vsiPassword: e.target.value, vsiError: null }),
+    vsiSubmitting: !!st.vsiSubmitting,
+    vsiError: st.vsiError || '',
+    vsiDisabled: !(st.vsiEmail && st.vsiEmail.indexOf('@') > 0 && (st.vsiPassword || '').length > 0) || !!st.vsiSubmitting,
+    vsiSignIn: async () => {
+      if (!st.vsiEmail || st.vsiEmail.indexOf('@') < 1 || !st.vsiPassword || st.vsiSubmitting) return;
+      patch({ vsiSubmitting: true, vsiError: null });
+      try {
+        const user = await signInVendor(st.vsiEmail, st.vsiPassword);
+        patch({ vsiSubmitting: false, signedIn: true, email: user.email || st.vsiEmail, screen: 'vendor-dashboard' });
+      } catch (err) {
+        patch({ vsiSubmitting: false, vsiError: err.message || 'Could not sign in. Check your email and password and try again.' });
+      }
+    },
+
+    vdLoading: !!st.vdLoading,
+    vdError: st.vdError || '',
+    vdVendor: st.vdVendor,
+    vdHasVendor: !!st.vdVendor,
+    vdStatusLabel: st.vdVendor ? (st.vdVendor.published ? 'Published' : 'Pending review') : '',
+    vdTab: st.vdTab || 'profile',
+    vdTabs: [
+      { key: 'profile', label: 'Profile' },
+      { key: 'packages', label: 'Packages (' + ((st.vdVendor && st.vdVendor.packages) || []).length + ')' },
+      { key: 'gallery', label: 'Gallery (' + ((st.vdVendor && st.vdVendor.gallery) || []).length + ')' },
+      { key: 'menu', label: 'Menu (' + ((st.vdVendor && st.vdVendor.menu) || []).length + ')' },
+      { key: 'faqs', label: 'FAQ (' + ((st.vdVendor && st.vdVendor.faqs) || []).length + ')' },
+      { key: 'policies', label: 'Policies (' + ((st.vdVendor && st.vdVendor.policies) || []).length + ')' },
+      { key: 'inquiries', label: 'Inquiries (' + (st.vdQuotes || []).length + ')' },
+    ].map((t) => ({ ...t, active: (st.vdTab || 'profile') === t.key, go: () => patch({ vdTab: t.key }) })),
+    goVdPublicProfile: () =>
+      st.vdVendor &&
+      patch({ screen: 'supplier', supId: st.vdVendor.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+    vdSignOut: async () => {
+      if (supabase) await supabase.auth.signOut();
+      patch({ signedIn: false, screen: 'home', authSent: false, authError: null, vdVendor: null });
+    },
+
+    vdSubcategory: st.vdSubcategory || '',
+    setVdSubcategory: (e) => patch({ vdSubcategory: e.target.value }),
+    vdContactPerson: st.vdContactPerson || '',
+    setVdContactPerson: (e) => patch({ vdContactPerson: e.target.value }),
+    vdPhone: st.vdPhone || '',
+    setVdPhone: (e) => patch({ vdPhone: e.target.value }),
+    vdCityTiles: LOCATIONS.filter((l) => l !== 'All areas').map((l) => ({ label: l, on: st.vdCity === l, pick: () => patch({ vdCity: l }) })),
+    vdBio: st.vdBio || '',
+    setVdBio: (e) => patch({ vdBio: e.target.value }),
+    vdDescription: st.vdDescription || '',
+    setVdDescription: (e) => patch({ vdDescription: e.target.value }),
+    vdLogoUrl: st.vdLogoUrl || '',
+    vdUploadingLogo: !!st.vdUploadingLogo,
+    uploadVdLogo: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ vdUploadingLogo: true, vdSaveError: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ vdUploadingLogo: false, vdLogoUrl: url });
+      } catch (err) {
+        patch({ vdUploadingLogo: false, vdSaveError: err.message || 'Could not upload photo.' });
+      }
+    },
+    vdCoverUrl: st.vdCoverUrl || '',
+    vdUploadingCover: !!st.vdUploadingCover,
+    uploadVdCover: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ vdUploadingCover: true, vdSaveError: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ vdUploadingCover: false, vdCoverUrl: url });
+      } catch (err) {
+        patch({ vdUploadingCover: false, vdSaveError: err.message || 'Could not upload photo.' });
+      }
+    },
+    vdInstagram: st.vdInstagram || '',
+    setVdInstagram: (e) => patch({ vdInstagram: e.target.value }),
+    vdFacebook: st.vdFacebook || '',
+    setVdFacebook: (e) => patch({ vdFacebook: e.target.value }),
+    vdTiktok: st.vdTiktok || '',
+    setVdTiktok: (e) => patch({ vdTiktok: e.target.value }),
+    vdMapLink: st.vdMapLink || '',
+    setVdMapLink: (e) => patch({ vdMapLink: e.target.value }),
+    vdStartingPrice: st.vdStartingPrice || '',
+    setVdStartingPrice: (e) => patch({ vdStartingPrice: e.target.value }),
+    vdSaving: !!st.vdSaving,
+    vdSaveError: st.vdSaveError || '',
+    vdSaved: !!st.vdSaved,
+    saveVdProfile: async () => {
+      if (!st.vdVendor || st.vdSaving) return;
+      patch({ vdSaving: true, vdSaveError: null, vdSaved: false });
+      try {
+        await updateVendorProfile(st.vdVendor.id, {
+          subcategory: st.vdSubcategory,
+          contactPerson: st.vdContactPerson,
+          phone: st.vdPhone,
+          city: st.vdCity,
+          bio: st.vdBio,
+          description: st.vdDescription,
+          logoUrl: st.vdLogoUrl,
+          coverUrl: st.vdCoverUrl,
+          instagram: st.vdInstagram,
+          facebook: st.vdFacebook,
+          tiktok: st.vdTiktok,
+          mapLink: st.vdMapLink,
+          startingPrice: st.vdStartingPrice ? Number(st.vdStartingPrice) : null,
+        });
+        patch((s) => ({
+          vdSaving: false,
+          vdSaved: true,
+          vdVendor: {
+            ...s.vdVendor,
+            subcategory: s.vdSubcategory,
+            contactPerson: s.vdContactPerson,
+            phone: s.vdPhone,
+            city: s.vdCity,
+            bio: s.vdBio,
+            description: s.vdDescription,
+            logoUrl: s.vdLogoUrl,
+            coverUrl: s.vdCoverUrl,
+            instagram: s.vdInstagram,
+            facebook: s.vdFacebook,
+            tiktok: s.vdTiktok,
+            mapLink: s.vdMapLink,
+            startingPrice: s.vdStartingPrice ? Number(s.vdStartingPrice) : null,
+          },
+        }));
+        setTimeout(() => patch((s) => (s.vdSaved ? { vdSaved: false } : {})), 2500);
+      } catch (err) {
+        patch({ vdSaving: false, vdSaveError: err.message || 'Could not save changes. Please try again.' });
+      }
+    },
+
+    vdPkgName: st.vdPkgName || '',
+    setVdPkgName: (e) => patch({ vdPkgName: e.target.value }),
+    vdPkgDescription: st.vdPkgDescription || '',
+    setVdPkgDescription: (e) => patch({ vdPkgDescription: e.target.value }),
+    vdPkgPriceMin: st.vdPkgPriceMin || '',
+    setVdPkgPriceMin: (e) => patch({ vdPkgPriceMin: e.target.value }),
+    vdPkgPriceMax: st.vdPkgPriceMax || '',
+    setVdPkgPriceMax: (e) => patch({ vdPkgPriceMax: e.target.value }),
+    suggestedVdPackageChips: SUGGESTED_PACKAGES.map((name) => ({ name, pick: () => patch({ vdPkgName: name }) })),
+    vdAddingPkg: !!st.vdAddingPkg,
+    vdAddPkgDisabled: !((st.vdPkgName || '').trim() && st.vdPkgPriceMin && st.vdPkgPriceMax) || !!st.vdAddingPkg,
+    addVdPackage: async () => {
+      const name = (st.vdPkgName || '').trim();
+      if (!name || !st.vdPkgPriceMin || !st.vdPkgPriceMax || st.vdAddingPkg || !st.vdVendor) return;
+      patch({ vdAddingPkg: true, vdSaveError: null });
+      try {
+        const row = await addVendorPackage(st.vdVendor.id, {
+          name,
+          description: (st.vdPkgDescription || '').trim(),
+          priceMin: Number(st.vdPkgPriceMin),
+          priceMax: Number(st.vdPkgPriceMax),
+          sortOrder: st.vdVendor.packages.length,
+        });
+        patch((s) => ({
+          vdAddingPkg: false,
+          vdPkgName: '',
+          vdPkgDescription: '',
+          vdPkgPriceMin: '',
+          vdPkgPriceMax: '',
+          vdVendor: {
+            ...s.vdVendor,
+            packages: s.vdVendor.packages.concat([
+              { id: row.id, name: row.name, description: row.description || '', priceMin: Number(row.price_min), priceMax: Number(row.price_max), unit: row.unit, photoUrl: row.photo_url || '', inclusions: row.inclusions || [] },
+            ]),
+          },
+        }));
+      } catch (err) {
+        patch({ vdAddingPkg: false, vdSaveError: err.message || 'Could not add package.' });
+      }
+    },
+    removeVdPackage: (id) => async () => {
+      try {
+        await removeVendorPackage(id);
+        patch((s) => ({ vdVendor: { ...s.vdVendor, packages: s.vdVendor.packages.filter((p) => p.id !== id) } }));
+      } catch (err) {
+        patch({ vdSaveError: err.message || 'Could not remove package.' });
+      }
+    },
+
+    vdAlbumEventType: st.vdAlbumEventType || '',
+    setVdAlbumEventType: (e) => patch({ vdAlbumEventType: e.target.value }),
+    suggestedVdAlbumChips: SUGGESTED_ALBUMS.map((name) => ({ name, pick: () => patch({ vdAlbumEventType: name }) })),
+    vdUploadingGalleryPhoto: !!st.vdUploadingGalleryPhoto,
+    uploadVdGalleryPhoto: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file || !st.vdVendor) return;
+      const eventType = (st.vdAlbumEventType || '').trim() || 'General';
+      patch({ vdUploadingGalleryPhoto: true, vdSaveError: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        const row = await addVendorGalleryPhoto(st.vdVendor.id, { eventType, photoUrl: url, sortOrder: st.vdVendor.gallery.length });
+        patch((s) => ({
+          vdUploadingGalleryPhoto: false,
+          vdVendor: { ...s.vdVendor, gallery: s.vdVendor.gallery.concat([{ id: row.id, eventType: row.event_type, photoUrl: row.photo_url }]) },
+        }));
+      } catch (err) {
+        patch({ vdUploadingGalleryPhoto: false, vdSaveError: err.message || 'Could not upload photo.' });
+      }
+    },
+    removeVdGalleryPhoto: (id) => async () => {
+      try {
+        await removeVendorGalleryPhoto(id);
+        patch((s) => ({ vdVendor: { ...s.vdVendor, gallery: s.vdVendor.gallery.filter((g) => g.id !== id) } }));
+      } catch (err) {
+        patch({ vdSaveError: err.message || 'Could not remove photo.' });
+      }
+    },
+
+    vdMenuDraft: st.vdMenuDraft || '',
+    setVdMenuDraft: (e) => patch({ vdMenuDraft: e.target.value }),
+    vdAddingMenuItem: !!st.vdAddingMenuItem,
+    addVdMenuItem: async () => {
+      const name = (st.vdMenuDraft || '').trim();
+      if (!name || st.vdAddingMenuItem || !st.vdVendor) return;
+      patch({ vdAddingMenuItem: true, vdSaveError: null });
+      try {
+        const row = await addVendorMenuItem(st.vdVendor.id, name);
+        patch((s) => ({ vdAddingMenuItem: false, vdMenuDraft: '', vdVendor: { ...s.vdVendor, menu: s.vdVendor.menu.concat([{ id: row.id, name: row.name }]) } }));
+      } catch (err) {
+        patch({ vdAddingMenuItem: false, vdSaveError: err.message || 'Could not add item.' });
+      }
+    },
+    removeVdMenuItem: (id) => async () => {
+      try {
+        await removeVendorMenuItem(id);
+        patch((s) => ({ vdVendor: { ...s.vdVendor, menu: s.vdVendor.menu.filter((m) => m.id !== id) } }));
+      } catch (err) {
+        patch({ vdSaveError: err.message || 'Could not remove item.' });
+      }
+    },
+
+    vdFaqQ: st.vdFaqQ || '',
+    setVdFaqQ: (e) => patch({ vdFaqQ: e.target.value }),
+    vdFaqA: st.vdFaqA || '',
+    setVdFaqA: (e) => patch({ vdFaqA: e.target.value }),
+    suggestedVdFaqChips: SUGGESTED_FAQS.filter((q) => !((st.vdVendor && st.vdVendor.faqs) || []).some((f) => f.q === q)).map((q) => ({
+      q,
+      pick: () => patch({ vdFaqQ: q }),
+    })),
+    vdAddingFaq: !!st.vdAddingFaq,
+    addVdFaq: async () => {
+      const q = (st.vdFaqQ || '').trim();
+      const a = (st.vdFaqA || '').trim();
+      if (!q || !a || st.vdAddingFaq || !st.vdVendor) return;
+      patch({ vdAddingFaq: true, vdSaveError: null });
+      try {
+        const row = await addVendorFaq(st.vdVendor.id, { q, a });
+        patch((s) => ({ vdAddingFaq: false, vdFaqQ: '', vdFaqA: '', vdVendor: { ...s.vdVendor, faqs: s.vdVendor.faqs.concat([{ id: row.id, q: row.question, a: row.answer }]) } }));
+      } catch (err) {
+        patch({ vdAddingFaq: false, vdSaveError: err.message || 'Could not add FAQ.' });
+      }
+    },
+    removeVdFaq: (id) => async () => {
+      try {
+        await removeVendorFaq(id);
+        patch((s) => ({ vdVendor: { ...s.vdVendor, faqs: s.vdVendor.faqs.filter((f) => f.id !== id) } }));
+      } catch (err) {
+        patch({ vdSaveError: err.message || 'Could not remove FAQ.' });
+      }
+    },
+
+    vdPolicyTitle: st.vdPolicyTitle || '',
+    setVdPolicyTitle: (e) => patch({ vdPolicyTitle: e.target.value }),
+    vdPolicyBody: st.vdPolicyBody || '',
+    setVdPolicyBody: (e) => patch({ vdPolicyBody: e.target.value }),
+    suggestedVdPolicyChips: SUGGESTED_POLICIES.filter(
+      (title) => !((st.vdVendor && st.vdVendor.policies) || []).some((p) => p.title === title)
+    ).map((title) => ({ title, pick: () => patch({ vdPolicyTitle: title }) })),
+    vdAddingPolicy: !!st.vdAddingPolicy,
+    addVdPolicy: async () => {
+      const title = (st.vdPolicyTitle || '').trim();
+      const body = (st.vdPolicyBody || '').trim();
+      if (!title || !body || st.vdAddingPolicy || !st.vdVendor) return;
+      patch({ vdAddingPolicy: true, vdSaveError: null });
+      try {
+        const row = await addVendorPolicy(st.vdVendor.id, { title, body, sortOrder: st.vdVendor.policies.length });
+        patch((s) => ({ vdAddingPolicy: false, vdPolicyTitle: '', vdPolicyBody: '', vdVendor: { ...s.vdVendor, policies: s.vdVendor.policies.concat([{ id: row.id, title: row.title, body: row.body }]) } }));
+      } catch (err) {
+        patch({ vdAddingPolicy: false, vdSaveError: err.message || 'Could not add policy.' });
+      }
+    },
+    removeVdPolicy: (id) => async () => {
+      try {
+        await removeVendorPolicy(id);
+        patch((s) => ({ vdVendor: { ...s.vdVendor, policies: s.vdVendor.policies.filter((p) => p.id !== id) } }));
+      } catch (err) {
+        patch({ vdSaveError: err.message || 'Could not remove policy.' });
+      }
+    },
+
+    vdQuotesLoading: !!st.vdQuotesLoading,
+    vdQuotesError: st.vdQuotesError || '',
+    vdQuoteRows: (st.vdQuotes || []).map((q) => ({
+      key: q.id,
+      eventType: q.eventType,
+      eventDate: q.eventDate,
+      venue: q.venue,
+      contactName: q.contactName,
+      contactEmail: q.contactEmail,
+      contactPhone: q.contactPhone,
+      statusLabel: q.status === 'new' ? 'New' : q.status,
+    })),
+    hasVdQuotes: (st.vdQuotes || []).length > 0,
 
     isAdmin: st.screen === 'admin',
     adminIsAuthed: st.signedIn && st.email === ADMIN_EMAIL,
@@ -4727,6 +5142,441 @@ export default function App() {
         </div>
       )}
 
+      {V.isVendorSignIn && (
+        <div style={{ padding: '34px 0 0', maxWidth: 440 }}>
+          <button
+            onClick={V.goHome}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← Back
+          </button>
+          <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 30 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Vendor sign in</h1>
+          <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+            For businesses managing a listing on Eventory. Not a vendor yet?{' '}
+            <button onClick={V.goVendorOnboarding} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+              Start onboarding
+            </button>
+            .
+          </p>
+
+          <div style={{ marginTop: 22, border: '1px solid #ECECEC', borderRadius: 24, padding: 26, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Email address</span>
+              <input
+                type="email"
+                value={V.vsiEmail}
+                onChange={V.setVsiEmail}
+                placeholder="your@email.com"
+                style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }}
+              />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Password</span>
+              <input
+                type="password"
+                value={V.vsiPassword}
+                onChange={V.setVsiPassword}
+                placeholder="Your password"
+                style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }}
+              />
+            </label>
+            <button
+              onClick={V.vsiSignIn}
+              disabled={V.vsiDisabled}
+              style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '14px 24px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.vsiDisabled ? 0.5 : 1 }}
+            >
+              {V.vsiSubmitting ? 'Signing in…' : 'Sign in'}
+            </button>
+            {V.vsiError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.vsiError}</div>}
+          </div>
+        </div>
+      )}
+
+      {V.isVendorDashboard && (
+        <div style={{ padding: '34px 0 0', maxWidth: 780 }}>
+          <button
+            onClick={V.goHome}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← Back
+          </button>
+
+          {!V.isSignedIn && (
+            <div style={{ marginTop: 22 }}>
+              <h1 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Vendor dashboard</h1>
+              <p style={{ margin: '12px 0 0', fontSize: 15, color: '#5B5B5B' }}>
+                You need to sign in as a vendor to see this.{' '}
+                <button onClick={V.goVendorSignIn} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 15, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+                  Sign in
+                </button>
+              </p>
+            </div>
+          )}
+
+          {V.isSignedIn && V.vdLoading && (
+            <div style={{ marginTop: 22, fontSize: 15, color: '#8A8A8A' }}>Loading your listing…</div>
+          )}
+
+          {V.isSignedIn && !V.vdLoading && V.vdError && (
+            <div style={{ marginTop: 22, fontSize: 14, color: '#B3261E' }}>{V.vdError}</div>
+          )}
+
+          {V.isSignedIn && !V.vdLoading && !V.vdError && !V.vdHasVendor && (
+            <div style={{ marginTop: 22 }}>
+              <h1 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>No listing found</h1>
+              <p style={{ margin: '12px 0 0', fontSize: 15, color: '#5B5B5B' }}>
+                We couldn't find a vendor listing for this account.{' '}
+                <button onClick={V.goVendorOnboarding} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 15, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+                  Start onboarding
+                </button>
+              </p>
+            </div>
+          )}
+
+          {V.isSignedIn && !V.vdLoading && !V.vdError && V.vdHasVendor && (
+            <>
+              <div style={{ marginTop: 22, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <div>
+                  <h1 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.vdVendor.name}</h1>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      marginTop: 10,
+                      border: '1px solid #E4E4DF',
+                      borderRadius: 999,
+                      background: V.vdVendor.published ? '#EAF6EC' : '#F7F7F5',
+                      color: V.vdVendor.published ? '#1E7A32' : '#5B5B5B',
+                      padding: '5px 14px',
+                      fontFamily: MONO,
+                      fontSize: 11,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {V.vdStatusLabel}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {V.vdVendor.published && (
+                    <button
+                      onClick={V.goVdPublicProfile}
+                      style={{ border: '1px solid #171717', borderRadius: 999, background: '#FFFFFF', color: '#171717', padding: '11px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+                    >
+                      View public profile
+                    </button>
+                  )}
+                  <button
+                    onClick={V.vdSignOut}
+                    style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', color: '#5B5B5B', padding: '11px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+                  >
+                    Sign out
+                  </button>
+                </div>
+              </div>
+              {!V.vdVendor.published && (
+                <p style={{ margin: '10px 0 0', fontSize: 13, color: '#8A8A8A' }}>
+                  Your listing isn't live yet — we review new listings before publishing. You can keep editing it in the meantime.
+                </p>
+              )}
+
+              <div style={{ marginTop: 22, display: 'flex', flexWrap: 'wrap', gap: 8, borderBottom: '1px solid #ECECEC', paddingBottom: 16 }}>
+                {V.vdTabs.map((t) => (
+                  <button
+                    key={t.key}
+                    onClick={t.go}
+                    style={{
+                      border: `1px solid ${t.active ? '#171717' : '#D7D7D2'}`,
+                      borderRadius: 999,
+                      background: t.active ? '#171717' : 'transparent',
+                      color: t.active ? '#FFFFFF' : '#171717',
+                      padding: '9px 16px',
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {V.vdSaveError && <div style={{ marginTop: 16, fontSize: 13, color: '#B3261E' }}>{V.vdSaveError}</div>}
+
+              {V.vdTab === 'profile' && (
+                <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>Cover &amp; logo</div>
+                    <div style={{ marginTop: 12, display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer' }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Cover photo</span>
+                        {V.vdCoverUrl ? (
+                          <img src={V.vdCoverUrl} alt="Cover" style={{ width: 180, height: 100, borderRadius: 12, objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: 180, height: 100, borderRadius: 12, background: '#F7F7F5', border: '1px dashed #D7D7D2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9A9A9A' }}>
+                            {V.vdUploadingCover ? 'Uploading…' : 'Add photo'}
+                          </div>
+                        )}
+                        <input type="file" accept="image/*" onChange={V.uploadVdCover} style={{ fontSize: 12 }} />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer' }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Logo</span>
+                        {V.vdLogoUrl ? (
+                          <img src={V.vdLogoUrl} alt="Logo" style={{ width: 100, height: 100, borderRadius: 999, objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: 100, height: 100, borderRadius: 999, background: '#F7F7F5', border: '1px dashed #D7D7D2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#9A9A9A', textAlign: 'center' }}>
+                            {V.vdUploadingLogo ? 'Uploading…' : 'Add logo'}
+                          </div>
+                        )}
+                        <input type="file" accept="image/*" onChange={V.uploadVdLogo} style={{ fontSize: 12 }} />
+                      </label>
+                    </div>
+                  </div>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Main category (optional)</span>
+                    <input type="text" value={V.vdSubcategory} onChange={V.setVdSubcategory} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Contact person</span>
+                    <input type="text" value={V.vdContactPerson} onChange={V.setVdContactPerson} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Phone number</span>
+                    <input type="tel" value={V.vdPhone} onChange={V.setVdPhone} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <div>
+                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>City</div>
+                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {V.vdCityTiles.map((l) => (
+                        <button
+                          key={l.label}
+                          onClick={l.pick}
+                          style={{ border: l.on ? '2px solid #171717' : '1px solid #E4E4DF', borderRadius: 999, background: l.on ? '#171717' : '#FFFFFF', color: l.on ? '#FFFFFF' : '#171717', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+                        >
+                          {l.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Starting price (TT$, optional)</span>
+                    <input type="number" value={V.vdStartingPrice} onChange={V.setVdStartingPrice} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Short bio</span>
+                    <textarea value={V.vdBio} onChange={V.setVdBio} rows={2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, resize: 'vertical' }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>About us</span>
+                    <textarea value={V.vdDescription} onChange={V.setVdDescription} rows={4} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, resize: 'vertical' }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Instagram handle</span>
+                    <input type="text" value={V.vdInstagram} onChange={V.setVdInstagram} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Facebook handle</span>
+                    <input type="text" value={V.vdFacebook} onChange={V.setVdFacebook} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>TikTok handle</span>
+                    <input type="text" value={V.vdTiktok} onChange={V.setVdTiktok} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Map link</span>
+                    <input type="text" value={V.vdMapLink} onChange={V.setVdMapLink} placeholder="https://maps.google.com/…" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <button
+                    onClick={V.saveVdProfile}
+                    disabled={V.vdSaving}
+                    style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.vdSaving ? 0.6 : 1 }}
+                  >
+                    {V.vdSaving ? 'Saving…' : V.vdSaved ? 'Saved ✓' : 'Save changes'}
+                  </button>
+                </div>
+              )}
+
+              {V.vdTab === 'packages' && (
+                <div style={{ marginTop: 22 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {V.vdVendor.packages.map((p) => (
+                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, border: '1px solid #ECECEC', borderRadius: 16, padding: '14px 16px' }}>
+                        <div style={{ fontSize: 14 }}>
+                          <strong>{p.name}</strong> — TT${p.priceMin}–TT${p.priceMax}
+                        </div>
+                        <button onClick={V.removeVdPackage(p.id)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 13, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 18, border: '1px dashed #D7D7D2', borderRadius: 16, padding: 16 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700 }}>Add a package</div>
+                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {V.suggestedVdPackageChips.map((c) => (
+                        <button key={c.name} onClick={c.pick} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#FFFFFF', padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{c.name}</button>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <input type="text" value={V.vdPkgName} onChange={V.setVdPkgName} placeholder="Package name" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <input type="text" value={V.vdPkgDescription} onChange={V.setVdPkgDescription} placeholder="Description (optional)" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input type="number" value={V.vdPkgPriceMin} onChange={V.setVdPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                        <input type="number" value={V.vdPkgPriceMax} onChange={V.setVdPkgPriceMax} placeholder="Price max (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      </div>
+                      <button onClick={V.addVdPackage} disabled={V.vdAddPkgDisabled} style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '10px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.vdAddPkgDisabled ? 0.5 : 1 }}>
+                        {V.vdAddingPkg ? 'Adding…' : 'Add package'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {V.vdTab === 'gallery' && (
+                <div style={{ marginTop: 22 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                    {V.vdVendor.gallery.map((g) => (
+                      <div key={g.id} style={{ position: 'relative' }}>
+                        <img src={g.photoUrl} alt={g.eventType} style={{ width: 140, height: 100, borderRadius: 12, objectFit: 'cover' }} />
+                        <div style={{ marginTop: 4, fontSize: 11, color: '#8A8A8A' }}>{g.eventType}</div>
+                        <button onClick={V.removeVdGalleryPhoto(g.id)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700, padding: 0 }}>Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 18, border: '1px dashed #D7D7D2', borderRadius: 16, padding: 16 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700 }}>Add a photo</div>
+                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {V.suggestedVdAlbumChips.map((c) => (
+                        <button key={c.name} onClick={c.pick} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#FFFFFF', padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{c.name}</button>
+                      ))}
+                    </div>
+                    <input type="text" value={V.vdAlbumEventType} onChange={V.setVdAlbumEventType} placeholder="Album name, e.g. Weddings" style={{ marginTop: 10, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <input type="file" accept="image/*" onChange={V.uploadVdGalleryPhoto} style={{ marginTop: 10, fontSize: 12 }} />
+                    {V.vdUploadingGalleryPhoto && <div style={{ marginTop: 8, fontSize: 12, color: '#8A8A8A' }}>Uploading…</div>}
+                  </div>
+                </div>
+              )}
+
+              {V.vdTab === 'menu' && (
+                <div style={{ marginTop: 22 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {V.vdVendor.menu.map((m) => (
+                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #ECECEC', borderRadius: 14, padding: '10px 14px' }}>
+                        <div style={{ fontSize: 14 }}>{m.name}</div>
+                        <button onClick={V.removeVdMenuItem(m.id)} style={{ border: 0, background: 'transparent', cursor: 'pointer', color: '#B3261E', fontWeight: 800 }}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
+                    <input type="text" value={V.vdMenuDraft} onChange={V.setVdMenuDraft} placeholder="e.g. Grilled Chicken Platter" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <button onClick={V.addVdMenuItem} disabled={!V.vdMenuDraft.trim() || V.vdAddingMenuItem} style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: !V.vdMenuDraft.trim() || V.vdAddingMenuItem ? 0.5 : 1 }}>
+                      Add item
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {V.vdTab === 'faqs' && (
+                <div style={{ marginTop: 22 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {V.vdVendor.faqs.map((f) => (
+                      <div key={f.id} style={{ border: '1px solid #ECECEC', borderRadius: 16, padding: 14 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700 }}>{f.q}</div>
+                        <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>{f.a}</div>
+                        <button onClick={V.removeVdFaq(f.id)} style={{ marginTop: 8, border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 18, border: '1px dashed #D7D7D2', borderRadius: 16, padding: 16 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700 }}>Add a question</div>
+                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {V.suggestedVdFaqChips.map((c) => (
+                        <button key={c.q} onClick={c.pick} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#FFFFFF', padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, textAlign: 'left' }}>{c.q}</button>
+                      ))}
+                    </div>
+                    <input type="text" value={V.vdFaqQ} onChange={V.setVdFaqQ} placeholder="Question" style={{ marginTop: 10, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <textarea value={V.vdFaqA} onChange={V.setVdFaqA} placeholder="Answer" rows={2} style={{ marginTop: 8, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
+                    <button onClick={V.addVdFaq} disabled={!V.vdFaqQ.trim() || !V.vdFaqA.trim() || V.vdAddingFaq} style={{ marginTop: 8, border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '10px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: !V.vdFaqQ.trim() || !V.vdFaqA.trim() || V.vdAddingFaq ? 0.5 : 1 }}>
+                      {V.vdAddingFaq ? 'Adding…' : 'Add question'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {V.vdTab === 'policies' && (
+                <div style={{ marginTop: 22 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {V.vdVendor.policies.map((p) => (
+                      <div key={p.id} style={{ border: '1px solid #ECECEC', borderRadius: 16, padding: 14 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700 }}>{p.title}</div>
+                        <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>{p.body}</div>
+                        <button onClick={V.removeVdPolicy(p.id)} style={{ marginTop: 8, border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 18, border: '1px dashed #D7D7D2', borderRadius: 16, padding: 16 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700 }}>Add a policy</div>
+                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {V.suggestedVdPolicyChips.map((c) => (
+                        <button key={c.title} onClick={c.pick} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#FFFFFF', padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{c.title}</button>
+                      ))}
+                    </div>
+                    <input type="text" value={V.vdPolicyTitle} onChange={V.setVdPolicyTitle} placeholder="Policy title" style={{ marginTop: 10, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <textarea value={V.vdPolicyBody} onChange={V.setVdPolicyBody} placeholder="Details" rows={2} style={{ marginTop: 8, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
+                    <button onClick={V.addVdPolicy} disabled={!V.vdPolicyTitle.trim() || !V.vdPolicyBody.trim() || V.vdAddingPolicy} style={{ marginTop: 8, border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '10px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: !V.vdPolicyTitle.trim() || !V.vdPolicyBody.trim() || V.vdAddingPolicy ? 0.5 : 1 }}>
+                      {V.vdAddingPolicy ? 'Adding…' : 'Add policy'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {V.vdTab === 'inquiries' && (
+                <div style={{ marginTop: 22 }}>
+                  {V.vdQuotesLoading && <div style={{ fontSize: 14, color: '#8A8A8A' }}>Loading…</div>}
+                  {V.vdQuotesError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.vdQuotesError}</div>}
+                  {!V.vdQuotesLoading && !V.hasVdQuotes && !V.vdQuotesError && (
+                    <div style={{ border: '1px dashed #D7D7D2', borderRadius: 24, padding: '32px 24px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 15, color: '#5B5B5B' }}>No quote requests yet. They'll show up here as planners reach out.</div>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {V.vdQuoteRows.map((q) => (
+                      <div key={q.key} style={{ border: '1px solid #ECECEC', borderRadius: 20, padding: '16px 18px' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                          <div style={{ fontSize: 15, fontWeight: 700 }}>{q.contactName}</div>
+                          <span
+                            style={{
+                              fontFamily: MONO,
+                              fontSize: 10.5,
+                              letterSpacing: '0.06em',
+                              textTransform: 'uppercase',
+                              color: '#5B5B5B',
+                              border: '1px solid #E4E4DF',
+                              borderRadius: 999,
+                              padding: '3px 10px',
+                            }}
+                          >
+                            {q.statusLabel}
+                          </span>
+                        </div>
+                        <div style={{ marginTop: 6, fontSize: 13, color: '#5B5B5B' }}>
+                          {q.eventType}
+                          {q.eventDate ? ' · ' + q.eventDate : ''}
+                          {q.venue ? ' · ' + q.venue : ''}
+                        </div>
+                        <div style={{ marginTop: 6, fontSize: 13, color: '#8A8A8A' }}>
+                          {q.contactEmail}
+                          {q.contactPhone ? ' · ' + q.contactPhone : ''}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {V.sourcingOpen && (
         <div
           onClick={V.closeSourcing}
@@ -5248,21 +6098,38 @@ export default function App() {
             <div style={{ marginTop: 24, maxWidth: 460, border: '1px solid #ECECEC', borderRadius: 24, padding: 28 }}>
               <div style={{ fontSize: 20, fontWeight: 700 }}>Application submitted</div>
               <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-                Thanks — we review every application by hand before it goes live. You'll be able to sign back in
-                with your email and password once it's approved.
+                Thanks — we review every application by hand before it goes live. You can sign back in with your
+                email and password any time to check your status or keep editing your listing.
               </p>
-              <button
-                onClick={V.goHome}
-                style={{ marginTop: 18, border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
-              >
-                Back to home
-              </button>
+              <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  onClick={V.goVendorSignIn}
+                  style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
+                >
+                  Sign in to your dashboard
+                </button>
+                <button
+                  onClick={V.goHome}
+                  style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', color: '#5B5B5B', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
+                >
+                  Back to home
+                </button>
+              </div>
             </div>
           ) : (
             <>
               <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                 Step {V.voStep} of 2 · {V.voStep === 1 ? 'Contact & Business Info' : 'Profile, Packages & More'}
               </div>
+              {V.voStep === 1 && (
+                <p style={{ margin: '10px 0 0', fontSize: 13, color: '#8A8A8A' }}>
+                  Already have a vendor account?{' '}
+                  <button onClick={V.goVendorSignIn} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+                    Sign in
+                  </button>{' '}
+                  instead of creating a new one.
+                </p>
+              )}
               <div style={{ marginTop: 10, display: 'flex', gap: 4 }}>
                 <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#171717' }} />
                 <div style={{ flex: 1, height: 4, borderRadius: 2, background: V.voStep === 2 ? '#171717' : '#ECECEC' }} />
@@ -6694,6 +7561,12 @@ export default function App() {
                 style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
               >
                 Join Eventory
+              </button>
+              <button
+                onClick={V.goVendorSignIn}
+                style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
+              >
+                Vendor sign in
               </button>
               <button
                 onClick={V.goGoFurther}
