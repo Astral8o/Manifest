@@ -380,6 +380,8 @@ const initialState = {
   vdFacebook: '',
   vdTiktok: '',
   vdMapLink: '',
+  vdAddressLine1: '',
+  vdAddressLine2: '',
   vdStartingPrice: '',
   vdSaving: false,
   vdSaveError: null,
@@ -481,6 +483,8 @@ export default function App() {
           vdFacebook: v.facebook,
           vdTiktok: v.tiktok,
           vdMapLink: v.mapLink,
+          vdAddressLine1: v.addressLine1,
+          vdAddressLine2: v.addressLine2,
           vdStartingPrice: v.startingPrice === null ? '' : String(v.startingPrice),
         });
       })
@@ -1103,11 +1107,14 @@ export default function App() {
       startPriceLabel: sup.priceOnRequest ? 'Price on request' : 'From ' + money(startPrice(sup)),
       facts: [
         { label: 'Based in', value: sup.city },
+        sup.addressLine1
+          ? { label: 'Address', value: [sup.addressLine1, sup.addressLine2].filter(Boolean).join(', ') }
+          : null,
         { label: 'Service radius', value: sup.radius ? sup.radius + ' km' : 'On site only' },
         { label: 'Min group', value: sup.minGroup + ' guests' },
         { label: 'Rating', value: sup.rating },
         { label: 'Response time', value: sup.response },
-      ],
+      ].filter(Boolean),
       phone: sup.phone,
       whatsappUrl: sup.phone
         ? 'https://wa.me/' +
@@ -1551,6 +1558,10 @@ export default function App() {
     setVdTiktok: (e) => patch({ vdTiktok: e.target.value }),
     vdMapLink: st.vdMapLink || '',
     setVdMapLink: (e) => patch({ vdMapLink: e.target.value }),
+    vdAddressLine1: st.vdAddressLine1 || '',
+    setVdAddressLine1: (e) => patch({ vdAddressLine1: e.target.value }),
+    vdAddressLine2: st.vdAddressLine2 || '',
+    setVdAddressLine2: (e) => patch({ vdAddressLine2: e.target.value }),
     vdStartingPrice: st.vdStartingPrice || '',
     setVdStartingPrice: (e) => patch({ vdStartingPrice: e.target.value }),
     vdSaving: !!st.vdSaving,
@@ -1573,6 +1584,8 @@ export default function App() {
           facebook: st.vdFacebook,
           tiktok: st.vdTiktok,
           mapLink: st.vdMapLink,
+          addressLine1: st.vdAddressLine1,
+          addressLine2: st.vdAddressLine2,
           startingPrice: st.vdStartingPrice ? Number(st.vdStartingPrice) : null,
         });
         patch((s) => ({
@@ -1592,6 +1605,8 @@ export default function App() {
             facebook: s.vdFacebook,
             tiktok: s.vdTiktok,
             mapLink: s.vdMapLink,
+            addressLine1: s.vdAddressLine1,
+            addressLine2: s.vdAddressLine2,
             startingPrice: s.vdStartingPrice ? Number(s.vdStartingPrice) : null,
           },
         }));
@@ -2024,6 +2039,8 @@ export default function App() {
         voInstagram: '',
         voTiktok: '',
         voMapLink: '',
+        voAddressLine1: '',
+        voAddressLine2: '',
         voAlbums: [],
         voAlbumName: '',
         voPackages: [],
@@ -2195,6 +2212,10 @@ export default function App() {
     setVoTiktok: (e) => patch({ voTiktok: e.target.value }),
     voMapLink: st.voMapLink || '',
     setVoMapLink: (e) => patch({ voMapLink: e.target.value }),
+    voAddressLine1: st.voAddressLine1 || '',
+    setVoAddressLine1: (e) => patch({ voAddressLine1: e.target.value }),
+    voAddressLine2: st.voAddressLine2 || '',
+    setVoAddressLine2: (e) => patch({ voAddressLine2: e.target.value }),
 
     voAlbums: st.voAlbums || [],
     voAlbumName: st.voAlbumName || '',
@@ -2338,6 +2359,8 @@ export default function App() {
           instagram: st.voInstagram || '',
           tiktok: st.voTiktok || '',
           mapLink: st.voMapLink || '',
+          addressLine1: st.voAddressLine1 || '',
+          addressLine2: st.voAddressLine2 || '',
           albums: st.voAlbums || [],
           packages: st.voPackages || [],
           menu: st.voMenu || [],
@@ -5478,6 +5501,14 @@ export default function App() {
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Map link</span>
                     <input type="text" value={V.vdMapLink} onChange={V.setVdMapLink} placeholder="https://maps.google.com/…" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
                   </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Address line 1 (optional)</span>
+                    <input type="text" value={V.vdAddressLine1} onChange={V.setVdAddressLine1} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Address line 2 (optional)</span>
+                    <input type="text" value={V.vdAddressLine2} onChange={V.setVdAddressLine2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
                   <button
                     onClick={V.saveVdProfile}
                     disabled={V.vdSaving}
@@ -6410,6 +6441,15 @@ export default function App() {
                       <input type="text" value={V.voInstagram} onChange={V.setVoInstagram} placeholder="Instagram handle" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                       <input type="text" value={V.voTiktok} onChange={V.setVoTiktok} placeholder="TikTok handle" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                       <input type="text" value={V.voMapLink} onChange={V.setVoMapLink} placeholder="Map link (Google Maps URL)" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>Address (optional)</div>
+                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>Shown on your public profile if you add it.</div>
+                    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <input type="text" value={V.voAddressLine1} onChange={V.setVoAddressLine1} placeholder="Address line 1" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <input type="text" value={V.voAddressLine2} onChange={V.setVoAddressLine2} placeholder="Address line 2" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                     </div>
                   </div>
 

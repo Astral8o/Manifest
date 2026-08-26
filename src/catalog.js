@@ -42,6 +42,8 @@ function reshapeVendor(v) {
     name: v.name,
     city: v.city,
     region: v.region,
+    addressLine1: v.address_line1 || '',
+    addressLine2: v.address_line2 || '',
     desc: v.description,
     bio: v.bio,
     tags: v.tags || [],
@@ -425,6 +427,8 @@ export async function submitVendorOnboarding(vendorId, v) {
       instagram: v.instagram || null,
       tiktok: v.tiktok || null,
       map_link: v.mapLink || null,
+      address_line1: v.addressLine1 || null,
+      address_line2: v.addressLine2 || null,
     })
     .eq('id', vendorId);
   if (updateError) throw updateError;
@@ -512,6 +516,8 @@ export async function fetchMyVendor() {
     categoryCode: data.category_code,
     subcategory: data.subcategory || '',
     city: data.city,
+    addressLine1: data.address_line1 || '',
+    addressLine2: data.address_line2 || '',
     contactPerson: data.contact_person || '',
     phone: data.phone || '',
     email: data.email || '',
@@ -566,6 +572,8 @@ export async function updateVendorProfile(vendorId, v) {
       phone: v.phone,
       city: v.city,
       region: v.city,
+      address_line1: v.addressLine1 || null,
+      address_line2: v.addressLine2 || null,
       bio: v.bio,
       description: v.description,
       logo_url: v.logoUrl || null,
