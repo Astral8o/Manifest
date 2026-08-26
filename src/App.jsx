@@ -2546,7 +2546,7 @@ export default function App() {
       {V.isHome && (
         <div>
           <div style={{ marginTop: isMobile ? 8 : 4, fontFamily: MONO, fontSize: isMobile ? 10.5 : 11.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#7a7a7a' }}>
-            Discovery and sourcing for events
+            Every event starts with finding the right people. Start here.
           </div>
 
           <div
