@@ -1081,7 +1081,7 @@ export default function App() {
         pick: () => patch({ dirCat: c.code, dirCatMenuOpen: false, dirVisible: 6, dirCats: [], dirPlanLabel: '' }),
       };
     }),
-    dirCategoryLabel: (CATS.find((c) => c[0] === st.dirCat) || [null, 'All categories'])[1],
+    dirCategoryLabel: (CATS.find((c) => c[0] === st.dirCat) || [null, 'Select category'])[1],
     dirCatMenuOpen: !!st.dirCatMenuOpen,
     toggleDirCatMenu: () => patch((s) => ({ dirCatMenuOpen: !s.dirCatMenuOpen })),
     closeDirCatMenu: () => patch({ dirCatMenuOpen: false }),
@@ -3178,30 +3178,34 @@ export default function App() {
               }}
             />
             <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 8, minWidth: 0 }}>
-              <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                Category
-              </span>
               <div style={{ position: 'relative' }}>
                 <button
                   onClick={V.toggleDirCatMenu}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
-                    border: `1px solid ${V.dirCatMenuOpen || st.dirCat !== 'ALL' ? '#171717' : '#D7D7D2'}`,
+                    gap: 10,
+                    border: `2px solid ${st.dirCat !== 'ALL' ? '#171717' : ACCENT}`,
                     borderRadius: 999,
-                    background: st.dirCat !== 'ALL' ? '#171717' : '#FFFFFF',
-                    color: st.dirCat !== 'ALL' ? '#FFFFFF' : '#171717',
-                    padding: isMobile ? '9px 14px' : '9px 16px',
+                    background: st.dirCat !== 'ALL' ? '#171717' : 'rgba(224,81,43,0.08)',
+                    color: st.dirCat !== 'ALL' ? '#FFFFFF' : ACCENT,
+                    padding: isMobile ? '13px 18px' : '14px 22px',
                     cursor: 'pointer',
-                    fontSize: isMobile ? 13 : 14,
-                    fontWeight: 600,
+                    fontSize: isMobile ? 14.5 : 15.5,
+                    fontWeight: 700,
                     width: isMobile ? '100%' : 'auto',
                     justifyContent: isMobile ? 'space-between' : 'flex-start',
+                    boxShadow: st.dirCat !== 'ALL' ? 'none' : '0 2px 10px rgba(224,81,43,0.2)',
                   }}
                 >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                  </svg>
                   {V.dirCategoryLabel}
-                  <span style={{ fontSize: 11, opacity: 0.7 }}>{V.dirCatMenuOpen ? '▲' : '▼'}</span>
+                  <span style={{ fontSize: 13, marginLeft: isMobile ? 0 : 2 }}>{V.dirCatMenuOpen ? '▲' : '▼'}</span>
                 </button>
                 {V.dirCatMenuOpen && (
                   <>
