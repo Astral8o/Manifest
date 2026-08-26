@@ -821,6 +821,7 @@ export default function App() {
 
   const V = {
     isHome: st.screen === 'home',
+    isHowItWorks: st.screen === 'how-it-works',
     isCategory: st.screen === 'category',
     isSuppliers: st.screen === 'suppliers',
     isSupplier: st.screen === 'supplier',
@@ -847,15 +848,7 @@ export default function App() {
         patch({ screen: 'home' });
       }
     },
-    goHowItWorks: () => {
-      patch({ navMenuOpen: false });
-      if (st.screen === 'home') {
-        document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        pendingScrollAnchorRef.current = 'how-it-works';
-        patch({ screen: 'home' });
-      }
-    },
+    goHowItWorks: nav('how-it-works'),
     goSpotlight: nav('spotlight'),
     goVendorHowItWorks: nav('join'),
     goAbout: nav('about', { contactSent: false }),
@@ -2918,115 +2911,127 @@ export default function App() {
               See more offerings
             </button>
           </div>
+        </div>
+      )}
 
-          <div id="how-it-works" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
-            <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>How Eventory Works</h2>
-            <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 28,
-                  borderRadius: 24,
-                  background: ACCENT,
-                  color: ACCENT_ON,
-                  padding: isMobile ? '20px 22px' : '28px 32px',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ maxWidth: 720 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Discover</div>
-                  <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
-                    Choose your event and browse vendors and what they offer.
-                  </div>
+      {V.isHowItWorks && (
+        <div style={{ padding: '34px 0 0' }}>
+          <button
+            onClick={V.goHome}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← Back
+          </button>
+
+          <div style={{ marginTop: 22, maxWidth: 640 }}>
+            <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>How Eventory Works</h1>
+          </div>
+
+          <div style={{ marginTop: isMobile ? 24 : 30, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 28,
+                borderRadius: 24,
+                background: ACCENT,
+                color: ACCENT_ON,
+                padding: isMobile ? '20px 22px' : '28px 32px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ maxWidth: 720 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Discover</div>
+                <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: ACCENT_ON_SOFT }}>
+                  Choose your event and browse vendors and what they offer.
                 </div>
-                <div style={{ fontFamily: MONO, fontSize: 34, color: ACCENT_ON_MUTED }}>01</div>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 28,
-                  borderRadius: 24,
-                  background: '#171717',
-                  padding: isMobile ? '20px 22px' : '28px 32px',
-                  color: '#FFFFFF',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ maxWidth: 720 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Reach out</div>
-                  <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#A8A8A8' }}>
-                    Message a vendor on WhatsApp straight from their profile, or sign in and send them a
-                    detailed quote request.
-                  </div>
+              <div style={{ fontFamily: MONO, fontSize: 34, color: ACCENT_ON_MUTED }}>01</div>
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 28,
+                borderRadius: 24,
+                background: '#171717',
+                padding: isMobile ? '20px 22px' : '28px 32px',
+                color: '#FFFFFF',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ maxWidth: 720 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Reach out</div>
+                <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#A8A8A8' }}>
+                  Message a vendor on WhatsApp straight from their profile, or sign in and send them a
+                  detailed quote request.
                 </div>
-                <div style={{ fontFamily: MONO, fontSize: 34, color: '#4A4A4A' }}>02</div>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 28,
-                  borderRadius: 24,
-                  background: '#F2F2F0',
-                  padding: isMobile ? '20px 22px' : '28px 32px',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ maxWidth: 720 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Connect</div>
-                  <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#4A4A4A' }}>
-                    The vendor replies directly with availability, pricing and details for your event.
-                  </div>
+              <div style={{ fontFamily: MONO, fontSize: 34, color: '#4A4A4A' }}>02</div>
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 28,
+                borderRadius: 24,
+                background: '#F2F2F0',
+                padding: isMobile ? '20px 22px' : '28px 32px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ maxWidth: 720 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Connect</div>
+                <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#4A4A4A' }}>
+                  The vendor replies directly with availability, pricing and details for your event.
                 </div>
-                <div style={{ fontFamily: MONO, fontSize: 34, color: '#C2C2BC' }}>03</div>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 28,
-                  borderRadius: 24,
-                  border: '1px solid #ECECEC',
-                  padding: isMobile ? '20px 22px' : '28px 32px',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ maxWidth: 720 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Can't find what you need?</div>
-                  <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#4A4A4A' }}>
-                    Tell us what you're looking for and we'll help you find it.
-                  </div>
-                  <button
-                    onClick={V.goSourcing}
-                    style={{
-                      marginTop: 16,
-                      border: 0,
-                      borderRadius: 999,
-                      background: '#171717',
-                      color: '#FFFFFF',
-                      padding: '13px 22px',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      fontWeight: 700,
-                    }}
-                  >
-                    Source
-                  </button>
+              <div style={{ fontFamily: MONO, fontSize: 34, color: '#C2C2BC' }}>03</div>
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 28,
+                borderRadius: 24,
+                border: '1px solid #ECECEC',
+                padding: isMobile ? '20px 22px' : '28px 32px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ maxWidth: 720 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Can't find what you need?</div>
+                <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#4A4A4A' }}>
+                  Tell us what you're looking for and we'll help you find it.
                 </div>
+                <button
+                  onClick={V.goSourcing}
+                  style={{
+                    marginTop: 16,
+                    border: 0,
+                    borderRadius: 999,
+                    background: '#171717',
+                    color: '#FFFFFF',
+                    padding: '13px 22px',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 700,
+                  }}
+                >
+                  Source
+                </button>
               </div>
             </div>
-            <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 14, fontSize: 14, color: '#5B5B5B' }}>
-              <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                Note
-              </span>
-              Eventory does not process payments. You deal directly with each vendor.
-            </div>
+          </div>
+          <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 14, fontSize: 14, color: '#5B5B5B' }}>
+            <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+              Note
+            </span>
+            Eventory does not process payments. You deal directly with each vendor.
           </div>
         </div>
       )}
