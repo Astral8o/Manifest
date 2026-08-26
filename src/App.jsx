@@ -2545,10 +2545,6 @@ export default function App() {
 
       {V.isHome && (
         <div>
-          <div style={{ marginTop: isMobile ? 8 : 4, fontFamily: MONO, fontSize: isMobile ? 10.5 : 11.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#7a7a7a' }}>
-            Every event starts with finding the right people. Start here.
-          </div>
-
           <div
             style={{
               position: 'relative',
@@ -2730,7 +2726,7 @@ export default function App() {
                 From birthday parties to corporate functions, here's who's ready to help.
               </p>
             </div>
-            <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+            <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
               {V.topSuppliers.map((s) => (
                 <div
                   key={s.key}
@@ -2885,7 +2881,7 @@ export default function App() {
               style={{
                 marginTop: 24,
                 display: 'grid',
-                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(240px, 1fr))',
+                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(240px, 1fr))',
                 gap: 16,
               }}
             >
@@ -3340,7 +3336,7 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+          <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
             {V.dirSupplierRows.map((s) => (
               <div
                 key={s.key}
