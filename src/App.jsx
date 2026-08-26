@@ -33,6 +33,7 @@ import {
   addVendorPolicy,
   removeVendorPolicy,
   fetchVendorQuoteRequests,
+  submitSpotlightInterest,
 } from './catalog';
 import { supabase } from './supabaseClient';
 import heroPhoto from './assets/hero-photo.jpg';
@@ -133,6 +134,56 @@ const SUGGESTED_POLICIES = [
   'Setup & Access Policy',
   'Health & Safety Policy',
 ];
+const SPOTLIGHT_FREE_INCLUDED = [
+  'Full vendor profile page (photo/cover image, description, category)',
+  'Gallery organized by event type',
+  'Package cards (name, photo, description, inclusions, price)',
+  'FAQ section',
+  'Policies section (payment, deposit, rescheduling, cancellation)',
+  'Customer reviews',
+  'Direct WhatsApp contact from your profile',
+  'Listed and searchable in your category',
+  'Appear in planner search/filter results',
+  'Vendor dashboard (manage your profile, view inquiries)',
+];
+const SPOTLIGHT_PLANS = [
+  {
+    key: 'directory-boost',
+    name: 'Directory Boost',
+    price: 'TTD $150',
+    period: '/ 30 days',
+    tagline: 'Get seen first in your category.',
+    bullets: ['Priority placement when planners browse your category', 'Runs for 30 days'],
+    cta: 'Get Boosted',
+  },
+  {
+    key: 'homepage-feature',
+    name: 'Homepage Feature',
+    price: 'TTD $250',
+    period: '/ 30 days',
+    tagline: 'Get in front of every planner, not just your category.',
+    bullets: ['Featured placement on the Eventory homepage', 'Runs for 30 days'],
+    cta: 'Get Featured',
+  },
+  {
+    key: 'buyer-email-spotlight',
+    name: 'Buyer Email Spotlight',
+    price: 'TTD $400–500',
+    period: '/ 30 days',
+    tagline: 'Reach planners actively looking, straight to their inbox.',
+    bullets: ['Included in the email sent to our list of active event planners', 'Runs for 30 days'],
+    cta: 'Get Spotlighted',
+  },
+];
+const SPOTLIGHT_PREMIUM_PLAN = {
+  key: 'content-creation',
+  name: 'Content Creation',
+  price: 'Custom pricing',
+  period: '',
+  tagline: 'Let us tell your story.',
+  bullets: ['Social media posts featuring your work', 'Short-form video content', 'Delivered on a schedule that fits your business'],
+  cta: 'Get in Touch',
+};
 const POST_AUTH_RETURN_KEY = 'eventoryPostAuthReturn';
 const PROMO_ACCENT = '#FF5A36';
 const ACCENT = '#E0512B';
@@ -174,7 +225,7 @@ const ABOUT_FAQS = [
   },
   {
     q: 'What is Spotlight?',
-    a: "Spotlight is Eventory's paid placement option for vendors. It puts your business in front of planners actively sourcing in your category, with top placement, targeted ads and email marketing.",
+    a: "Your listing on Eventory is always free. Spotlight is a set of optional paid placements — priority in your category, homepage features, buyer email inclusion and custom content — you add only when you're ready to grow.",
     linkTo: 'promo',
     linkLabel: 'See Spotlight',
   },
@@ -275,6 +326,12 @@ const initialState = {
   navMenuOpen: false,
   promoPlanOpen: false,
   promoPlanSent: false,
+  promoPlanKey: null,
+  promoPlanName: '',
+  promoPlanEmail: '',
+  promoPlanPhone: '',
+  promoPlanSubmitting: false,
+  promoPlanError: null,
   reviewFormOpen: false,
   reviewAuthor: '',
   reviewStars: 0,
@@ -805,11 +862,49 @@ export default function App() {
     goAbout: nav('about', { contactSent: false }),
     submitContact: () => patch({ contactSent: true }),
     contactSent: !!st.contactSent,
-    openPromoPlan: () => patch({ promoPlanOpen: true, promoPlanSent: false }),
+    openPromoPlan: (planKey) => () =>
+      patch({
+        promoPlanOpen: true,
+        promoPlanSent: false,
+        promoPlanKey: planKey,
+        promoPlanName: '',
+        promoPlanEmail: '',
+        promoPlanPhone: '',
+        promoPlanSubmitting: false,
+        promoPlanError: null,
+      }),
     closePromoPlan: () => patch({ promoPlanOpen: false, promoPlanSent: false }),
-    submitPromoPlan: () => patch({ promoPlanSent: true }),
     promoPlanOpen: !!st.promoPlanOpen,
     promoPlanSent: !!st.promoPlanSent,
+    promoPlan: [...SPOTLIGHT_PLANS, SPOTLIGHT_PREMIUM_PLAN].find((p) => p.key === st.promoPlanKey) || SPOTLIGHT_PLANS[0],
+    promoPlanNameInput: st.promoPlanName || '',
+    setPromoPlanName: (e) => patch({ promoPlanName: e.target.value }),
+    promoPlanEmailInput: st.promoPlanEmail || '',
+    setPromoPlanEmail: (e) => patch({ promoPlanEmail: e.target.value }),
+    promoPlanPhoneInput: st.promoPlanPhone || '',
+    setPromoPlanPhone: (e) => patch({ promoPlanPhone: e.target.value }),
+    promoPlanSubmitting: !!st.promoPlanSubmitting,
+    promoPlanError: st.promoPlanError || '',
+    promoPlanSubmitDisabled:
+      !(st.promoPlanName || '').trim() || !(st.promoPlanEmail || '').trim() || st.promoPlanEmail.indexOf('@') < 1 || !!st.promoPlanSubmitting,
+    submitPromoPlan: async () => {
+      const name = (st.promoPlanName || '').trim();
+      const email = (st.promoPlanEmail || '').trim();
+      if (!name || !email || email.indexOf('@') < 1 || st.promoPlanSubmitting) return;
+      const plan = [...SPOTLIGHT_PLANS, SPOTLIGHT_PREMIUM_PLAN].find((p) => p.key === st.promoPlanKey) || SPOTLIGHT_PLANS[0];
+      patch({ promoPlanSubmitting: true, promoPlanError: null });
+      try {
+        await submitSpotlightInterest({
+          plan: plan.name,
+          businessName: name,
+          email,
+          phone: (st.promoPlanPhone || '').trim(),
+        });
+        patch({ promoPlanSubmitting: false, promoPlanSent: true });
+      } catch (err) {
+        patch({ promoPlanSubmitting: false, promoPlanError: err.message || 'Could not send your request. Please try again.' });
+      }
+    },
     goAccount: nav('account'),
     navMenuOpen: !!st.navMenuOpen,
     toggleNavMenu: () => patch((s) => ({ navMenuOpen: !s.navMenuOpen })),
@@ -4472,132 +4567,153 @@ export default function App() {
               </button>
             </div>
 
-            <div
-              id="go-further"
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                borderRadius: 24,
-                overflow: 'hidden',
-                border: `1.5px solid ${PROMO_ACCENT}`,
-                boxShadow: isMobile ? 'none' : `0 24px 48px -28px ${PROMO_ACCENT}`,
-                scrollMarginTop: 100,
-              }}
-            >
-              <div style={{ background: PROMO_ACCENT, color: '#FFFFFF', padding: isMobile ? '20px 22px' : '26px 34px' }}>
-                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.8)' }}>
-                  Paid placement
+            <div id="go-further" style={{ scrollMarginTop: 100 }}>
+              <div style={{ maxWidth: 620 }}>
+                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: PROMO_ACCENT, fontWeight: 700 }}>
+                  Spotlight
                 </div>
-                <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Spotlight</div>
-                <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                  <span style={{ fontFamily: MONO, fontSize: 30, fontWeight: 700 }}>TTD $500</span>
-                  <span style={{ fontFamily: MONO, fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>/month</span>
+                <h2 style={{ margin: '10px 0 0', fontSize: isMobile ? 28 : 38, lineHeight: 1.06, letterSpacing: '-0.03em', fontWeight: 800 }}>
+                  Your listing is always free.
+                </h2>
+                <p style={{ margin: '10px 0 0', fontSize: 16, lineHeight: 1.5, color: '#5B5B5B' }}>Add Spotlight when you're ready to grow.</p>
+              </div>
+
+              <div style={{ marginTop: 28, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 22 : 30, background: '#F7F7F5' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>Included free, always</div>
+                  <span
+                    style={{
+                      fontFamily: MONO,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      color: '#171717',
+                      border: '1px solid #D7D7D2',
+                      borderRadius: 999,
+                      padding: '4px 12px',
+                      background: '#FFFFFF',
+                    }}
+                  >
+                    TTD $0 · forever
+                  </span>
+                </div>
+                <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '11px 28px' }}>
+                  {SPOTLIGHT_FREE_INCLUDED.map((item) => (
+                    <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#171717" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}>
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span style={{ fontSize: 13.5, lineHeight: 1.5, color: '#4A4A4A' }}>{item}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div style={{ background: `${PROMO_ACCENT}0D`, padding: isMobile ? 22 : 34 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <span style={{ flexShrink: 0, marginTop: 2, width: 18, height: 18, borderRadius: 999, background: PROMO_ACCENT, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>✓</span>
-                  <span style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Everything in Listed</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <span style={{ flexShrink: 0, marginTop: 2, width: 18, height: 18, borderRadius: 999, background: PROMO_ACCENT, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>✓</span>
-                  <span style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Top of the list when planners search your category</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <span style={{ flexShrink: 0, marginTop: 2, width: 18, height: 18, borderRadius: 999, background: PROMO_ACCENT, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>✓</span>
-                  <span style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Your profile shown first, with room for your work to stand out</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <span style={{ flexShrink: 0, marginTop: 2, width: 18, height: 18, borderRadius: 999, background: PROMO_ACCENT, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>✓</span>
-                  <span style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Email features that put you in front of planners actively searching</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <span style={{ flexShrink: 0, marginTop: 2, width: 18, height: 18, borderRadius: 999, background: PROMO_ACCENT, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>✓</span>
-                  <span style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>A push across our social channels</span>
-                </div>
+              <div style={{ marginTop: 32, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                Add when you're ready
               </div>
-
-              <div style={{ marginTop: 24 }}>
-                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                  Preview — top placement in your category
-                </div>
-                <div style={{ marginTop: 10, border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', padding: isMobile ? 14 : 18 }}>
-                  <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>Catering</div>
-                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div
+              <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14 }}>
+                {SPOTLIGHT_PLANS.map((plan) => (
+                  <div
+                    key={plan.key}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      border: '1px solid #ECECEC',
+                      borderRadius: 20,
+                      padding: isMobile ? 20 : 24,
+                      background: '#FFFFFF',
+                    }}
+                  >
+                    <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em' }}>{plan.name}</div>
+                    <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 21, fontWeight: 700, color: PROMO_ACCENT }}>{plan.price}</span>
+                      <span style={{ fontFamily: MONO, fontSize: 12, color: '#9A9A9A' }}>{plan.period}</span>
+                    </div>
+                    <p style={{ margin: '10px 0 0', fontSize: 13.5, lineHeight: 1.5, color: '#5B5B5B' }}>{plan.tagline}</p>
+                    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+                      {plan.bullets.map((b) => (
+                        <div key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={PROMO_ACCENT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}>
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          <span style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>{b}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={V.openPromoPlan(plan.key)}
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        border: `1.5px solid ${PROMO_ACCENT}`,
-                        borderRadius: 14,
-                        padding: '12px 14px',
-                        background: `${PROMO_ACCENT}0D`,
+                        marginTop: 20,
+                        border: `1px solid ${PROMO_ACCENT}`,
+                        borderRadius: 999,
+                        background: 'transparent',
+                        color: PROMO_ACCENT,
+                        padding: '11px 20px',
+                        cursor: 'pointer',
+                        fontSize: 13.5,
+                        fontWeight: 700,
                       }}
                     >
-                      <div style={{ width: 38, height: 38, borderRadius: 999, background: '#171717', flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 14, fontWeight: 700 }}>Your Business</span>
-                          <span
-                            style={{
-                              fontFamily: MONO,
-                              fontSize: 9,
-                              fontWeight: 700,
-                              letterSpacing: '0.05em',
-                              textTransform: 'uppercase',
-                              color: PROMO_ACCENT,
-                              border: `1px solid ${PROMO_ACCENT}`,
-                              borderRadius: 999,
-                              padding: '2px 8px',
-                            }}
-                          >
-                            Featured
-                          </span>
-                        </div>
-                        <div style={{ marginTop: 2, fontSize: 12, color: '#6E6E6E' }}>
-                          First thing planners see when they open Catering.
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 14, padding: '12px 14px', background: '#F7F7F5' }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 999, background: '#D7D7D2', flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#9A9A9A' }}>Other business</div>
-                        <div style={{ marginTop: 2, fontSize: 12, color: '#B5B5B0' }}>Standard listing</div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 14, padding: '12px 14px', background: '#F7F7F5' }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 999, background: '#D7D7D2', flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#9A9A9A' }}>Other business</div>
-                        <div style={{ marginTop: 2, fontSize: 12, color: '#B5B5B0' }}>Standard listing</div>
-                      </div>
-                    </div>
+                      {plan.cta} →
+                    </button>
                   </div>
+                ))}
+              </div>
+
+              <div
+                style={{
+                  marginTop: 20,
+                  display: 'flex',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  alignItems: isMobile ? 'flex-start' : 'center',
+                  justifyContent: 'space-between',
+                  gap: isMobile ? 20 : 32,
+                  borderRadius: 24,
+                  background: '#171717',
+                  color: '#FFFFFF',
+                  padding: isMobile ? '24px 22px' : '32px 36px',
+                }}
+              >
+                <div style={{ maxWidth: 480 }}>
+                  <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#F0946F', fontWeight: 700 }}>
+                    Premium
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: isMobile ? 20 : 24, fontWeight: 800, letterSpacing: '-0.02em' }}>{SPOTLIGHT_PREMIUM_PLAN.name}</div>
+                  <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: 'rgba(255,255,255,0.72)' }}>{SPOTLIGHT_PREMIUM_PLAN.tagline}</p>
+                  <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    {SPOTLIGHT_PREMIUM_PLAN.bullets.map((b) => (
+                      <div key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,0.85)' }}>
+                        <span style={{ color: '#F0946F' }}>—</span>
+                        <span>{b}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ textAlign: isMobile ? 'left' : 'right', flexShrink: 0 }}>
+                  <div style={{ fontFamily: MONO, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{SPOTLIGHT_PREMIUM_PLAN.price}</div>
+                  <button
+                    onClick={V.openPromoPlan(SPOTLIGHT_PREMIUM_PLAN.key)}
+                    style={{
+                      marginTop: 10,
+                      border: 0,
+                      borderRadius: 999,
+                      background: '#FFFFFF',
+                      color: '#171717',
+                      padding: '13px 24px',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {SPOTLIGHT_PREMIUM_PLAN.cta} →
+                  </button>
                 </div>
               </div>
 
-              <button
-                onClick={V.openPromoPlan}
-                style={{
-                  marginTop: 20,
-                  width: '100%',
-                  border: 0,
-                  borderRadius: 999,
-                  background: PROMO_ACCENT,
-                  color: '#FFFFFF',
-                  padding: '14px 26px',
-                  cursor: 'pointer',
-                  fontSize: 15,
-                  fontWeight: 700,
-                }}
-              >
-                Tell me more →
-              </button>
-              </div>
+              <p style={{ margin: '22px 0 0', maxWidth: 560, fontSize: 13, fontStyle: 'italic', lineHeight: 1.55, color: '#9A9A9A' }}>
+                Combine any placements for maximum visibility. Pay for the visibility you want, when you want it.
+              </p>
             </div>
           </div>
         </div>
@@ -7513,7 +7629,7 @@ export default function App() {
           >
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 22 : 26, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
-                {V.promoPlanSent ? "You're on the list" : 'Get Spotlight'}
+                {V.promoPlanSent ? "You're on the list" : V.promoPlan.name}
               </h2>
               <button
                 onClick={V.closePromoPlan}
@@ -7527,7 +7643,7 @@ export default function App() {
             {V.promoPlanSent ? (
               <>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
-                  Thanks — we'll reach out within one business day to set up billing and get your placement live.
+                  Thanks — we'll reach out within one business day to get {V.promoPlan.name} set up and live.
                 </p>
                 <button
                   onClick={V.closePromoPlan}
@@ -7550,7 +7666,8 @@ export default function App() {
             ) : (
               <>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
-                  TTD $500/month. Tell us about your business and we'll set up billing and your featured placement.
+                  {V.promoPlan.price}
+                  {V.promoPlan.period ? ' ' + V.promoPlan.period : ''}. Tell us about your business and we'll follow up to set it up.
                 </p>
 
                 <label style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -7559,6 +7676,8 @@ export default function App() {
                   </span>
                   <input
                     type="text"
+                    value={V.promoPlanNameInput}
+                    onChange={V.setPromoPlanName}
                     placeholder="Cocoa Pod Catering"
                     style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
                   />
@@ -7569,28 +7688,28 @@ export default function App() {
                   </span>
                   <input
                     type="email"
+                    value={V.promoPlanEmailInput}
+                    onChange={V.setPromoPlanEmail}
                     placeholder="bookings@yourbusiness.tt"
                     style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
                   />
                 </label>
                 <label style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                    WhatsApp or phone
+                    WhatsApp or phone (optional)
                   </span>
                   <input
                     type="tel"
+                    value={V.promoPlanPhoneInput}
+                    onChange={V.setPromoPlanPhone}
                     placeholder="868 000 0000"
                     style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
                   />
                 </label>
 
-                <div style={{ marginTop: 18, borderRadius: 18, background: '#F7F7F5', padding: 16, fontSize: 13, lineHeight: 1.55, color: '#5B5B5B' }}>
-                  This is a paid subscription, billed monthly. Cancel anytime — your placement ends at the close of
-                  the current billing period.
-                </div>
-
                 <button
                   onClick={V.submitPromoPlan}
+                  disabled={V.promoPlanSubmitDisabled}
                   style={{
                     marginTop: 20,
                     width: '100%',
@@ -7602,10 +7721,14 @@ export default function App() {
                     cursor: 'pointer',
                     fontSize: 15,
                     fontWeight: 700,
+                    opacity: V.promoPlanSubmitDisabled ? 0.5 : 1,
                   }}
                 >
-                  Request Spotlight
+                  {V.promoPlanSubmitting ? 'Sending…' : V.promoPlan.cta}
                 </button>
+                {V.promoPlanError && (
+                  <div style={{ marginTop: 10, fontSize: 13, color: '#B3261E' }}>{V.promoPlanError}</div>
+                )}
               </>
             )}
           </div>
