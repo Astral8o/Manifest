@@ -694,7 +694,7 @@ export default function App() {
     };
   };
 
-  const cat = CATS.find((c) => c[0] === st.catCode) || CATS[0];
+  const cat = CATS.find((c) => c[0] === st.catCode) || CATS[0] || ['', '', ''];
   const catSuppliers = SUPPLIERS.filter((s) => s.code === st.catCode);
   const grpMax = GROUPS[st.grp][1];
   const filtered = catSuppliers.filter(
