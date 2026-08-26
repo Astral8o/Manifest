@@ -825,6 +825,7 @@ export default function App() {
     isSuppliers: st.screen === 'suppliers',
     isSupplier: st.screen === 'supplier',
     isJoin: st.screen === 'join',
+    isSpotlight: st.screen === 'spotlight',
     isAccount: st.screen === 'account',
     isVendorSignIn: st.screen === 'vendor-signin',
     isVendorDashboard: st.screen === 'vendor-dashboard',
@@ -855,10 +856,8 @@ export default function App() {
         patch({ screen: 'home' });
       }
     },
-    goGoFurther: () => {
-      pendingScrollAnchorRef.current = 'go-further';
-      patch({ screen: 'join', navMenuOpen: false });
-    },
+    goSpotlight: nav('spotlight'),
+    goVendorHowItWorks: nav('join'),
     goAbout: nav('about', { contactSent: false }),
     submitContact: () => patch({ contactSent: true }),
     contactSent: !!st.contactSent,
@@ -4531,191 +4530,190 @@ export default function App() {
           </div>
 
 
-          <div style={{ marginTop: isMobile ? 40 : 56, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, alignItems: 'start' }}>
-            <div
+          <div style={{ marginTop: isMobile ? 40 : 56, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 22 : 34 }}>
+            <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>What you get, free</div>
+            <ul style={{ margin: '14px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Set up your own profile in a couple of steps.</li>
+              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Listed in the directory, found by planners searching your category</li>
+              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Planners message you directly when they're interested</li>
+              <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Free to list, free always</li>
+            </ul>
+            <button
+              onClick={V.goVendorOnboarding}
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                border: '1px solid #ECECEC',
-                borderRadius: 24,
-                padding: isMobile ? 22 : 34,
+                marginTop: 20,
+                border: 0,
+                borderRadius: 999,
+                background: '#171717',
+                color: '#FFFFFF',
+                padding: '14px 26px',
+                cursor: 'pointer',
+                fontSize: 15,
+                fontWeight: 700,
+                alignSelf: 'flex-start',
               }}
             >
-              <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Listed</div>
-              <ul style={{ margin: '14px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Set up your own profile in a couple of steps.</li>
-                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Listed in the directory, found by planners searching your category</li>
-                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Planners message you directly when they're interested</li>
-                <li style={{ fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>Free to list, free always</li>
-              </ul>
-              <button
-                onClick={V.goVendorOnboarding}
+              Get Listed →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {V.isSpotlight && (
+        <div style={{ padding: '34px 0 0' }}>
+          <button
+            onClick={V.goHome}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← Back
+          </button>
+
+          <div style={{ marginTop: 22, maxWidth: 620 }}>
+            <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: PROMO_ACCENT, fontWeight: 700 }}>
+              Spotlight
+            </div>
+            <h1 style={{ margin: '10px 0 0', fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
+              Your listing is always free.
+            </h1>
+            <p style={{ margin: '10px 0 0', fontSize: 16, lineHeight: 1.5, color: '#5B5B5B' }}>Add Spotlight when you're ready to grow.</p>
+          </div>
+
+          <div style={{ marginTop: 28, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 22 : 30, background: '#F7F7F5' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>Included free, always</div>
+              <span
                 style={{
-                  marginTop: 20,
-                  border: 0,
-                  borderRadius: 999,
-                  background: '#171717',
-                  color: '#FFFFFF',
-                  padding: '14px 26px',
-                  cursor: 'pointer',
-                  fontSize: 15,
+                  fontFamily: MONO,
+                  fontSize: 11,
                   fontWeight: 700,
-                  alignSelf: 'flex-start',
+                  letterSpacing: '0.04em',
+                  color: '#171717',
+                  border: '1px solid #D7D7D2',
+                  borderRadius: 999,
+                  padding: '4px 12px',
+                  background: '#FFFFFF',
                 }}
               >
-                Get Listed →
-              </button>
+                TTD $0 · forever
+              </span>
             </div>
-
-            <div id="go-further" style={{ scrollMarginTop: 100 }}>
-              <div style={{ maxWidth: 620 }}>
-                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: PROMO_ACCENT, fontWeight: 700 }}>
-                  Spotlight
+            <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '11px 28px' }}>
+              {SPOTLIGHT_FREE_INCLUDED.map((item) => (
+                <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#171717" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}>
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span style={{ fontSize: 13.5, lineHeight: 1.5, color: '#4A4A4A' }}>{item}</span>
                 </div>
-                <h2 style={{ margin: '10px 0 0', fontSize: isMobile ? 28 : 38, lineHeight: 1.06, letterSpacing: '-0.03em', fontWeight: 800 }}>
-                  Your listing is always free.
-                </h2>
-                <p style={{ margin: '10px 0 0', fontSize: 16, lineHeight: 1.5, color: '#5B5B5B' }}>Add Spotlight when you're ready to grow.</p>
-              </div>
+              ))}
+            </div>
+          </div>
 
-              <div style={{ marginTop: 28, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 22 : 30, background: '#F7F7F5' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>Included free, always</div>
-                  <span
-                    style={{
-                      fontFamily: MONO,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.04em',
-                      color: '#171717',
-                      border: '1px solid #D7D7D2',
-                      borderRadius: 999,
-                      padding: '4px 12px',
-                      background: '#FFFFFF',
-                    }}
-                  >
-                    TTD $0 · forever
-                  </span>
+          <div style={{ marginTop: 32, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+            Add when you're ready
+          </div>
+          <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14 }}>
+            {SPOTLIGHT_PLANS.map((plan) => (
+              <div
+                key={plan.key}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  border: '1px solid #ECECEC',
+                  borderRadius: 20,
+                  padding: isMobile ? 20 : 24,
+                  background: '#FFFFFF',
+                }}
+              >
+                <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em' }}>{plan.name}</div>
+                <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 21, fontWeight: 700, color: PROMO_ACCENT }}>{plan.price}</span>
+                  <span style={{ fontFamily: MONO, fontSize: 12, color: '#9A9A9A' }}>{plan.period}</span>
                 </div>
-                <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '11px 28px' }}>
-                  {SPOTLIGHT_FREE_INCLUDED.map((item) => (
-                    <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#171717" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}>
+                <p style={{ margin: '10px 0 0', fontSize: 13.5, lineHeight: 1.5, color: '#5B5B5B' }}>{plan.tagline}</p>
+                <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+                  {plan.bullets.map((b) => (
+                    <div key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={PROMO_ACCENT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}>
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      <span style={{ fontSize: 13.5, lineHeight: 1.5, color: '#4A4A4A' }}>{item}</span>
+                      <span style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>{b}</span>
                     </div>
                   ))}
                 </div>
+                <button
+                  onClick={V.openPromoPlan(plan.key)}
+                  style={{
+                    marginTop: 20,
+                    border: `1px solid ${PROMO_ACCENT}`,
+                    borderRadius: 999,
+                    background: 'transparent',
+                    color: PROMO_ACCENT,
+                    padding: '11px 20px',
+                    cursor: 'pointer',
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                  }}
+                >
+                  {plan.cta} →
+                </button>
               </div>
+            ))}
+          </div>
 
-              <div style={{ marginTop: 32, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                Add when you're ready
+          <div
+            style={{
+              marginTop: 20,
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'flex-start' : 'center',
+              justifyContent: 'space-between',
+              gap: isMobile ? 20 : 32,
+              borderRadius: 24,
+              background: '#171717',
+              color: '#FFFFFF',
+              padding: isMobile ? '24px 22px' : '32px 36px',
+            }}
+          >
+            <div style={{ maxWidth: 480 }}>
+              <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#F0946F', fontWeight: 700 }}>
+                Premium
               </div>
-              <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14 }}>
-                {SPOTLIGHT_PLANS.map((plan) => (
-                  <div
-                    key={plan.key}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      border: '1px solid #ECECEC',
-                      borderRadius: 20,
-                      padding: isMobile ? 20 : 24,
-                      background: '#FFFFFF',
-                    }}
-                  >
-                    <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em' }}>{plan.name}</div>
-                    <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                      <span style={{ fontFamily: MONO, fontSize: 21, fontWeight: 700, color: PROMO_ACCENT }}>{plan.price}</span>
-                      <span style={{ fontFamily: MONO, fontSize: 12, color: '#9A9A9A' }}>{plan.period}</span>
-                    </div>
-                    <p style={{ margin: '10px 0 0', fontSize: 13.5, lineHeight: 1.5, color: '#5B5B5B' }}>{plan.tagline}</p>
-                    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-                      {plan.bullets.map((b) => (
-                        <div key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={PROMO_ACCENT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}>
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                          <span style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>{b}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      onClick={V.openPromoPlan(plan.key)}
-                      style={{
-                        marginTop: 20,
-                        border: `1px solid ${PROMO_ACCENT}`,
-                        borderRadius: 999,
-                        background: 'transparent',
-                        color: PROMO_ACCENT,
-                        padding: '11px 20px',
-                        cursor: 'pointer',
-                        fontSize: 13.5,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {plan.cta} →
-                    </button>
+              <div style={{ marginTop: 8, fontSize: isMobile ? 20 : 24, fontWeight: 800, letterSpacing: '-0.02em' }}>{SPOTLIGHT_PREMIUM_PLAN.name}</div>
+              <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: 'rgba(255,255,255,0.72)' }}>{SPOTLIGHT_PREMIUM_PLAN.tagline}</p>
+              <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {SPOTLIGHT_PREMIUM_PLAN.bullets.map((b) => (
+                  <div key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,0.85)' }}>
+                    <span style={{ color: '#F0946F' }}>—</span>
+                    <span>{b}</span>
                   </div>
                 ))}
               </div>
-
-              <div
+            </div>
+            <div style={{ textAlign: isMobile ? 'left' : 'right', flexShrink: 0 }}>
+              <div style={{ fontFamily: MONO, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{SPOTLIGHT_PREMIUM_PLAN.price}</div>
+              <button
+                onClick={V.openPromoPlan(SPOTLIGHT_PREMIUM_PLAN.key)}
                 style={{
-                  marginTop: 20,
-                  display: 'flex',
-                  flexDirection: isMobile ? 'column' : 'row',
-                  alignItems: isMobile ? 'flex-start' : 'center',
-                  justifyContent: 'space-between',
-                  gap: isMobile ? 20 : 32,
-                  borderRadius: 24,
-                  background: '#171717',
-                  color: '#FFFFFF',
-                  padding: isMobile ? '24px 22px' : '32px 36px',
+                  marginTop: 10,
+                  border: 0,
+                  borderRadius: 999,
+                  background: '#FFFFFF',
+                  color: '#171717',
+                  padding: '13px 24px',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  fontWeight: 700,
                 }}
               >
-                <div style={{ maxWidth: 480 }}>
-                  <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#F0946F', fontWeight: 700 }}>
-                    Premium
-                  </div>
-                  <div style={{ marginTop: 8, fontSize: isMobile ? 20 : 24, fontWeight: 800, letterSpacing: '-0.02em' }}>{SPOTLIGHT_PREMIUM_PLAN.name}</div>
-                  <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: 'rgba(255,255,255,0.72)' }}>{SPOTLIGHT_PREMIUM_PLAN.tagline}</p>
-                  <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                    {SPOTLIGHT_PREMIUM_PLAN.bullets.map((b) => (
-                      <div key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,0.85)' }}>
-                        <span style={{ color: '#F0946F' }}>—</span>
-                        <span>{b}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ textAlign: isMobile ? 'left' : 'right', flexShrink: 0 }}>
-                  <div style={{ fontFamily: MONO, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{SPOTLIGHT_PREMIUM_PLAN.price}</div>
-                  <button
-                    onClick={V.openPromoPlan(SPOTLIGHT_PREMIUM_PLAN.key)}
-                    style={{
-                      marginTop: 10,
-                      border: 0,
-                      borderRadius: 999,
-                      background: '#FFFFFF',
-                      color: '#171717',
-                      padding: '13px 24px',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {SPOTLIGHT_PREMIUM_PLAN.cta} →
-                  </button>
-                </div>
-              </div>
-
-              <p style={{ margin: '22px 0 0', maxWidth: 560, fontSize: 13, fontStyle: 'italic', lineHeight: 1.55, color: '#9A9A9A' }}>
-                Combine any placements for maximum visibility. Pay for the visibility you want, when you want it.
-              </p>
+                {SPOTLIGHT_PREMIUM_PLAN.cta} →
+              </button>
             </div>
           </div>
+
+          <p style={{ margin: '22px 0 0', maxWidth: 560, fontSize: 13, fontStyle: 'italic', lineHeight: 1.55, color: '#9A9A9A' }}>
+            Combine any placements for maximum visibility. Pay for the visibility you want, when you want it.
+          </p>
         </div>
       )}
 
@@ -4864,7 +4862,7 @@ export default function App() {
                   <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>{f.a}</p>
                   {f.linkTo === 'promo' && (
                     <button
-                      onClick={V.goGoFurther}
+                      onClick={V.goSpotlight}
                       style={{
                         marginTop: 10,
                         border: 0,
@@ -7847,13 +7845,19 @@ export default function App() {
                 Join Eventory
               </button>
               <button
+                onClick={V.goVendorHowItWorks}
+                style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
+              >
+                How It Works
+              </button>
+              <button
                 onClick={V.goVendorSignIn}
                 style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
               >
                 Vendor sign in
               </button>
               <button
-                onClick={V.goGoFurther}
+                onClick={V.goSpotlight}
                 style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
               >
                 Spotlight
