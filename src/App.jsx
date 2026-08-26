@@ -571,17 +571,8 @@ export default function App() {
     }
   }, [st.email, st.saved, st.savedVendors, st.promoOptIn]);
 
-  const pendingScrollAnchorRef = useRef(null);
-
   useEffect(() => {
-    const anchor = pendingScrollAnchorRef.current;
-    pendingScrollAnchorRef.current = null;
-    const el = anchor && document.getElementById(anchor);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      window.scrollTo(0, 0);
-    }
+    window.scrollTo(0, 0);
   }, [st.screen]);
 
   useEffect(() => {
@@ -825,15 +816,6 @@ export default function App() {
     closeSourcing: () => patch({ sourcingOpen: false, sourcingSent: false }),
     submitSourcing: () => patch({ sourcingSent: true }),
     sourcingSent: !!st.sourcingSent,
-    goCategories: () => {
-      patch({ navMenuOpen: false });
-      if (st.screen === 'home') {
-        document.getElementById('top-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        pendingScrollAnchorRef.current = 'top-categories';
-        patch({ screen: 'home' });
-      }
-    },
     goHowItWorks: nav('how-it-works'),
     goSpotlight: nav('spotlight'),
     goVendorHowItWorks: nav('join'),
@@ -2370,12 +2352,6 @@ export default function App() {
                   Vendors
                 </button>
                 <button
-                  onClick={V.goCategories}
-                  style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
-                >
-                  Categories
-                </button>
-                <button
                   onClick={V.goHowItWorks}
                   style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
                 >
@@ -2406,12 +2382,6 @@ export default function App() {
                 style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
               >
                 Vendors
-              </button>
-              <button
-                onClick={V.goCategories}
-                style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
-              >
-                Categories
               </button>
               <button
                 onClick={V.goHowItWorks}
@@ -2567,7 +2537,7 @@ export default function App() {
             </div>
           </div>
 
-          <div id="top-categories" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
+          <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Browse by category</h2>
               <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
