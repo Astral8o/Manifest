@@ -953,11 +953,16 @@ export default function App() {
       .slice(0, 6)
       .map((s) => ({
         key: s.id,
-        logo: s.logoUrl || avatarUrl(s.name),
+        cover: s.coverUrl || photoUrl(s.id + '-cover', 400, 300),
         name: s.name,
         location: s.city,
         categoryName: catName(s.code),
         rating: s.rating,
+        startPriceLabel: s.priceOnRequest ? 'Price on request' : 'From ' + money(startPrice(s)),
+        isSaved: (st.savedVendors || []).indexOf(s.id) >= 0,
+        toggleSaved: () => toggleSaveVendor(s.id),
+        share: () => shareVendor(s.id),
+        justCopied: st.copiedVendorId === s.id,
         open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
       })),
 
@@ -2574,47 +2579,128 @@ export default function App() {
             </div>
             <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
               {V.topSuppliers.map((s) => (
-                <button
+                <div
                   key={s.key}
-                  onClick={s.open}
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    textAlign: 'left',
-                    gap: 10,
                     border: '1px solid #ECECEC',
                     borderRadius: 20,
                     background: '#FFFFFF',
-                    cursor: 'pointer',
-                    padding: isMobile ? '16px 14px' : '20px 18px',
+                    overflow: 'hidden',
                   }}
                 >
-                  <img
-                    src={s.logo}
-                    alt={s.name + ' logo'}
-                    style={{ width: 52, height: 52, borderRadius: 999, background: '#171717' }}
-                  />
-                  <div>
-                    <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 700, letterSpacing: '-0.01em' }}>{s.name}</div>
-                    <div style={{ marginTop: 2, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.location}</div>
-                  </div>
-                  <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                    <span
-                      style={{
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 999,
-                        background: '#F7F7F5',
-                        padding: '4px 10px',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: '#4A4A4A',
-                      }}
+                  <button
+                    onClick={s.open}
+                    style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: 'pointer' }}
+                  >
+                    <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
+                      <img src={s.cover} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      {s.rating && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: 10,
+                            right: 10,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            border: 0,
+                            borderRadius: 999,
+                            background: 'rgba(23,23,23,0.72)',
+                            color: '#FFFFFF',
+                            padding: '4px 10px',
+                            fontFamily: MONO,
+                            fontSize: 11,
+                            fontWeight: 600,
+                          }}
+                        >
+                          ★ {s.rating}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ padding: isMobile ? '14px 14px 0' : '16px 18px 0' }}>
+                      <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 700, letterSpacing: '-0.01em' }}>{s.name}</div>
+                      <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.startPriceLabel}</div>
+                    </div>
+                  </button>
+                  <div
+                    style={{
+                      marginTop: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                      borderTop: '1px solid #F2F2F0',
+                      padding: isMobile ? '10px 14px 14px' : '10px 18px 16px',
+                    }}
+                  >
+                    <button
+                      onClick={s.open}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
                     >
-                      {s.categoryName}
-                    </span>
-                    <span style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>★ {s.rating}</span>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      {s.location}
+                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button
+                        onClick={s.toggleSaved}
+                        aria-label={s.isSaved ? 'Unsave vendor' : 'Save vendor'}
+                        title={s.isSaved ? 'Unsave vendor' : 'Save vendor'}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 30,
+                          height: 30,
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 999,
+                          background: s.isSaved ? '#171717' : '#FFFFFF',
+                          color: s.isSaved ? '#FFFFFF' : '#171717',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill={s.isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={s.share}
+                        aria-label="Share vendor"
+                        title={s.justCopied ? 'Link copied' : 'Share vendor'}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 30,
+                          height: 30,
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 999,
+                          background: '#FFFFFF',
+                          color: '#171717',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {s.justCopied ? (
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        ) : (
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="18" cy="5" r="3" />
+                            <circle cx="6" cy="12" r="3" />
+                            <circle cx="18" cy="19" r="3" />
+                            <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+                            <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
             <button
