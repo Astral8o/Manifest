@@ -3619,14 +3619,13 @@ export default function App() {
           </div>
           <div style={{ marginTop: 20 }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 20 : 28 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                  <img
-                    src={V.sup.logo}
-                    alt={V.sup.name + ' logo'}
-                    style={{ width: 64, height: 64, borderRadius: 999, marginTop: -50, border: '4px solid #FFFFFF', background: '#171717', flexShrink: 0 }}
-                  />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 20 : 28 }}>
+                <img
+                  src={V.sup.logo}
+                  alt={V.sup.name + ' logo'}
+                  style={{ position: 'absolute', top: -32, left: isMobile ? 20 : 28, width: 64, height: 64, borderRadius: 999, border: '4px solid #FFFFFF', background: '#171717', display: 'block' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <button
                       onClick={V.sup.toggleSaved}
                       aria-label={V.sup.isSaved ? 'Unsave vendor' : 'Save vendor'}
@@ -3720,7 +3719,6 @@ export default function App() {
                       </a>
                     ))}
                   </div>
-                </div>
                 <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                   <h1 style={{ margin: 0, fontSize: isMobile ? 26 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Meet {V.sup.name}</h1>
                   {V.sup.verified && (
