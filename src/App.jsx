@@ -3647,16 +3647,16 @@ export default function App() {
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 8,
+                        gap: 6,
                         border: 0,
                         borderRadius: 999,
                         background: '#25D366',
                         color: '#FFFFFF',
-                        padding: '13px 24px',
+                        padding: '10px 18px',
                         cursor: 'pointer',
                         fontFamily: DISPLAY,
-                        fontSize: 15,
-                        fontWeight: 700,
+                        fontSize: 13.5,
+                        fontWeight: 600,
                         textDecoration: 'none',
                       }}
                     >
