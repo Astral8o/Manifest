@@ -1189,7 +1189,7 @@ export default function App() {
     supplierTabs: [
       { key: 'about', label: 'About' },
       { key: 'services', label: 'Packages (' + supProducts.length + ')' },
-      (sup.gallery || []).length > 0 && { key: 'gallery', label: 'Gallery' },
+      { key: 'gallery', label: 'Gallery' },
       hasMenu && { key: 'menu', label: 'Menu' },
       { key: 'reviews', label: 'Reviews (' + (sup.reviews || []).length + ')' },
       { key: 'faq', label: 'FAQ' },
@@ -4033,6 +4033,11 @@ export default function App() {
               {V.supplierTab === 'gallery' && (
                 <div style={{ marginTop: 24 }}>
                   <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Gallery</h2>
+                  {V.sup.gallery.length === 0 && (
+                    <div style={{ marginTop: 14, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '32px 24px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 15, color: '#5B5B5B' }}>No photos added yet.</div>
+                    </div>
+                  )}
                   <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 28 }}>
                     {V.sup.gallery.map((g) => (
                       <div key={g.key}>
