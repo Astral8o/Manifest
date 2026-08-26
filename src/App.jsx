@@ -2466,7 +2466,7 @@ export default function App() {
                   onClick={V.goSuppliers}
                   style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
                 >
-                  Vendors
+                  Discover Vendors
                 </button>
                 <button
                   onClick={V.goHowItWorks}
@@ -2498,7 +2498,7 @@ export default function App() {
                 onClick={V.goSuppliers}
                 style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
               >
-                Vendors
+                Discover Vendors
               </button>
               <button
                 onClick={V.goHowItWorks}
