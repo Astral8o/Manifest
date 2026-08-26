@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   LOCATIONS,
-  GROUPS,
   FIELDS,
   FIELDS_DEFAULT,
   money,
@@ -288,10 +287,7 @@ const sharedProductFromUrl = () => {
 
 const initialState = {
   screen: 'home',
-  catCode: 'CAT.01',
   supId: null,
-  loc: 0,
-  grp: 0,
   dirCat: 'ALL',
   dirCats: [],
   dirPlanLabel: '',
@@ -417,7 +413,6 @@ export default function App() {
       return {
         ...base,
         screen: resumed.screen,
-        catCode: resumed.catCode ?? base.catCode,
         supId: resumed.supId ?? base.supId,
         supplierTab: resumed.supplierTab ?? base.supplierTab,
       };
@@ -601,7 +596,7 @@ export default function App() {
   const isFirstScreenRef = useRef(true);
 
   useEffect(() => {
-    history.replaceState({ screen: st.screen, catCode: st.catCode, supId: st.supId, supplierTab: st.supplierTab }, '');
+    history.replaceState({ screen: st.screen, supId: st.supId, supplierTab: st.supplierTab }, '');
     const onPopState = (e) => {
       if (!e.state) return;
       isPoppingRef.current = true;
@@ -621,9 +616,9 @@ export default function App() {
       isFirstScreenRef.current = false;
       return;
     }
-    history.pushState({ screen: st.screen, catCode: st.catCode, supId: st.supId, supplierTab: st.supplierTab }, '');
+    history.pushState({ screen: st.screen, supId: st.supId, supplierTab: st.supplierTab }, '');
     // Only push a new history entry when the screen itself changes, not on every
-    // catCode/supId/supplierTab update (e.g. switching tabs shouldn't add a back-button stop).
+    // supId/supplierTab update (e.g. switching tabs shouldn't add a back-button stop).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [st.screen]);
 
@@ -739,7 +734,8 @@ export default function App() {
 
   // ---- derived view-model ----
   const nav = (screen, extra) => () => patch({ screen, navMenuOpen: false, ...(extra || {}) });
-  const openCat = (code) => () => patch({ screen: 'category', catCode: code, loc: 0, grp: 0 });
+  const openCat = (code) => () =>
+    patch({ screen: 'suppliers', dirCat: code, dirCats: [], dirPlanLabel: '', dirLoc: 0, dirVisible: 6, navMenuOpen: false });
   const catTile = (c) => {
     const n = SUPPLIERS.filter((s) => s.code === c[0]).length;
     return {
@@ -750,15 +746,6 @@ export default function App() {
       open: openCat(c[0]),
     };
   };
-
-  const cat = CATS.find((c) => c[0] === st.catCode) || CATS[0] || ['', '', ''];
-  const catSuppliers = SUPPLIERS.filter((s) => s.code === st.catCode);
-  const grpMax = GROUPS[st.grp][1];
-  const filtered = catSuppliers.filter(
-    (s) =>
-      (st.loc === 0 || s.region === LOCATIONS[st.loc]) &&
-      (grpMax === 0 || (grpMax === 1000 ? s.minGroup >= 100 : s.minGroup <= grpMax))
-  );
 
   const dirQueryLower = (st.dirQuery || '').trim().toLowerCase();
   const dirFiltered = SUPPLIERS.filter((s) => {
@@ -822,7 +809,6 @@ export default function App() {
   const V = {
     isHome: st.screen === 'home',
     isHowItWorks: st.screen === 'how-it-works',
-    isCategory: st.screen === 'category',
     isSuppliers: st.screen === 'suppliers',
     isSupplier: st.screen === 'supplier',
     isJoin: st.screen === 'join',
@@ -1020,7 +1006,8 @@ export default function App() {
     },
     dirPlanLabel: st.dirPlanLabel || '',
     clearDirPlan: () => patch({ dirCats: [], dirPlanLabel: '' }),
-    backToCategory: () => patch({ screen: 'category', catCode: sup.code }),
+    backToCategory: () =>
+      patch({ screen: 'suppliers', dirCat: sup.code, dirCats: [], dirPlanLabel: '', dirLoc: 0, dirVisible: 6, navMenuOpen: false }),
 
     homeQuery: st.dirQuery || '',
     setHomeQuery: (e) => patch({ dirQuery: e.target.value }),
@@ -1071,20 +1058,7 @@ export default function App() {
       })
       .filter(Boolean),
 
-    cat: { code: cat[0], name: cat[1], description: cat[2] },
-    resultLabel: filtered.length + ' of ' + catSuppliers.length + ' vendors',
-    locationFilters: LOCATIONS.map((l, i) => ({ label: l, ...chip(i === st.loc), pick: () => patch({ loc: i }) })),
-    groupFilters: GROUPS.map((g, i) => ({ label: g[0], ...chip(i === st.grp), pick: () => patch({ grp: i }) })),
-    supplierRows: filtered.map((s) => ({
-      key: s.id,
-      logo: s.logoUrl || avatarUrl(s.name),
-      name: s.name,
-      location: s.city,
-      description: s.bio,
-      tags: s.tags,
-      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
-    })),
-
+    dirActiveCat: st.dirCat === 'ALL' ? null : CATS.find((c) => c[0] === st.dirCat) || null,
     dirCategoryFilters: [{ code: 'ALL', name: 'All categories' }, ...CATS.map((c) => ({ code: c[0], name: c[1] }))].map((c) => {
       const n = c.code === 'ALL' ? SUPPLIERS.length : SUPPLIERS.filter((s) => s.code === c.code).length;
       return {
@@ -3036,189 +3010,6 @@ export default function App() {
         </div>
       )}
 
-      {V.isCategory && (
-        <div style={{ padding: '34px 0 0' }}>
-          <button
-            onClick={V.goHome}
-            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
-          >
-            ← All categories
-          </button>
-          <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.cat.name}</h1>
-              <p style={{ margin: '12px 0 0', maxWidth: 560, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>{V.cat.description}</p>
-            </div>
-            <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.resultLabel}</div>
-          </div>
-
-          <div
-            style={{
-              marginTop: 26,
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 20,
-              borderTop: '1px solid #ECECEC',
-              borderBottom: '1px solid #ECECEC',
-              padding: '16px 0',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                Location
-              </span>
-              {V.locationFilters.map((f) => (
-                <button
-                  key={f.label}
-                  onClick={f.pick}
-                  style={{
-                    border: `1px solid ${f.border}`,
-                    borderRadius: 999,
-                    background: f.bg,
-                    color: f.fg,
-                    padding: '7px 14px',
-                    cursor: 'pointer',
-                    fontSize: 13,
-                    fontWeight: 600,
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                Group size
-              </span>
-              {V.groupFilters.map((f) => (
-                <button
-                  key={f.label}
-                  onClick={f.pick}
-                  style={{
-                    border: `1px solid ${f.border}`,
-                    borderRadius: 999,
-                    background: f.bg,
-                    color: f.fg,
-                    padding: '7px 14px',
-                    cursor: 'pointer',
-                    fontSize: 13,
-                    fontWeight: 600,
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {V.supplierRows.map((s) => (
-              <div
-                key={s.key}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: 28,
-                  flexWrap: 'wrap',
-                  border: '1px solid #ECECEC',
-                  borderRadius: 22,
-                  padding: '22px 24px',
-                }}
-              >
-                <div style={{ flex: '1 1 380px', minWidth: 280, display: 'flex', gap: 16 }}>
-                  <img
-                    src={s.logo}
-                    alt={s.name + ' logo'}
-                    style={{ width: 52, height: 52, borderRadius: 999, flexShrink: 0, background: '#171717' }}
-                  />
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-                      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{s.name}</div>
-                      <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.location}</div>
-                    </div>
-                    <p style={{ margin: '8px 0 0', maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>{s.description}</p>
-                    <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {s.tags.map((t) => (
-                        <span
-                          key={t}
-                          style={{
-                            border: '1px solid #E4E4DF',
-                            borderRadius: 999,
-                            background: '#F7F7F5',
-                            padding: '5px 12px',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: '#4A4A4A',
-                          }}
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div
-                  style={{
-                    flex: isMobile ? '1 1 100%' : '0 0 220px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 14,
-                    alignItems: isMobile ? 'stretch' : 'flex-end',
-                  }}
-                >
-                  <button
-                    onClick={s.open}
-                    style={{
-                      border: 0,
-                      borderRadius: 999,
-                      background: '#171717',
-                      color: '#FFFFFF',
-                      padding: '12px 20px',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      fontWeight: 700,
-                    }}
-                  >
-                    See Profile
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div
-            style={{
-              marginTop: 28,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 24,
-              flexWrap: 'wrap',
-              borderRadius: 22,
-              background: '#F2F2F0',
-              padding: '22px 26px',
-            }}
-          >
-            <div style={{ fontSize: 15, color: '#4A4A4A' }}>Nothing here fits? Tell us what you need and we will go find it.</div>
-            <button
-              onClick={V.goSourcing}
-              style={{
-                border: '1px solid #171717',
-                borderRadius: 999,
-                background: 'transparent',
-                padding: '11px 20px',
-                cursor: 'pointer',
-                fontSize: 14,
-                fontWeight: 700,
-              }}
-            >
-              Submit a sourcing request
-            </button>
-          </div>
-        </div>
-      )}
-
       {V.isSuppliers && (
         <div style={{ padding: '34px 0 0' }}>
           <button
@@ -3229,9 +3020,11 @@ export default function App() {
           </button>
           <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Discover Vendors</h1>
+              <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
+                {V.dirActiveCat ? V.dirActiveCat[1] : 'Discover Vendors'}
+              </h1>
               <p style={{ margin: '12px 0 0', maxWidth: 560, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
-                Browse every vendor on Eventory, or narrow down by category, location and price.
+                {V.dirActiveCat ? V.dirActiveCat[2] : 'Browse every vendor on Eventory, or narrow down by category, location and price.'}
               </p>
             </div>
             <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{V.dirResultLabel}</div>
