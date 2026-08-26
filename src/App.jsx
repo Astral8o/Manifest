@@ -408,15 +408,6 @@ export default function App() {
     if (new URLSearchParams(window.location.search).get('admin')) {
       return { ...base, screen: 'admin' };
     }
-    const resumed = history.state;
-    if (resumed && resumed.screen) {
-      return {
-        ...base,
-        screen: resumed.screen,
-        supId: resumed.supId ?? base.supId,
-        supplierTab: resumed.supplierTab ?? base.supplierTab,
-      };
-    }
     return base;
   });
   const patch = (updater) =>
