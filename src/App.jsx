@@ -1019,12 +1019,17 @@ export default function App() {
     dirResultLabel: dirFiltered.length + ' of ' + SUPPLIERS.length + ' vendors',
     dirSupplierRows: dirFiltered.slice(0, st.dirVisible || 6).map((s) => ({
       key: s.id,
-      logo: s.logoUrl || avatarUrl(s.name),
+      cover: s.coverUrl || photoUrl(s.id + '-cover', 400, 300),
       name: s.name,
       location: s.city,
       categoryName: catName(s.code),
       description: s.bio,
-      tags: s.tags,
+      rating: s.rating,
+      startPriceLabel: s.priceOnRequest ? 'Price on request' : 'From ' + money(startPrice(s)),
+      isSaved: (st.savedVendors || []).indexOf(s.id) >= 0,
+      toggleSaved: () => toggleSaveVendor(s.id),
+      share: () => shareVendor(s.id),
+      justCopied: st.copiedVendorId === s.id,
       open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
     })),
     dirShowSeeAll: dirFiltered.length > (st.dirVisible || 6),
@@ -3356,33 +3361,52 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
             {V.dirSupplierRows.map((s) => (
               <div
                 key={s.key}
                 style={{
                   display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: 28,
-                  flexWrap: 'wrap',
+                  flexDirection: 'column',
                   border: '1px solid #ECECEC',
-                  borderRadius: 22,
-                  padding: '22px 24px',
+                  borderRadius: 20,
+                  background: '#FFFFFF',
+                  overflow: 'hidden',
                 }}
               >
-                <div style={{ flex: '1 1 380px', minWidth: 280, display: 'flex', gap: 16 }}>
-                  <img
-                    src={s.logo}
-                    alt={s.name + ' logo'}
-                    style={{ width: 52, height: 52, borderRadius: 999, flexShrink: 0, background: '#171717' }}
-                  />
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-                      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{s.name}</div>
-                      <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.location}</div>
-                    </div>
-                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <button
+                  onClick={s.open}
+                  style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: 'pointer' }}
+                >
+                  <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
+                    <img src={s.cover} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    {s.rating && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: 10,
+                          right: 10,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          border: 0,
+                          borderRadius: 999,
+                          background: 'rgba(23,23,23,0.72)',
+                          color: '#FFFFFF',
+                          padding: '4px 10px',
+                          fontFamily: MONO,
+                          fontSize: 11,
+                          fontWeight: 600,
+                        }}
+                      >
+                        ★ {s.rating}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ padding: isMobile ? '14px 14px 0' : '16px 18px 0' }}>
+                    <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 700, letterSpacing: '-0.01em' }}>{s.name}</div>
+                    <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.startPriceLabel}</div>
+                    <div style={{ marginTop: 8 }}>
                       <span
                         style={{
                           border: '1px solid #E4E4DF',
@@ -3398,56 +3422,104 @@ export default function App() {
                         {s.categoryName}
                       </span>
                     </div>
-                    <p style={{ margin: '10px 0 0', maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>{s.description}</p>
-                    <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {s.tags.map((t) => (
-                        <span
-                          key={t}
-                          style={{
-                            border: '1px solid #E4E4DF',
-                            borderRadius: 999,
-                            background: '#F7F7F5',
-                            padding: '5px 12px',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: '#4A4A4A',
-                          }}
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
+                    {s.description && (
+                      <p
+                        style={{
+                          margin: '10px 0 0',
+                          fontSize: 13,
+                          lineHeight: 1.5,
+                          color: '#4A4A4A',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {s.description}
+                      </p>
+                    )}
                   </div>
-                </div>
+                </button>
                 <div
                   style={{
-                    flex: isMobile ? '1 1 100%' : '0 0 220px',
+                    marginTop: 12,
                     display: 'flex',
-                    flexDirection: 'column',
-                    gap: 10,
-                    alignItems: isMobile ? 'stretch' : 'flex-end',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    borderTop: '1px solid #F2F2F0',
+                    padding: isMobile ? '10px 14px 14px' : '10px 18px 16px',
                   }}
                 >
                   <button
                     onClick={s.open}
-                    style={{
-                      border: 0,
-                      borderRadius: 999,
-                      background: '#171717',
-                      color: '#FFFFFF',
-                      padding: '12px 20px',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      fontWeight: 700,
-                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
                   >
-                    See Profile
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    {s.location}
                   </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      onClick={s.toggleSaved}
+                      aria-label={s.isSaved ? 'Unsave vendor' : 'Save vendor'}
+                      title={s.isSaved ? 'Unsave vendor' : 'Save vendor'}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 30,
+                        height: 30,
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: s.isSaved ? '#171717' : '#FFFFFF',
+                        color: s.isSaved ? '#FFFFFF' : '#171717',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill={s.isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={s.share}
+                      aria-label="Share vendor"
+                      title={s.justCopied ? 'Link copied' : 'Share vendor'}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 30,
+                        height: 30,
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: '#FFFFFF',
+                        color: '#171717',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {s.justCopied ? (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="18" cy="5" r="3" />
+                          <circle cx="6" cy="12" r="3" />
+                          <circle cx="18" cy="19" r="3" />
+                          <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+                          <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
             {V.dirSupplierRows.length === 0 && (
-              <div style={{ padding: '28px 2px', fontSize: 14, color: '#9A9A9A' }}>No vendors match your search.</div>
+              <div style={{ gridColumn: '1 / -1', padding: '28px 2px', fontSize: 14, color: '#9A9A9A' }}>No vendors match your search.</div>
             )}
           </div>
 
