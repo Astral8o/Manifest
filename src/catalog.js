@@ -37,6 +37,8 @@ function reshapeVendor(v) {
   return {
     id: v.id,
     code: v.category_code,
+    codes: v.category_codes && v.category_codes.length ? v.category_codes : [v.category_code],
+    otherCategory: v.other_category || '',
     name: v.name,
     city: v.city,
     region: v.region,
@@ -378,6 +380,8 @@ export async function createVendorAccount(payload) {
     .insert({
       owner_user_id: user.id,
       category_code: payload.categoryCode,
+      category_codes: payload.categoryCodes && payload.categoryCodes.length ? payload.categoryCodes : null,
+      other_category: payload.otherCategory || null,
       subcategory: payload.subcategory || null,
       name: payload.name,
       contact_person: payload.contactPerson,

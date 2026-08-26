@@ -724,7 +724,7 @@ export default function App() {
   const openCat = (code) => () =>
     patch({ screen: 'suppliers', dirCat: code, dirCats: [], dirPlanLabel: '', dirLoc: 0, dirVisible: 6, navMenuOpen: false });
   const catTile = (c) => {
-    const n = SUPPLIERS.filter((s) => s.code === c[0]).length;
+    const n = SUPPLIERS.filter((s) => (s.codes || [s.code]).includes(c[0])).length;
     return {
       code: c[0],
       name: c[1],
@@ -736,8 +736,8 @@ export default function App() {
 
   const dirQueryLower = (st.dirQuery || '').trim().toLowerCase();
   const dirFiltered = SUPPLIERS.filter((s) => {
-    if (st.dirCat !== 'ALL' && s.code !== st.dirCat) return false;
-    if ((st.dirCats || []).length && !st.dirCats.includes(s.code)) return false;
+    if (st.dirCat !== 'ALL' && !(s.codes || [s.code]).includes(st.dirCat)) return false;
+    if ((st.dirCats || []).length && !(s.codes || [s.code]).some((c) => st.dirCats.includes(c))) return false;
     if (st.dirLoc !== 0 && s.region !== LOCATIONS[st.dirLoc]) return false;
     if (!PRICE_FILTERS[st.dirPrice || 0].test(startPrice(s))) return false;
     if (!dirQueryLower) return true;
@@ -1003,7 +1003,7 @@ export default function App() {
       if (e.key === 'Enter') patch({ screen: 'suppliers', dirCat: 'ALL', dirCats: [], dirPlanLabel: '', dirLoc: 0, dirVisible: 6, navMenuOpen: false });
     },
 
-    topCategoryTiles: CATS.map((c) => ({ c, n: SUPPLIERS.filter((s) => s.code === c[0]).length }))
+    topCategoryTiles: CATS.map((c) => ({ c, n: SUPPLIERS.filter((s) => (s.codes || [s.code]).includes(c[0])).length }))
       .filter((x) => x.n > 0)
       .sort((a, b) => b.n - a.n)
       .slice(0, 6)
@@ -1047,7 +1047,7 @@ export default function App() {
 
     dirActiveCat: st.dirCat === 'ALL' ? null : CATS.find((c) => c[0] === st.dirCat) || null,
     dirCategoryFilters: [{ code: 'ALL', name: 'All categories' }, ...CATS.map((c) => ({ code: c[0], name: c[1] }))].map((c) => {
-      const n = c.code === 'ALL' ? SUPPLIERS.length : SUPPLIERS.filter((s) => s.code === c.code).length;
+      const n = c.code === 'ALL' ? SUPPLIERS.length : SUPPLIERS.filter((s) => (s.codes || [s.code]).includes(c.code)).length;
       return {
         code: c.code,
         label: c.name,
@@ -2002,11 +2002,14 @@ export default function App() {
         voStep: 1,
         voDone: false,
         voVendorId: null,
-        voSector: null,
+        voSectors: [],
+        voSectorOtherText: '',
         voSubcategory: '',
         voBusinessName: '',
         voContactPerson: '',
+        voCountry: null,
         voCity: null,
+        voCityOther: '',
         voStartingPrice: '',
         voEmail: '',
         voPhone: '',
@@ -2040,23 +2043,41 @@ export default function App() {
     voStep: st.voStep || 1,
     voDone: !!st.voDone,
 
-    voSectorTiles: CATS.map((c) => ({
-      code: c[0],
-      name: c[1],
-      on: st.voSector === c[0],
-      pick: () => patch({ voSector: c[0] }),
+    voSectorTiles: [...CATS.map((c) => ({ key: c[0], name: c[1] })), { key: 'OTHER', name: 'Other' }].map((c) => ({
+      code: c.key,
+      name: c.name,
+      on: (st.voSectors || []).includes(c.key),
+      maxed: (st.voSectors || []).length >= 3 && !(st.voSectors || []).includes(c.key),
+      pick: () =>
+        patch((s) => {
+          const cur = s.voSectors || [];
+          if (cur.includes(c.key)) return { voSectors: cur.filter((x) => x !== c.key) };
+          if (cur.length >= 3) return {};
+          return { voSectors: [...cur, c.key] };
+        }),
     })),
+    voSectorOtherSelected: (st.voSectors || []).includes('OTHER'),
+    voSectorOtherText: st.voSectorOtherText || '',
+    setVoSectorOtherText: (e) => patch({ voSectorOtherText: e.target.value }),
     voSubcategory: st.voSubcategory || '',
     setVoSubcategory: (e) => patch({ voSubcategory: e.target.value }),
     voBusinessName: st.voBusinessName || '',
     setVoBusinessName: (e) => patch({ voBusinessName: e.target.value }),
     voContactPerson: st.voContactPerson || '',
     setVoContactPerson: (e) => patch({ voContactPerson: e.target.value }),
-    voCityTiles: LOCATIONS.filter((l) => l !== 'All areas').map((l) => ({
+    voCountryTiles: ['Trinidad', 'Tobago'].map((c) => ({
+      label: c,
+      on: st.voCountry === c,
+      pick: () => patch({ voCountry: c }),
+    })),
+    voCityTiles: [...LOCATIONS.filter((l) => l !== 'All areas' && l !== 'Tobago'), 'Other'].map((l) => ({
       label: l,
       on: st.voCity === l,
       pick: () => patch({ voCity: l }),
     })),
+    voCityOtherSelected: st.voCity === 'Other',
+    voCityOther: st.voCityOther || '',
+    setVoCityOther: (e) => patch({ voCityOther: e.target.value }),
     voStartingPrice: st.voStartingPrice || '',
     setVoStartingPrice: (e) => patch({ voStartingPrice: e.target.value }),
     voEmail: st.voEmail || '',
@@ -2074,10 +2095,12 @@ export default function App() {
     voStep1Submitting: !!st.voStep1Submitting,
     voStep1Error: st.voStep1Error || '',
     voStep1Disabled: !(
-      st.voSector &&
+      (st.voSectors || []).some((c) => c !== 'OTHER') &&
+      (!(st.voSectors || []).includes('OTHER') || (st.voSectorOtherText || '').trim()) &&
       (st.voBusinessName || '').trim() &&
       (st.voContactPerson || '').trim() &&
-      st.voCity &&
+      st.voCountry &&
+      (st.voCity === 'Other' ? (st.voCityOther || '').trim() : st.voCity) &&
       (st.voEmail || '').trim() &&
       (st.voPhone || '').trim() &&
       (st.voPassword || '').length >= 6 &&
@@ -2090,11 +2113,17 @@ export default function App() {
       const contactPerson = (st.voContactPerson || '').trim();
       const email = (st.voEmail || '').trim();
       const phone = (st.voPhone || '').trim();
+      const realSectors = (st.voSectors || []).filter((c) => c !== 'OTHER');
+      const otherIncluded = (st.voSectors || []).includes('OTHER');
+      const otherCategory = otherIncluded ? (st.voSectorOtherText || '').trim() : '';
+      const city = st.voCity === 'Other' ? (st.voCityOther || '').trim() : st.voCity;
       if (
-        !st.voSector ||
+        !realSectors.length ||
+        (otherIncluded && !otherCategory) ||
         !name ||
         !contactPerson ||
-        !st.voCity ||
+        !st.voCountry ||
+        !city ||
         !email ||
         !phone ||
         (st.voPassword || '').length < 6 ||
@@ -2108,12 +2137,14 @@ export default function App() {
       patch({ voStep1Submitting: true, voStep1Error: null });
       try {
         const vendorId = await createVendorAccount({
-          categoryCode: st.voSector,
+          categoryCode: realSectors[0],
+          categoryCodes: realSectors,
+          otherCategory: otherCategory || null,
           subcategory: (st.voSubcategory || '').trim(),
           name,
           contactPerson,
-          country: 'Trinidad and Tobago',
-          city: st.voCity,
+          country: st.voCountry,
+          city,
           email,
           phone,
           password: st.voPassword,
@@ -6198,18 +6229,38 @@ export default function App() {
               {V.voStep === 1 && (
                 <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
                   <div>
-                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Sector *</div>
+                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Sector * (up to 3)</div>
                     <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {V.voSectorTiles.map((c) => (
                         <button
                           key={c.code}
                           onClick={c.pick}
-                          style={{ border: c.on ? '2px solid #171717' : '1px solid #E4E4DF', borderRadius: 999, background: c.on ? '#171717' : '#FFFFFF', color: c.on ? '#FFFFFF' : '#171717', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+                          disabled={c.maxed}
+                          style={{
+                            border: c.on ? '2px solid #171717' : '1px solid #E4E4DF',
+                            borderRadius: 999,
+                            background: c.on ? '#171717' : '#FFFFFF',
+                            color: c.on ? '#FFFFFF' : c.maxed ? '#C8C8C2' : '#171717',
+                            padding: '9px 16px',
+                            cursor: c.maxed ? 'default' : 'pointer',
+                            fontSize: 13,
+                            fontWeight: 700,
+                            opacity: c.maxed ? 0.6 : 1,
+                          }}
                         >
                           {c.name}
                         </button>
                       ))}
                     </div>
+                    {V.voSectorOtherSelected && (
+                      <input
+                        type="text"
+                        value={V.voSectorOtherText}
+                        onChange={V.setVoSectorOtherText}
+                        placeholder="Tell us what you offer"
+                        style={{ marginTop: 8, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }}
+                      />
+                    )}
                   </div>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Main category (optional)</span>
@@ -6223,10 +6274,20 @@ export default function App() {
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Contact person *</span>
                     <input type="text" value={V.voContactPerson} onChange={V.setVoContactPerson} placeholder="Your full name" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
                   </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Country</span>
-                    <input type="text" value="Trinidad and Tobago" disabled style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#ECECEC', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#6E6E6E' }} />
-                  </label>
+                  <div>
+                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Country *</div>
+                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {V.voCountryTiles.map((c) => (
+                        <button
+                          key={c.label}
+                          onClick={c.pick}
+                          style={{ border: c.on ? '2px solid #171717' : '1px solid #E4E4DF', borderRadius: 999, background: c.on ? '#171717' : '#FFFFFF', color: c.on ? '#FFFFFF' : '#171717', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+                        >
+                          {c.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <div>
                     <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>City *</div>
                     <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -6240,6 +6301,15 @@ export default function App() {
                         </button>
                       ))}
                     </div>
+                    {V.voCityOtherSelected && (
+                      <input
+                        type="text"
+                        value={V.voCityOther}
+                        onChange={V.setVoCityOther}
+                        placeholder="Tell us your city or town"
+                        style={{ marginTop: 8, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }}
+                      />
+                    )}
                   </div>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Starting price (TT$, optional)</span>
