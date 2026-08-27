@@ -1558,20 +1558,12 @@ export default function App() {
     vdVendor: st.vdVendor,
     vdHasVendor: !!st.vdVendor,
     vdStatusLabel: st.vdVendor ? (st.vdVendor.published ? 'Published' : 'Pending review') : '',
-    // No default tab in free/"Edit profile" mode — nothing shown until the
-    // vendor picks a section, so the dashboard doesn't dump a huge form on
-    // them the moment they land. Guided mode always sets vdTab explicitly
-    // (see startVdGuide), so this only affects the free-browse view.
+    // Nothing shown until the vendor is either walking the guided steps or
+    // has opened Inquiries — there's no free-browse edit mode anymore, so
+    // the dashboard never dumps a form on them unprompted.
     vdTab: st.vdTab || '',
-    vdTabs: [
-      { key: 'profile', label: 'Profile' },
-      { key: 'packages', label: 'Packages (' + ((st.vdVendor && st.vdVendor.packages) || []).length + ')' },
-      { key: 'gallery', label: 'Gallery (' + ((st.vdVendor && st.vdVendor.gallery) || []).length + ')' },
-      { key: 'menu', label: 'Menu (' + ((st.vdVendor && st.vdVendor.menu) || []).length + ')' },
-      { key: 'faqs', label: 'FAQ (' + ((st.vdVendor && st.vdVendor.faqs) || []).length + ')' },
-      { key: 'policies', label: 'Policies (' + ((st.vdVendor && st.vdVendor.policies) || []).length + ')' },
-      { key: 'inquiries', label: 'Inquiries (' + (st.vdQuotes || []).length + ')' },
-    ].map((t) => ({ ...t, active: st.vdTab === t.key, go: () => patch({ vdTab: t.key }) })),
+    vdInquiriesCount: (st.vdQuotes || []).length,
+    toggleVdInquiries: () => patch({ vdTab: st.vdTab === 'inquiries' ? '' : 'inquiries' }),
     vdSubmittedAt: (st.vdVendor && st.vdVendor.submittedAt) || null,
     vdSubmitting: !!st.vdSubmitting,
     vdSubmitError: st.vdSubmitError || '',
@@ -1583,21 +1575,22 @@ export default function App() {
           patch((s) => ({
             vdSubmitting: false,
             vdGuidedOpen: false,
+            vdTab: '',
             vdVendor: s.vdVendor ? { ...s.vdVendor, submittedAt: new Date().toISOString() } : s.vdVendor,
           }))
         )
         .catch((err) => patch({ vdSubmitting: false, vdSubmitError: err.message || 'Could not submit for review. Please try again.' }));
     },
-    // "Build my profile" walks the same tabs as free editing, just one at a
-    // time with Next/Previous — it's a view over the same vdTab state, not
-    // a separate flow, so nothing is lost switching between the two.
+    // Building your profile is the guided step-through — Previous/Continue
+    // over the same tab content and save logic as before, just walked in
+    // sequence instead of browsed freely. Clearing vdTab on the way out
+    // keeps the dashboard from showing whatever section was last open.
     vdGuidedOpen: !!st.vdGuidedOpen,
     startVdGuide: () => patch({ vdGuidedOpen: true, vdTab: VD_GUIDE_TABS[0] }),
-    exitVdGuide: () => patch({ vdGuidedOpen: false }),
+    exitVdGuide: () => patch({ vdGuidedOpen: false, vdTab: '' }),
     vdGuideStepNumber: VD_GUIDE_TABS.indexOf(st.vdTab || 'profile') + 1,
     vdGuideStepCount: VD_GUIDE_TABS.length,
     vdGuideStepLabel: VD_TAB_LABELS[st.vdTab || 'profile'],
-    vdTabLabel: VD_TAB_LABELS[st.vdTab] || '',
     vdGuideIsFirst: VD_GUIDE_TABS.indexOf(st.vdTab || 'profile') === 0,
     vdGuideIsLast: VD_GUIDE_TABS.indexOf(st.vdTab || 'profile') === VD_GUIDE_TABS.length - 1,
     vdGuidePrev: () => {
@@ -5381,6 +5374,23 @@ export default function App() {
                       View public profile
                     </button>
                   )}
+                  {!V.vdGuidedOpen && (
+                    <button
+                      onClick={V.toggleVdInquiries}
+                      style={{
+                        border: `1px solid ${V.vdTab === 'inquiries' ? '#171717' : '#D7D7D2'}`,
+                        borderRadius: 999,
+                        background: V.vdTab === 'inquiries' ? '#171717' : 'transparent',
+                        color: V.vdTab === 'inquiries' ? '#FFFFFF' : '#5B5B5B',
+                        padding: '11px 18px',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Inquiries ({V.vdInquiriesCount})
+                    </button>
+                  )}
                   <button
                     onClick={V.vdSignOut}
                     style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', color: '#5B5B5B', padding: '11px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
@@ -5396,7 +5406,11 @@ export default function App() {
                 </p>
               )}
 
-              {!V.vdVendor.published && !V.vdGuidedOpen && (
+              {V.vdTab === 'inquiries' && !V.vdGuidedOpen && (
+                <h2 style={{ margin: '22px 0 0', fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, letterSpacing: '-0.01em' }}>Inquiries</h2>
+              )}
+
+              {!V.vdGuidedOpen && V.vdTab !== 'inquiries' && (
                 <div
                   style={{
                     marginTop: 18,
@@ -5411,7 +5425,7 @@ export default function App() {
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: 17, fontWeight: 800, color: '#FFFFFF' }}>Build my profile</div>
+                    <div style={{ fontSize: 17, fontWeight: 800, color: '#FFFFFF' }}>{V.vdVendor.published || V.vdSubmittedAt ? 'Edit my profile' : 'Build my profile'}</div>
                     <p style={{ margin: '4px 0 0', fontSize: 13.5, lineHeight: 1.5, color: 'rgba(255,255,255,0.7)' }}>
                       We'll walk you through your photos, packages, and everything else, one step at a time.
                     </p>
@@ -5430,12 +5444,12 @@ export default function App() {
                       fontWeight: 700,
                     }}
                   >
-                    Build my profile →
+                    {V.vdVendor.published || V.vdSubmittedAt ? 'Edit my profile →' : 'Build my profile →'}
                   </button>
                 </div>
               )}
 
-              {V.vdGuidedOpen ? (
+              {V.vdGuidedOpen && (
                 <div style={{ marginTop: 22 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                     <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
@@ -5445,7 +5459,7 @@ export default function App() {
                       onClick={V.exitVdGuide}
                       style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#5B5B5B', textDecoration: 'underline', textUnderlineOffset: '3px' }}
                     >
-                      Exit — edit sections directly
+                      Exit — your changes are saved
                     </button>
                   </div>
                   <h2 style={{ margin: '6px 0 0', fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: '-0.01em' }}>{V.vdGuideStepLabel}</h2>
@@ -5454,35 +5468,6 @@ export default function App() {
                       <div key={k} style={{ flex: 1, height: 4, borderRadius: 2, background: VD_GUIDE_TABS.indexOf(V.vdTab) >= VD_GUIDE_TABS.indexOf(k) ? '#171717' : '#ECECEC' }} />
                     ))}
                   </div>
-                </div>
-              ) : (
-                <div style={{ marginTop: 22 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700 }}>Edit profile</div>
-                  <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, borderBottom: '1px solid #ECECEC', paddingBottom: 16 }}>
-                    {V.vdTabs.map((t) => (
-                      <button
-                        key={t.key}
-                        onClick={t.go}
-                        style={{
-                          border: `1px solid ${t.active ? '#171717' : '#D7D7D2'}`,
-                          borderRadius: 999,
-                          background: t.active ? '#171717' : 'transparent',
-                          color: t.active ? '#FFFFFF' : '#171717',
-                          padding: '9px 16px',
-                          cursor: 'pointer',
-                          fontSize: 13,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-                  {V.vdTab ? (
-                    <h2 style={{ margin: '18px 0 0', fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, letterSpacing: '-0.01em' }}>{V.vdTabLabel}</h2>
-                  ) : (
-                    <p style={{ margin: '18px 0 0', fontSize: 14, color: '#9A9A9A' }}>Pick a section above to start editing.</p>
-                  )}
                 </div>
               )}
 
