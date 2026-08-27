@@ -251,6 +251,8 @@ function whatsappDigits(phone) {
   return digits;
 }
 
+const VD_GUIDE_TABS = ['profile', 'packages', 'gallery', 'menu', 'faqs', 'policies'];
+
 const MOBILE_BREAKPOINT = 760;
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(
@@ -1566,13 +1568,6 @@ export default function App() {
       { key: 'inquiries', label: 'Inquiries (' + (st.vdQuotes || []).length + ')' },
     ].map((t) => ({ ...t, active: (st.vdTab || 'profile') === t.key, go: () => patch({ vdTab: t.key }) })),
     vdSubmittedAt: (st.vdVendor && st.vdVendor.submittedAt) || null,
-    vdProgressSteps: [
-      { key: 'profile', label: 'Profile', done: !!(st.vdVendor && (st.vdVendor.bio || st.vdVendor.description)) },
-      { key: 'gallery', label: 'Gallery', done: !!(st.vdVendor && (st.vdVendor.gallery || []).length) },
-      { key: 'packages', label: 'Packages', done: !!(st.vdVendor && (st.vdVendor.packages || []).length) },
-      { key: 'faqs', label: 'FAQ', done: !!(st.vdVendor && (st.vdVendor.faqs || []).length) },
-      { key: 'policies', label: 'Policies', done: !!(st.vdVendor && (st.vdVendor.policies || []).length) },
-    ].map((s) => ({ ...s, go: () => patch({ vdTab: s.key }) })),
     vdSubmitting: !!st.vdSubmitting,
     vdSubmitError: st.vdSubmitError || '',
     vdSubmitForReview: () => {
@@ -1582,10 +1577,32 @@ export default function App() {
         .then(() =>
           patch((s) => ({
             vdSubmitting: false,
+            vdGuidedOpen: false,
             vdVendor: s.vdVendor ? { ...s.vdVendor, submittedAt: new Date().toISOString() } : s.vdVendor,
           }))
         )
         .catch((err) => patch({ vdSubmitting: false, vdSubmitError: err.message || 'Could not submit for review. Please try again.' }));
+    },
+    // "Build my profile" walks the same tabs as free editing, just one at a
+    // time with Next/Previous — it's a view over the same vdTab state, not
+    // a separate flow, so nothing is lost switching between the two.
+    vdGuidedOpen: !!st.vdGuidedOpen,
+    startVdGuide: () => patch({ vdGuidedOpen: true, vdTab: VD_GUIDE_TABS[0] }),
+    exitVdGuide: () => patch({ vdGuidedOpen: false }),
+    vdGuideStepNumber: VD_GUIDE_TABS.indexOf(st.vdTab || 'profile') + 1,
+    vdGuideStepCount: VD_GUIDE_TABS.length,
+    vdGuideStepLabel: ({ profile: 'Profile', packages: 'Packages', gallery: 'Gallery', menu: 'Menu', faqs: 'FAQ', policies: 'Policies' })[
+      st.vdTab || 'profile'
+    ],
+    vdGuideIsFirst: VD_GUIDE_TABS.indexOf(st.vdTab || 'profile') === 0,
+    vdGuideIsLast: VD_GUIDE_TABS.indexOf(st.vdTab || 'profile') === VD_GUIDE_TABS.length - 1,
+    vdGuidePrev: () => {
+      const i = VD_GUIDE_TABS.indexOf(st.vdTab || 'profile');
+      if (i > 0) patch({ vdTab: VD_GUIDE_TABS[i - 1] });
+    },
+    vdGuideNext: () => {
+      const i = VD_GUIDE_TABS.indexOf(st.vdTab || 'profile');
+      if (i < VD_GUIDE_TABS.length - 1) patch({ vdTab: VD_GUIDE_TABS[i + 1] });
     },
     goVdPublicProfile: () =>
       st.vdVendor &&
@@ -5368,58 +5385,6 @@ export default function App() {
                   </button>
                 </div>
               </div>
-              {!V.vdVendor.published && !V.vdSubmittedAt && (
-                <div style={{ marginTop: 18, border: '1px solid #ECECEC', borderRadius: 20, padding: isMobile ? 18 : 22, background: '#F7F7F5' }}>
-                  <div style={{ fontSize: 15, fontWeight: 700 }}>Build your profile at your own pace</div>
-                  <p style={{ margin: '6px 0 0', fontSize: 13.5, lineHeight: 1.5, color: '#5B5B5B' }}>
-                    Work through the sections below in any order — everything saves as you go, so you can always come back
-                    later. Submit for review whenever you're ready.
-                  </p>
-                  <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {V.vdProgressSteps.map((s) => (
-                      <button
-                        key={s.key}
-                        onClick={s.go}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          border: `1px solid ${s.done ? '#171717' : '#D7D7D2'}`,
-                          borderRadius: 999,
-                          background: s.done ? '#171717' : 'transparent',
-                          color: s.done ? '#FFFFFF' : '#5B5B5B',
-                          padding: '7px 14px',
-                          cursor: 'pointer',
-                          fontSize: 12.5,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {s.done ? '✓' : '·'} {s.label}
-                      </button>
-                    ))}
-                  </div>
-                  {V.vdSubmitError && <div style={{ marginTop: 12, fontSize: 13, color: '#B3261E' }}>{V.vdSubmitError}</div>}
-                  <button
-                    onClick={V.vdSubmitForReview}
-                    disabled={V.vdSubmitting}
-                    style={{
-                      marginTop: 16,
-                      border: 0,
-                      borderRadius: 999,
-                      background: ACCENT,
-                      color: '#FFFFFF',
-                      padding: '12px 22px',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      fontWeight: 700,
-                      opacity: V.vdSubmitting ? 0.6 : 1,
-                    }}
-                  >
-                    {V.vdSubmitting ? 'Submitting…' : 'Submit for review'}
-                  </button>
-                </div>
-              )}
-
               {!V.vdVendor.published && V.vdSubmittedAt && (
                 <p style={{ margin: '10px 0 0', fontSize: 13, color: '#8A8A8A' }}>
                   Submitted for review on {new Date(V.vdSubmittedAt).toLocaleDateString()}. We review new listings by hand
@@ -5427,26 +5392,89 @@ export default function App() {
                 </p>
               )}
 
-              <div style={{ marginTop: 22, display: 'flex', flexWrap: 'wrap', gap: 8, borderBottom: '1px solid #ECECEC', paddingBottom: 16 }}>
-                {V.vdTabs.map((t) => (
+              {!V.vdVendor.published && !V.vdGuidedOpen && (
+                <div
+                  style={{
+                    marginTop: 18,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 14,
+                    borderRadius: 20,
+                    padding: isMobile ? 18 : '20px 24px',
+                    background: '#171717',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 17, fontWeight: 800, color: '#FFFFFF' }}>Build my profile</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5, lineHeight: 1.5, color: 'rgba(255,255,255,0.7)' }}>
+                      We'll walk you through your photos, packages, and everything else, one step at a time.
+                    </p>
+                  </div>
                   <button
-                    key={t.key}
-                    onClick={t.go}
+                    onClick={V.startVdGuide}
                     style={{
-                      border: `1px solid ${t.active ? '#171717' : '#D7D7D2'}`,
+                      flexShrink: 0,
+                      border: 0,
                       borderRadius: 999,
-                      background: t.active ? '#171717' : 'transparent',
-                      color: t.active ? '#FFFFFF' : '#171717',
-                      padding: '9px 16px',
+                      background: ACCENT,
+                      color: '#FFFFFF',
+                      padding: '13px 24px',
                       cursor: 'pointer',
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: 700,
                     }}
                   >
-                    {t.label}
+                    Build my profile →
                   </button>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {V.vdGuidedOpen ? (
+                <div style={{ marginTop: 22 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      Step {V.vdGuideStepNumber} of {V.vdGuideStepCount} · {V.vdGuideStepLabel}
+                    </div>
+                    <button
+                      onClick={V.exitVdGuide}
+                      style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#5B5B5B', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+                    >
+                      Exit — edit sections directly
+                    </button>
+                  </div>
+                  <div style={{ marginTop: 10, display: 'flex', gap: 4 }}>
+                    {VD_GUIDE_TABS.map((k) => (
+                      <div key={k} style={{ flex: 1, height: 4, borderRadius: 2, background: VD_GUIDE_TABS.indexOf(V.vdTab) >= VD_GUIDE_TABS.indexOf(k) ? '#171717' : '#ECECEC' }} />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginTop: 22 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>Edit profile</div>
+                  <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, borderBottom: '1px solid #ECECEC', paddingBottom: 16 }}>
+                    {V.vdTabs.map((t) => (
+                      <button
+                        key={t.key}
+                        onClick={t.go}
+                        style={{
+                          border: `1px solid ${t.active ? '#171717' : '#D7D7D2'}`,
+                          borderRadius: 999,
+                          background: t.active ? '#171717' : 'transparent',
+                          color: t.active ? '#FFFFFF' : '#171717',
+                          padding: '9px 16px',
+                          cursor: 'pointer',
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {V.vdSaveError && <div style={{ marginTop: 16, fontSize: 13, color: '#B3261E' }}>{V.vdSaveError}</div>}
 
@@ -5735,6 +5763,36 @@ export default function App() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {V.vdGuidedOpen && (
+                <div style={{ marginTop: 26, paddingTop: 20, borderTop: '1px solid #ECECEC', display: 'flex', gap: 10 }}>
+                  {!V.vdGuideIsFirst && (
+                    <button
+                      onClick={V.vdGuidePrev}
+                      style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '14px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+                    >
+                      ← Previous
+                    </button>
+                  )}
+                  {V.vdGuideIsLast ? (
+                    <button
+                      onClick={V.vdSubmitForReview}
+                      disabled={V.vdSubmitting}
+                      style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.vdSubmitting ? 0.6 : 1 }}
+                    >
+                      {V.vdSubmitting ? 'Submitting…' : 'Submit for review'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={V.vdGuideNext}
+                      style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
+                    >
+                      Continue →
+                    </button>
+                  )}
+                  {V.vdSubmitError && <div style={{ alignSelf: 'center', fontSize: 13, color: '#B3261E' }}>{V.vdSubmitError}</div>}
                 </div>
               )}
             </>
