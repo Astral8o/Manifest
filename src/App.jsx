@@ -382,7 +382,7 @@ const initialState = {
   newPasswordSubmitting: false,
   newPasswordError: null,
 
-  vdTab: 'profile',
+  vdTab: '',
   vdLoading: false,
   vdError: null,
   vdVendor: null,
@@ -1557,7 +1557,11 @@ export default function App() {
     vdVendor: st.vdVendor,
     vdHasVendor: !!st.vdVendor,
     vdStatusLabel: st.vdVendor ? (st.vdVendor.published ? 'Published' : 'Pending review') : '',
-    vdTab: st.vdTab || 'profile',
+    // No default tab in free/"Edit profile" mode — nothing shown until the
+    // vendor picks a section, so the dashboard doesn't dump a huge form on
+    // them the moment they land. Guided mode always sets vdTab explicitly
+    // (see startVdGuide), so this only affects the free-browse view.
+    vdTab: st.vdTab || '',
     vdTabs: [
       { key: 'profile', label: 'Profile' },
       { key: 'packages', label: 'Packages (' + ((st.vdVendor && st.vdVendor.packages) || []).length + ')' },
@@ -1566,7 +1570,7 @@ export default function App() {
       { key: 'faqs', label: 'FAQ (' + ((st.vdVendor && st.vdVendor.faqs) || []).length + ')' },
       { key: 'policies', label: 'Policies (' + ((st.vdVendor && st.vdVendor.policies) || []).length + ')' },
       { key: 'inquiries', label: 'Inquiries (' + (st.vdQuotes || []).length + ')' },
-    ].map((t) => ({ ...t, active: (st.vdTab || 'profile') === t.key, go: () => patch({ vdTab: t.key }) })),
+    ].map((t) => ({ ...t, active: st.vdTab === t.key, go: () => patch({ vdTab: t.key }) })),
     vdSubmittedAt: (st.vdVendor && st.vdVendor.submittedAt) || null,
     vdSubmitting: !!st.vdSubmitting,
     vdSubmitError: st.vdSubmitError || '',
@@ -5473,6 +5477,9 @@ export default function App() {
                       </button>
                     ))}
                   </div>
+                  {!V.vdTab && (
+                    <p style={{ margin: '18px 0 0', fontSize: 14, color: '#9A9A9A' }}>Pick a section above to start editing.</p>
+                  )}
                 </div>
               )}
 
