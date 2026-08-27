@@ -19,7 +19,6 @@ import {
   sendVendorAccountSetupEmail,
   updateVendorPassword,
   createVendorAccount,
-  submitVendorOnboarding,
   uploadVendorMedia,
   signInVendor,
   fetchMyVendor,
@@ -2164,28 +2163,6 @@ export default function App() {
         voAgreeTerms: false,
         voAgreePrivacy: false,
         voStep1Error: null,
-        voCoverUrl: '',
-        voLogoUrl: '',
-        voAbout: '',
-        voInstagram: '',
-        voTiktok: '',
-        voMapLink: '',
-        voAddressLine1: '',
-        voAddressLine2: '',
-        voAlbums: [],
-        voAlbumName: '',
-        voPackages: [],
-        voPkgName: '',
-        voPkgPhotoUrl: '',
-        voPkgDescription: '',
-        voPkgInclusionsText: '',
-        voPkgPriceMin: '',
-        voPkgPriceMax: '',
-        voMenu: [],
-        voMenuDraft: '',
-        voFaqs: [],
-        voPolicies: [],
-        voStep2Error: null,
         navMenuOpen: false,
       }),
     voStep: st.voStep || 1,
@@ -2262,7 +2239,6 @@ export default function App() {
       if (disabled) return;
       patch({ voStep: 2 });
     },
-    goVoOfferingsStep: () => patch({ voStep: 4 }),
     voStep1Disabled: !(
       (st.voSectors || []).some((c) => c !== 'OTHER') &&
       (!(st.voSectors || []).includes('OTHER') || (st.voSectorOtherText || '').trim()) &&
@@ -2306,15 +2282,14 @@ export default function App() {
       patch({ voStep1Submitting: true, voStep1Error: null });
       // TEMPORARY TEST MODE: with ?vendortest=1 in the URL, skip the real
       // Supabase signup + vendor insert and fake success locally, so the
-      // 4-step flow can be clicked through end to end while account
+      // onboarding flow can be clicked through end to end while account
       // creation is blocked upstream (email confirmation / Google auth
       // setup in progress). Remove once real auth is sorted.
       if (new URLSearchParams(window.location.search).get('vendortest') === '1') {
         patch({
           voStep1Submitting: false,
           voVendorId: 'test-vendor-' + Date.now(),
-          voStep: 3,
-          voMapLink: '',
+          voDone: true,
         });
         return;
       }
@@ -2336,211 +2311,10 @@ export default function App() {
         patch({
           voStep1Submitting: false,
           voVendorId: vendorId,
-          voStep: 3,
-          voMapLink: '',
+          voDone: true,
         });
       } catch (err) {
         patch({ voStep1Submitting: false, voStep1Error: err.message || 'Could not create your account. Please try again.' });
-      }
-    },
-
-    voCoverUrl: st.voCoverUrl || '',
-    voUploadingCover: !!st.voUploadingCover,
-    uploadVoCover: async (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      patch({ voUploadingCover: true, voStep2Error: null });
-      try {
-        const url = await uploadVendorMedia(file);
-        patch({ voUploadingCover: false, voCoverUrl: url });
-      } catch (err) {
-        patch({ voUploadingCover: false, voStep2Error: err.message || 'Could not upload that photo.' });
-      }
-    },
-    voLogoUrl: st.voLogoUrl || '',
-    voUploadingLogo: !!st.voUploadingLogo,
-    uploadVoLogo: async (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      patch({ voUploadingLogo: true, voStep2Error: null });
-      try {
-        const url = await uploadVendorMedia(file);
-        patch({ voUploadingLogo: false, voLogoUrl: url });
-      } catch (err) {
-        patch({ voUploadingLogo: false, voStep2Error: err.message || 'Could not upload that photo.' });
-      }
-    },
-    voAbout: st.voAbout || '',
-    setVoAbout: (e) => patch({ voAbout: e.target.value }),
-    voInstagram: st.voInstagram || '',
-    setVoInstagram: (e) => patch({ voInstagram: e.target.value }),
-    voTiktok: st.voTiktok || '',
-    setVoTiktok: (e) => patch({ voTiktok: e.target.value }),
-    voMapLink: st.voMapLink || '',
-    setVoMapLink: (e) => patch({ voMapLink: e.target.value }),
-    voAddressLine1: st.voAddressLine1 || '',
-    setVoAddressLine1: (e) => patch({ voAddressLine1: e.target.value }),
-    voAddressLine2: st.voAddressLine2 || '',
-    setVoAddressLine2: (e) => patch({ voAddressLine2: e.target.value }),
-
-    voAlbums: st.voAlbums || [],
-    voAlbumName: st.voAlbumName || '',
-    setVoAlbumName: (e) => patch({ voAlbumName: e.target.value }),
-    suggestedAlbumChips: SUGGESTED_ALBUMS.map((name) => ({ name, pick: () => patch({ voAlbumName: name }) })),
-    voUploadingAlbumPhoto: !!st.voUploadingAlbumPhoto,
-    uploadVoAlbumPhoto: async (e) => {
-      const file = e.target.files && e.target.files[0];
-      const albumName = (st.voAlbumName || '').trim();
-      if (!file || !albumName) return;
-      patch({ voUploadingAlbumPhoto: true, voStep2Error: null });
-      try {
-        const url = await uploadVendorMedia(file);
-        patch((s) => {
-          const albums = s.voAlbums || [];
-          const existing = albums.find((a) => a.name === albumName);
-          return {
-            voUploadingAlbumPhoto: false,
-            voAlbums: existing
-              ? albums.map((a) => (a.name === albumName ? { ...a, photos: a.photos.concat([url]) } : a))
-              : albums.concat([{ name: albumName, photos: [url] }]),
-          };
-        });
-      } catch (err) {
-        patch({ voUploadingAlbumPhoto: false, voStep2Error: err.message || 'Could not upload that photo.' });
-      }
-    },
-    removeVoAlbum: (name) => patch((s) => ({ voAlbums: (s.voAlbums || []).filter((a) => a.name !== name) })),
-
-    voPackages: st.voPackages || [],
-    voPkgName: st.voPkgName || '',
-    setVoPkgName: (e) => patch({ voPkgName: e.target.value }),
-    suggestedPackageChips: SUGGESTED_PACKAGES.map((name) => ({ name, pick: () => patch({ voPkgName: name }) })),
-    voPkgPhotoUrl: st.voPkgPhotoUrl || '',
-    voUploadingPkgPhoto: !!st.voUploadingPkgPhoto,
-    uploadVoPkgPhoto: async (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      patch({ voUploadingPkgPhoto: true, voStep2Error: null });
-      try {
-        const url = await uploadVendorMedia(file);
-        patch({ voUploadingPkgPhoto: false, voPkgPhotoUrl: url });
-      } catch (err) {
-        patch({ voUploadingPkgPhoto: false, voStep2Error: err.message || 'Could not upload that photo.' });
-      }
-    },
-    voPkgDescription: st.voPkgDescription || '',
-    setVoPkgDescription: (e) => patch({ voPkgDescription: e.target.value }),
-    voPkgInclusionsText: st.voPkgInclusionsText || '',
-    setVoPkgInclusionsText: (e) => patch({ voPkgInclusionsText: e.target.value }),
-    voPkgPriceMin: st.voPkgPriceMin || '',
-    setVoPkgPriceMin: (e) => patch({ voPkgPriceMin: e.target.value }),
-    voPkgPriceMax: st.voPkgPriceMax || '',
-    setVoPkgPriceMax: (e) => patch({ voPkgPriceMax: e.target.value }),
-    voAddPackageDisabled: !(
-      (st.voPkgName || '').trim() &&
-      Number(st.voPkgPriceMin) > 0 &&
-      Number(st.voPkgPriceMax) >= Number(st.voPkgPriceMin)
-    ),
-    voAddPackage: () => {
-      const name = (st.voPkgName || '').trim();
-      const priceMin = Number(st.voPkgPriceMin);
-      const priceMax = Number(st.voPkgPriceMax);
-      if (!name || !(priceMin > 0) || !(priceMax >= priceMin)) return;
-      patch((s) => ({
-        voPackages: (s.voPackages || []).concat([
-          {
-            name,
-            photoUrl: (s.voPkgPhotoUrl || '').trim(),
-            description: (s.voPkgDescription || '').trim(),
-            inclusions: (s.voPkgInclusionsText || '')
-              .split(',')
-              .map((x) => x.trim())
-              .filter(Boolean),
-            priceMin,
-            priceMax,
-            unit: 'event',
-          },
-        ]),
-        voPkgName: '',
-        voPkgPhotoUrl: '',
-        voPkgDescription: '',
-        voPkgInclusionsText: '',
-        voPkgPriceMin: '',
-        voPkgPriceMax: '',
-      }));
-    },
-    removeVoPackage: (i) => patch((s) => ({ voPackages: (s.voPackages || []).filter((_, idx) => idx !== i) })),
-
-    voMenu: st.voMenu || [],
-    voMenuDraft: st.voMenuDraft || '',
-    setVoMenuDraft: (e) => patch({ voMenuDraft: e.target.value }),
-    voAddMenuItem: () => {
-      const name = (st.voMenuDraft || '').trim();
-      if (!name) return;
-      patch((s) => ({ voMenu: (s.voMenu || []).concat([name]), voMenuDraft: '' }));
-    },
-    removeVoMenuItem: (i) => patch((s) => ({ voMenu: (s.voMenu || []).filter((_, idx) => idx !== i) })),
-
-    voFaqs: st.voFaqs || [],
-    suggestedFaqChips: SUGGESTED_FAQS.filter((q) => !(st.voFaqs || []).some((f) => f.q === q)).map((q) => ({
-      q,
-      pick: () => patch((s) => ({ voFaqs: (s.voFaqs || []).concat([{ q, a: '' }]) })),
-    })),
-    voAddFaqRow: () => patch((s) => ({ voFaqs: (s.voFaqs || []).concat([{ q: '', a: '' }]) })),
-    setVoFaqQ: (i, e) =>
-      patch((s) => ({ voFaqs: (s.voFaqs || []).map((f, idx) => (idx === i ? { ...f, q: e.target.value } : f)) })),
-    setVoFaqA: (i, e) =>
-      patch((s) => ({ voFaqs: (s.voFaqs || []).map((f, idx) => (idx === i ? { ...f, a: e.target.value } : f)) })),
-    removeVoFaq: (i) => patch((s) => ({ voFaqs: (s.voFaqs || []).filter((_, idx) => idx !== i) })),
-
-    voPolicies: st.voPolicies || [],
-    suggestedPolicyChips: SUGGESTED_POLICIES.filter(
-      (title) => !(st.voPolicies || []).some((p) => p.title === title)
-    ).map((title) => ({
-      title,
-      pick: () => patch((s) => ({ voPolicies: (s.voPolicies || []).concat([{ title, body: '' }]) })),
-    })),
-    voAddPolicyRow: () => patch((s) => ({ voPolicies: (s.voPolicies || []).concat([{ title: '', body: '' }]) })),
-    setVoPolicyTitle: (i, e) =>
-      patch((s) => ({
-        voPolicies: (s.voPolicies || []).map((p, idx) => (idx === i ? { ...p, title: e.target.value } : p)),
-      })),
-    setVoPolicyBody: (i, e) =>
-      patch((s) => ({
-        voPolicies: (s.voPolicies || []).map((p, idx) => (idx === i ? { ...p, body: e.target.value } : p)),
-      })),
-    removeVoPolicy: (i) => patch((s) => ({ voPolicies: (s.voPolicies || []).filter((_, idx) => idx !== i) })),
-
-    voStep2Submitting: !!st.voStep2Submitting,
-    voStep2Error: st.voStep2Error || '',
-    voSubmitApplication: async () => {
-      if (st.voStep2Submitting || !st.voVendorId) return;
-      patch({ voStep2Submitting: true, voStep2Error: null });
-      // TEMPORARY TEST MODE — see voStep1Next above.
-      if (new URLSearchParams(window.location.search).get('vendortest') === '1') {
-        patch({ voStep2Submitting: false, voDone: true });
-        return;
-      }
-      try {
-        await submitVendorOnboarding(st.voVendorId, {
-          bio: st.voAbout || '',
-          description: st.voAbout || '',
-          logoUrl: st.voLogoUrl || '',
-          coverUrl: st.voCoverUrl || '',
-          instagram: st.voInstagram || '',
-          tiktok: st.voTiktok || '',
-          mapLink: st.voMapLink || '',
-          addressLine1: st.voAddressLine1 || '',
-          addressLine2: st.voAddressLine2 || '',
-          albums: st.voAlbums || [],
-          packages: st.voPackages || [],
-          menu: st.voMenu || [],
-          faqs: (st.voFaqs || []).filter((f) => f.q.trim() && f.a.trim()),
-          policies: (st.voPolicies || []).filter((p) => p.title.trim() && p.body.trim()),
-        });
-        patch({ voStep2Submitting: false, voDone: true });
-      } catch (err) {
-        patch({ voStep2Submitting: false, voStep2Error: err.message || 'Could not submit your application. Please try again.' });
       }
     },
   };
@@ -6500,17 +6274,17 @@ export default function App() {
 
           {V.voDone ? (
             <div style={{ marginTop: 24, maxWidth: 460, border: '1px solid #ECECEC', borderRadius: 24, padding: 28 }}>
-              <div style={{ fontSize: 20, fontWeight: 700 }}>Application submitted</div>
+              <div style={{ fontSize: 20, fontWeight: 700 }}>You're in!</div>
               <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-                Thanks — we review every application by hand before it goes live. You can sign back in with your
-                email and password any time to check your status or keep editing your listing.
+                Your account is live. Add photos, packages, and the rest of your profile whenever you're
+                ready — straight from your dashboard, no rush.
               </p>
               <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button
-                  onClick={V.goVendorSignIn}
+                  onClick={() => patch({ screen: 'vendor-dashboard' })}
                   style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
                 >
-                  Sign in to your dashboard
+                  Go to your dashboard
                 </button>
                 <button
                   onClick={V.goHome}
@@ -6523,13 +6297,11 @@ export default function App() {
           ) : (
             <>
               <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                Step {V.voStep} of 4 · {['', 'Create your account', 'Your business', 'Your profile', 'What you offer'][V.voStep]}
+                Step {V.voStep} of 2 · {['', 'Create your account', 'Your business'][V.voStep]}
               </div>
               <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
-                {V.voStep === 1 && "Let's get you set up — this takes about two minutes."}
-                {V.voStep === 2 && "Now the good stuff: what you do, and where planners can find you."}
-                {V.voStep === 3 && 'Time to make it yours. A face and a story go a long way.'}
-                {V.voStep === 4 && "Almost there! Show planners exactly what they'd be booking."}
+                {V.voStep === 1 && "Let's get you set up — this takes about a minute."}
+                {V.voStep === 2 && "Almost there — tell us what you do and where to find you. You can add photos, pricing, and everything else later from your dashboard."}
               </p>
               {V.voStep === 1 && (
                 <p style={{ margin: '8px 0 0', fontSize: 13, color: '#8A8A8A' }}>
@@ -6541,7 +6313,7 @@ export default function App() {
                 </p>
               )}
               <div style={{ marginTop: 14, display: 'flex', gap: 4 }}>
-                {[1, 2, 3, 4].map((n) => (
+                {[1, 2].map((n) => (
                   <div key={n} style={{ flex: 1, height: 4, borderRadius: 2, background: V.voStep >= n ? '#171717' : '#ECECEC' }} />
                 ))}
               </div>
@@ -6690,223 +6462,6 @@ export default function App() {
                       style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.voStep1Disabled || V.voStep1Submitting ? 0.5 : 1 }}
                     >
                       {V.voStep1Submitting ? 'Creating account…' : 'Continue →'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {V.voStep === 3 && (
-                <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 26 }}>
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>Cover &amp; logo</div>
-                    <div style={{ marginTop: 12, display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer' }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Cover photo</span>
-                        {V.voCoverUrl ? (
-                          <img src={V.voCoverUrl} alt="Cover" style={{ width: 180, height: 100, borderRadius: 12, objectFit: 'cover' }} />
-                        ) : (
-                          <div style={{ width: 180, height: 100, borderRadius: 12, background: '#F7F7F5', border: '1px dashed #D7D7D2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9A9A9A' }}>
-                            {V.voUploadingCover ? 'Uploading…' : 'Add photo'}
-                          </div>
-                        )}
-                        <input type="file" accept="image/*" onChange={V.uploadVoCover} style={{ fontSize: 12 }} />
-                      </label>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer' }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Logo</span>
-                        {V.voLogoUrl ? (
-                          <img src={V.voLogoUrl} alt="Logo" style={{ width: 100, height: 100, borderRadius: 999, objectFit: 'cover' }} />
-                        ) : (
-                          <div style={{ width: 100, height: 100, borderRadius: 999, background: '#F7F7F5', border: '1px dashed #D7D7D2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#9A9A9A', textAlign: 'center' }}>
-                            {V.voUploadingLogo ? 'Uploading…' : 'Add logo'}
-                          </div>
-                        )}
-                        <input type="file" accept="image/*" onChange={V.uploadVoLogo} style={{ fontSize: 12 }} />
-                      </label>
-                    </div>
-                  </div>
-
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>About us *</div>
-                    <span style={{ fontSize: 13, color: '#5B5B5B' }}>
-                      Share your story, strengths, and what makes your services unique.
-                    </span>
-                    <textarea value={V.voAbout} onChange={V.setVoAbout} rows={4} placeholder="Tell planners about your experience and what clients can expect." style={{ marginTop: 4, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, resize: 'vertical' }} />
-                  </label>
-
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>Contact details</div>
-                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>How clients can reach you on your profile.</div>
-                    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      <div style={{ fontSize: 13, color: '#4A4A4A' }}>Phone: {V.voPhone} · Email: {V.voEmail}</div>
-                      <input type="text" value={V.voInstagram} onChange={V.setVoInstagram} placeholder="Instagram handle" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                      <input type="text" value={V.voTiktok} onChange={V.setVoTiktok} placeholder="TikTok handle" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                      <input type="text" value={V.voMapLink} onChange={V.setVoMapLink} placeholder="Map link (Google Maps URL)" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>Address (optional)</div>
-                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>Shown on your public profile if you add it.</div>
-                    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      <input type="text" value={V.voAddressLine1} onChange={V.setVoAddressLine1} placeholder="Address line 1" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                      <input type="text" value={V.voAddressLine2} onChange={V.setVoAddressLine2} placeholder="Address line 2" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={() => patch({ voStep: 2 })} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '14px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Previous</button>
-                    <button onClick={V.goVoOfferingsStep} style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}>
-                      Continue →
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {V.voStep === 4 && (
-                <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 26 }}>
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>Service albums</div>
-                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>Showcase your work, grouped by event type. These are just ideas — name it whatever fits your business.</div>
-                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {V.suggestedAlbumChips.map((c) => (
-                        <button key={c.name} onClick={c.pick} style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '7px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: '#4A4A4A' }}>
-                          {c.name}
-                        </button>
-                      ))}
-                    </div>
-                    <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                      <input type="text" value={V.voAlbumName} onChange={V.setVoAlbumName} placeholder="Album name" style={{ flex: '1 1 160px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                      <input type="file" accept="image/*" disabled={!V.voAlbumName.trim()} onChange={V.uploadVoAlbumPhoto} style={{ fontSize: 12 }} />
-                      {V.voUploadingAlbumPhoto && <span style={{ fontSize: 12, color: '#9A9A9A' }}>Uploading…</span>}
-                    </div>
-                    {V.voAlbums.length > 0 && (
-                      <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {V.voAlbums.map((a) => (
-                          <div key={a.name} style={{ border: '1px solid #ECECEC', borderRadius: 14, padding: 12 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <strong style={{ fontSize: 13.5 }}>{a.name}</strong>
-                              <button onClick={() => V.removeVoAlbum(a.name)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
-                            </div>
-                            <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                              {a.photos.map((p, i) => (
-                                <img key={i} src={p} alt={a.name} style={{ width: 56, height: 56, borderRadius: 8, objectFit: 'cover' }} />
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>Packages</div>
-                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>Pricing and service bundles. These are just ideas — name and price them however you like.</div>
-                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {V.suggestedPackageChips.map((c) => (
-                        <button key={c.name} onClick={c.pick} style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '7px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: '#4A4A4A' }}>
-                          {c.name}
-                        </button>
-                      ))}
-                    </div>
-                    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      <input type="text" value={V.voPkgName} onChange={V.setVoPkgName} placeholder="Package name" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <input type="file" accept="image/*" onChange={V.uploadVoPkgPhoto} style={{ fontSize: 12 }} />
-                        {V.voUploadingPkgPhoto && <span style={{ fontSize: 12, color: '#9A9A9A' }}>Uploading…</span>}
-                        {V.voPkgPhotoUrl && <img src={V.voPkgPhotoUrl} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover' }} />}
-                      </div>
-                      <textarea value={V.voPkgDescription} onChange={V.setVoPkgDescription} placeholder="Description" rows={2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
-                      <input type="text" value={V.voPkgInclusionsText} onChange={V.setVoPkgInclusionsText} placeholder="Inclusions, comma separated" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                      <div style={{ display: 'flex', gap: 10 }}>
-                        <input type="number" value={V.voPkgPriceMin} onChange={V.setVoPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                        <input type="number" value={V.voPkgPriceMax} onChange={V.setVoPkgPriceMax} placeholder="Price max (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                      </div>
-                      <button onClick={V.voAddPackage} disabled={V.voAddPackageDisabled} style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.voAddPackageDisabled ? 0.4 : 1 }}>
-                        Add package
-                      </button>
-                    </div>
-                    {V.voPackages.length > 0 && (
-                      <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        {V.voPackages.map((p, i) => (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #ECECEC', padding: '10px 2px' }}>
-                            <div style={{ fontSize: 13, color: '#4A4A4A' }}><strong>{p.name}</strong> — TT${p.priceMin}–TT${p.priceMax}</div>
-                            <button onClick={() => V.removeVoPackage(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>Menu (optional)</div>
-                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>For food-service vendors — list your dishes or items.</div>
-                    <div style={{ marginTop: 10, display: 'flex', gap: 10 }}>
-                      <input type="text" value={V.voMenuDraft} onChange={V.setVoMenuDraft} placeholder="e.g. Grilled Chicken Platter" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                      <button onClick={V.voAddMenuItem} style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>Add item</button>
-                    </div>
-                    {V.voMenu.length > 0 && (
-                      <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {V.voMenu.map((name, i) => (
-                          <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #E4E4DF', borderRadius: 999, background: '#F7F7F5', padding: '7px 8px 7px 14px', fontSize: 13, fontWeight: 600 }}>
-                            {name}
-                            <button onClick={() => V.removeVoMenuItem(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', color: '#B3261E', fontWeight: 800 }}>✕</button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>Frequently asked questions</div>
-                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {V.suggestedFaqChips.map((c) => (
-                        <button key={c.q} onClick={c.pick} style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '7px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: '#4A4A4A' }}>
-                          {c.q}
-                        </button>
-                      ))}
-                    </div>
-                    <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      {V.voFaqs.map((f, i) => (
-                        <div key={i} style={{ border: '1px solid #ECECEC', borderRadius: 16, padding: 14 }}>
-                          <input type="text" value={f.q} onChange={(e) => V.setVoFaqQ(i, e)} placeholder="Question" style={{ width: '100%', border: 0, borderBottom: '1px solid #E4E4DF', background: 'transparent', padding: '6px 2px', fontFamily: SANS, fontSize: 14, fontWeight: 700 }} />
-                          <textarea value={f.a} onChange={(e) => V.setVoFaqA(i, e)} placeholder="Answer" rows={2} style={{ marginTop: 8, width: '100%', border: 0, background: 'transparent', padding: '2px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
-                          <button onClick={() => V.removeVoFaq(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
-                        </div>
-                      ))}
-                    </div>
-                    <button onClick={V.voAddFaqRow} style={{ marginTop: 12, border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>+ Add question</button>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>Terms &amp; policies</div>
-                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {V.suggestedPolicyChips.map((c) => (
-                        <button key={c.title} onClick={c.pick} style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '7px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: '#4A4A4A' }}>
-                          {c.title}
-                        </button>
-                      ))}
-                    </div>
-                    <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      {V.voPolicies.map((p, i) => (
-                        <div key={i} style={{ border: '1px solid #ECECEC', borderRadius: 16, padding: 14 }}>
-                          <input type="text" value={p.title} onChange={(e) => V.setVoPolicyTitle(i, e)} placeholder="Policy title" style={{ width: '100%', border: 0, borderBottom: '1px solid #E4E4DF', background: 'transparent', padding: '6px 2px', fontFamily: SANS, fontSize: 14, fontWeight: 700 }} />
-                          <textarea value={p.body} onChange={(e) => V.setVoPolicyBody(i, e)} placeholder="Details" rows={2} style={{ marginTop: 8, width: '100%', border: 0, background: 'transparent', padding: '2px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
-                          <button onClick={() => V.removeVoPolicy(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
-                        </div>
-                      ))}
-                    </div>
-                    <button onClick={V.voAddPolicyRow} style={{ marginTop: 12, border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>+ Add policy</button>
-                  </div>
-
-                  {V.voStep2Error && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.voStep2Error}</div>}
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={() => patch({ voStep: 3 })} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '14px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Previous</button>
-                    <button
-                      onClick={V.voSubmitApplication}
-                      disabled={V.voStep2Submitting}
-                      style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.voStep2Submitting ? 0.5 : 1 }}
-                    >
-                      {V.voStep2Submitting ? 'Submitting…' : 'Submit application'}
                     </button>
                   </div>
                 </div>
