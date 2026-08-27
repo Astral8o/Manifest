@@ -5745,6 +5745,7 @@ export default function App() {
                   </div>
                   <div style={{ marginTop: 18, border: '1px dashed #D7D7D2', borderRadius: 16, padding: 16 }}>
                     <div style={{ fontSize: 14, fontWeight: 700 }}>Add a package</div>
+                    <div style={{ marginTop: 4, fontSize: 12, color: '#8A8A8A' }}>These are just ideas — name and price it however you like.</div>
                     <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {V.suggestedVdPackageChips.map((c) => (
                         <button key={c.name} onClick={c.pick} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#FFFFFF', padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{c.name}</button>
@@ -5778,6 +5779,7 @@ export default function App() {
                   </div>
                   <div style={{ marginTop: 18, border: '1px dashed #D7D7D2', borderRadius: 16, padding: 16 }}>
                     <div style={{ fontSize: 14, fontWeight: 700 }}>Add a photo</div>
+                    <div style={{ marginTop: 4, fontSize: 12, color: '#8A8A8A' }}>These are just ideas — name the album whatever fits your business.</div>
                     <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {V.suggestedVdAlbumChips.map((c) => (
                         <button key={c.name} onClick={c.pick} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#FFFFFF', padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{c.name}</button>
@@ -6754,7 +6756,7 @@ export default function App() {
                 <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 26 }}>
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 700 }}>Service albums</div>
-                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>Showcase your work, grouped by event type.</div>
+                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>Showcase your work, grouped by event type. These are just ideas — name it whatever fits your business.</div>
                     <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {V.suggestedAlbumChips.map((c) => (
                         <button key={c.name} onClick={c.pick} style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '7px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: '#4A4A4A' }}>
@@ -6788,7 +6790,7 @@ export default function App() {
 
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 700 }}>Packages</div>
-                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>Pricing and service bundles.</div>
+                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>Pricing and service bundles. These are just ideas — name and price them however you like.</div>
                     <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {V.suggestedPackageChips.map((c) => (
                         <button key={c.name} onClick={c.pick} style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '7px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: '#4A4A4A' }}>
