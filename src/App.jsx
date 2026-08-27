@@ -2230,6 +2230,29 @@ export default function App() {
     toggleVoAgreePrivacy: () => patch((s) => ({ voAgreePrivacy: !s.voAgreePrivacy })),
     voStep1Submitting: !!st.voStep1Submitting,
     voStep1Error: st.voStep1Error || '',
+    voAccountStepDisabled: !(
+      (st.voEmail || '').trim() &&
+      st.voEmail.indexOf('@') > 0 &&
+      (st.voPhone || '').trim() &&
+      (st.voPassword || '').length >= 6 &&
+      st.voPassword === st.voConfirmPassword &&
+      st.voAgreeTerms &&
+      st.voAgreePrivacy
+    ),
+    goVoBusinessStep: () => {
+      const disabled = !(
+        (st.voEmail || '').trim() &&
+        st.voEmail.indexOf('@') > 0 &&
+        (st.voPhone || '').trim() &&
+        (st.voPassword || '').length >= 6 &&
+        st.voPassword === st.voConfirmPassword &&
+        st.voAgreeTerms &&
+        st.voAgreePrivacy
+      );
+      if (disabled) return;
+      patch({ voStep: 2 });
+    },
+    goVoOfferingsStep: () => patch({ voStep: 4 }),
     voStep1Disabled: !(
       (st.voSectors || []).some((c) => c !== 'OTHER') &&
       (!(st.voSectors || []).includes('OTHER') || (st.voSectorOtherText || '').trim()) &&
@@ -2289,7 +2312,7 @@ export default function App() {
         patch({
           voStep1Submitting: false,
           voVendorId: vendorId,
-          voStep: 2,
+          voStep: 3,
           voMapLink: '',
         });
       } catch (err) {
@@ -6469,10 +6492,16 @@ export default function App() {
           ) : (
             <>
               <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                Step {V.voStep} of 2 · {V.voStep === 1 ? 'Contact & Business Info' : 'Profile, Packages & More'}
+                Step {V.voStep} of 4 · {['', 'Create your account', 'Your business', 'Your profile', 'What you offer'][V.voStep]}
               </div>
+              <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
+                {V.voStep === 1 && "Let's get you set up — this takes about two minutes."}
+                {V.voStep === 2 && "Now the good stuff: what you do, and where planners can find you."}
+                {V.voStep === 3 && 'Time to make it yours. A face and a story go a long way.'}
+                {V.voStep === 4 && "Almost there! Show planners exactly what they'd be booking."}
+              </p>
               {V.voStep === 1 && (
-                <p style={{ margin: '10px 0 0', fontSize: 13, color: '#8A8A8A' }}>
+                <p style={{ margin: '8px 0 0', fontSize: 13, color: '#8A8A8A' }}>
                   Already have a vendor account?{' '}
                   <button onClick={V.goVendorSignIn} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
                     Sign in
@@ -6480,12 +6509,57 @@ export default function App() {
                   instead of creating a new one.
                 </p>
               )}
-              <div style={{ marginTop: 10, display: 'flex', gap: 4 }}>
-                <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#171717' }} />
-                <div style={{ flex: 1, height: 4, borderRadius: 2, background: V.voStep === 2 ? '#171717' : '#ECECEC' }} />
+              <div style={{ marginTop: 14, display: 'flex', gap: 4 }}>
+                {[1, 2, 3, 4].map((n) => (
+                  <div key={n} style={{ flex: 1, height: 4, borderRadius: 2, background: V.voStep >= n ? '#171717' : '#ECECEC' }} />
+                ))}
               </div>
 
               {V.voStep === 1 && (
+                <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Email address *</span>
+                    <input type="email" value={V.voEmail} onChange={V.setVoEmail} placeholder="your@email.com" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Phone number *</span>
+                    <input type="tel" value={V.voPhone} onChange={V.setVoPhone} placeholder="868 123 4567" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Password * (min. 6 characters)</span>
+                    <input type="password" value={V.voPassword} onChange={V.setVoPassword} placeholder="Create a strong password" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Confirm password *</span>
+                    <input type="password" value={V.voConfirmPassword} onChange={V.setVoConfirmPassword} placeholder="Re-enter your password" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button onClick={V.toggleVoAgreeTerms} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, border: `1px solid ${V.voAgreeTerms ? '#171717' : '#C8C8C2'}`, borderRadius: 5, background: V.voAgreeTerms ? '#171717' : 'transparent', color: '#FFFFFF', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                        {V.voAgreeTerms ? '✓' : ''}
+                      </span>
+                      <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>I agree to the Terms of Service</span>
+                    </button>
+                    <button onClick={V.toggleVoAgreePrivacy} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, border: `1px solid ${V.voAgreePrivacy ? '#171717' : '#C8C8C2'}`, borderRadius: 5, background: V.voAgreePrivacy ? '#171717' : 'transparent', color: '#FFFFFF', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                        {V.voAgreePrivacy ? '✓' : ''}
+                      </span>
+                      <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>I agree to the Privacy Policy</span>
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={V.goVoBusinessStep}
+                    disabled={V.voAccountStepDisabled}
+                    style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.voAccountStepDisabled ? 0.5 : 1 }}
+                  >
+                    Continue →
+                  </button>
+                </div>
+              )}
+
+              {V.voStep === 2 && (
                 <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
                   <div>
                     <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Sector * (up to 3)</div>
@@ -6576,54 +6650,21 @@ export default function App() {
                     <span style={{ fontSize: 12, color: '#9A9A9A' }}>Rough figure for now — this updates automatically once you add real packages.</span>
                   </label>
 
-                  <div style={{ marginTop: 8, paddingTop: 18, borderTop: '1px solid #ECECEC' }}>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>Account</div>
-                    <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>Login details for your dashboard.</div>
-                  </div>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Email address *</span>
-                    <input type="email" value={V.voEmail} onChange={V.setVoEmail} placeholder="your@email.com" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
-                  </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Phone number *</span>
-                    <input type="tel" value={V.voPhone} onChange={V.setVoPhone} placeholder="868 123 4567" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
-                  </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Password * (min. 6 characters)</span>
-                    <input type="password" value={V.voPassword} onChange={V.setVoPassword} placeholder="Create a strong password" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
-                  </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Confirm password *</span>
-                    <input type="password" value={V.voConfirmPassword} onChange={V.setVoConfirmPassword} placeholder="Re-enter your password" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
-                  </label>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <button onClick={V.toggleVoAgreeTerms} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, border: `1px solid ${V.voAgreeTerms ? '#171717' : '#C8C8C2'}`, borderRadius: 5, background: V.voAgreeTerms ? '#171717' : 'transparent', color: '#FFFFFF', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
-                        {V.voAgreeTerms ? '✓' : ''}
-                      </span>
-                      <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>I agree to the Terms of Service</span>
-                    </button>
-                    <button onClick={V.toggleVoAgreePrivacy} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, border: `1px solid ${V.voAgreePrivacy ? '#171717' : '#C8C8C2'}`, borderRadius: 5, background: V.voAgreePrivacy ? '#171717' : 'transparent', color: '#FFFFFF', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
-                        {V.voAgreePrivacy ? '✓' : ''}
-                      </span>
-                      <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>I agree to the Privacy Policy</span>
-                    </button>
-                  </div>
-
                   {V.voStep1Error && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.voStep1Error}</div>}
-                  <button
-                    onClick={V.voStep1Next}
-                    disabled={V.voStep1Disabled || V.voStep1Submitting}
-                    style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.voStep1Disabled || V.voStep1Submitting ? 0.5 : 1 }}
-                  >
-                    {V.voStep1Submitting ? 'Creating account…' : 'Continue →'}
-                  </button>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={() => patch({ voStep: 1 })} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '14px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Previous</button>
+                    <button
+                      onClick={V.voStep1Next}
+                      disabled={V.voStep1Disabled || V.voStep1Submitting}
+                      style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.voStep1Disabled || V.voStep1Submitting ? 0.5 : 1 }}
+                    >
+                      {V.voStep1Submitting ? 'Creating account…' : 'Continue →'}
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {V.voStep === 2 && (
+              {V.voStep === 3 && (
                 <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 26 }}>
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 700 }}>Cover &amp; logo</div>
@@ -6681,6 +6722,17 @@ export default function App() {
                     </div>
                   </div>
 
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={() => patch({ voStep: 2 })} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '14px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Previous</button>
+                    <button onClick={V.goVoOfferingsStep} style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}>
+                      Continue →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {V.voStep === 4 && (
+                <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 26 }}>
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 700 }}>Service albums</div>
                     <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>Showcase your work, grouped by event type.</div>
@@ -6817,7 +6869,7 @@ export default function App() {
 
                   {V.voStep2Error && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.voStep2Error}</div>}
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={() => patch({ voStep: 1 })} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '14px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Previous</button>
+                    <button onClick={() => patch({ voStep: 3 })} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '14px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Previous</button>
                     <button
                       onClick={V.voSubmitApplication}
                       disabled={V.voStep2Submitting}
