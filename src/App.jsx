@@ -2294,6 +2294,20 @@ export default function App() {
         return;
       }
       patch({ voStep1Submitting: true, voStep1Error: null });
+      // TEMPORARY TEST MODE: with ?vendortest=1 in the URL, skip the real
+      // Supabase signup + vendor insert and fake success locally, so the
+      // 4-step flow can be clicked through end to end while account
+      // creation is blocked upstream (email confirmation / Google auth
+      // setup in progress). Remove once real auth is sorted.
+      if (new URLSearchParams(window.location.search).get('vendortest') === '1') {
+        patch({
+          voStep1Submitting: false,
+          voVendorId: 'test-vendor-' + Date.now(),
+          voStep: 3,
+          voMapLink: '',
+        });
+        return;
+      }
       try {
         const vendorId = await createVendorAccount({
           categoryCode: realSectors[0],
@@ -2492,6 +2506,11 @@ export default function App() {
     voSubmitApplication: async () => {
       if (st.voStep2Submitting || !st.voVendorId) return;
       patch({ voStep2Submitting: true, voStep2Error: null });
+      // TEMPORARY TEST MODE — see voStep1Next above.
+      if (new URLSearchParams(window.location.search).get('vendortest') === '1') {
+        patch({ voStep2Submitting: false, voDone: true });
+        return;
+      }
       try {
         await submitVendorOnboarding(st.voVendorId, {
           bio: st.voAbout || '',
