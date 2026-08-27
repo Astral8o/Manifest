@@ -15,6 +15,9 @@ import {
   adminListVendors,
   adminSetPublished,
   adminCreateVendor,
+  adminCreateVendorLogin,
+  sendVendorAccountSetupEmail,
+  updateVendorPassword,
   createVendorAccount,
   submitVendorOnboarding,
   uploadVendorMedia,
@@ -382,6 +385,11 @@ const initialState = {
   vsiSubmitting: false,
   vsiError: null,
 
+  newPassword: '',
+  newPasswordConfirm: '',
+  newPasswordSubmitting: false,
+  newPasswordError: null,
+
   vdTab: 'profile',
   vdLoading: false,
   vdError: null,
@@ -532,7 +540,11 @@ export default function App() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) patch({ signedIn: true, email: data.session.user.email || '' });
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        patch({ screen: 'vendor-set-password', signedIn: true, email: (session && session.user.email) || '' });
+        return;
+      }
       if (session) {
         let extra = {};
         try {
@@ -836,6 +848,7 @@ export default function App() {
     isSpotlight: st.screen === 'spotlight',
     isAccount: st.screen === 'account',
     isVendorSignIn: st.screen === 'vendor-signin',
+    isVendorSetPassword: st.screen === 'vendor-set-password',
     isVendorDashboard: st.screen === 'vendor-dashboard',
     goVendorSignIn: () => patch({ screen: 'vendor-signin', navMenuOpen: false, vsiEmail: '', vsiPassword: '', vsiSubmitting: false, vsiError: null }),
     isAbout: st.screen === 'about',
@@ -1511,6 +1524,30 @@ export default function App() {
       }
     },
 
+    newPassword: st.newPassword || '',
+    setNewPassword: (e) => patch({ newPassword: e.target.value }),
+    newPasswordConfirm: st.newPasswordConfirm || '',
+    setNewPasswordConfirm: (e) => patch({ newPasswordConfirm: e.target.value }),
+    newPasswordSubmitting: !!st.newPasswordSubmitting,
+    newPasswordError: st.newPasswordError || '',
+    newPasswordDisabled:
+      !((st.newPassword || '').length >= 6 && st.newPassword === st.newPasswordConfirm) || !!st.newPasswordSubmitting,
+    submitNewPassword: async () => {
+      if ((st.newPassword || '').length < 6 || st.newPassword !== st.newPasswordConfirm || st.newPasswordSubmitting) return;
+      patch({ newPasswordSubmitting: true, newPasswordError: null });
+      try {
+        await updateVendorPassword(st.newPassword);
+        patch({
+          newPasswordSubmitting: false,
+          newPassword: '',
+          newPasswordConfirm: '',
+          screen: 'vendor-dashboard',
+        });
+      } catch (err) {
+        patch({ newPasswordSubmitting: false, newPasswordError: err.message || 'Could not set your password. Please try again.' });
+      }
+    },
+
     vdLoading: !!st.vdLoading,
     vdError: st.vdError || '',
     vdVendor: st.vdVendor,
@@ -1843,6 +1880,59 @@ export default function App() {
         patch({ adminVendorsError: err.message || 'Could not update that vendor.' });
       }
     },
+    setAdminLoginEmailDraft: (vendorId) => (e) =>
+      patch((s) => ({
+        adminVendors: (s.adminVendors || []).map((v) =>
+          v.id === vendorId ? { ...v, loginEmailDraft: e.target.value } : v
+        ),
+      })),
+    createAdminVendorLogin: async (vendorId) => {
+      const vendor = (st.adminVendors || []).find((v) => v.id === vendorId);
+      if (!vendor) return;
+      const email = (vendor.loginEmailDraft ?? vendor.email ?? '').trim();
+      if (!email || vendor.loginBusy) return;
+      patch((s) => ({
+        adminVendors: (s.adminVendors || []).map((v) =>
+          v.id === vendorId ? { ...v, loginBusy: true, loginError: null } : v
+        ),
+      }));
+      try {
+        await adminCreateVendorLogin(vendorId, email);
+        await sendVendorAccountSetupEmail(email);
+        patch((s) => ({
+          adminVendors: (s.adminVendors || []).map((v) =>
+            v.id === vendorId ? { ...v, loginBusy: false, loginDone: true, email, owner_user_id: v.owner_user_id || 'pending' } : v
+          ),
+        }));
+      } catch (err) {
+        patch((s) => ({
+          adminVendors: (s.adminVendors || []).map((v) =>
+            v.id === vendorId ? { ...v, loginBusy: false, loginError: err.message || 'Could not create login.' } : v
+          ),
+        }));
+      }
+    },
+    resendAdminVendorSetupEmail: async (vendorId) => {
+      const vendor = (st.adminVendors || []).find((v) => v.id === vendorId);
+      if (!vendor || !vendor.email || vendor.loginBusy) return;
+      patch((s) => ({
+        adminVendors: (s.adminVendors || []).map((v) =>
+          v.id === vendorId ? { ...v, loginBusy: true, loginError: null } : v
+        ),
+      }));
+      try {
+        await sendVendorAccountSetupEmail(vendor.email);
+        patch((s) => ({
+          adminVendors: (s.adminVendors || []).map((v) => (v.id === vendorId ? { ...v, loginBusy: false, loginDone: true } : v)),
+        }));
+      } catch (err) {
+        patch((s) => ({
+          adminVendors: (s.adminVendors || []).map((v) =>
+            v.id === vendorId ? { ...v, loginBusy: false, loginError: err.message || 'Could not send email.' } : v
+          ),
+        }));
+      }
+    },
     goAdminDashboard: () => patch({ adminSubScreen: 'dashboard' }),
     goAdminNewVendor: () =>
       patch({
@@ -1854,6 +1944,7 @@ export default function App() {
         adminRegion: null,
         adminCity: '',
         adminWhatsapp: '',
+        adminEmail: '',
         adminBio: '',
         adminDescription: '',
         adminCoverUrl: '',
@@ -1896,6 +1987,8 @@ export default function App() {
     setAdminCity: (e) => patch({ adminCity: e.target.value }),
     adminWhatsapp: st.adminWhatsapp || '',
     setAdminWhatsapp: (e) => patch({ adminWhatsapp: e.target.value }),
+    adminEmail: st.adminEmail || '',
+    setAdminEmail: (e) => patch({ adminEmail: e.target.value }),
     adminBio: st.adminBio || '',
     setAdminBio: (e) => patch({ adminBio: e.target.value }),
     adminStep1NextDisabled: !(
@@ -2019,6 +2112,7 @@ export default function App() {
           bio: (st.adminBio || '').trim(),
           description: (st.adminDescription || '').trim(),
           phone: (st.adminWhatsapp || '').trim(),
+          email: (st.adminEmail || '').trim(),
           coverUrl: (st.adminCoverUrl || '').trim(),
           logoUrl: (st.adminLogoUrl || '').trim(),
           gallery: st.adminGallery || [],
@@ -5331,6 +5425,48 @@ export default function App() {
         </div>
       )}
 
+      {V.isVendorSetPassword && (
+        <div style={{ padding: '34px 0 0', maxWidth: 440 }}>
+          <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 30 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
+            Set your password
+          </h1>
+          <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+            Choose a password for your Eventory vendor account. You'll use this to sign back in and manage your listing.
+          </p>
+
+          <div style={{ marginTop: 22, border: '1px solid #ECECEC', borderRadius: 24, padding: 26, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>New password (min. 6 characters)</span>
+              <input
+                type="password"
+                value={V.newPassword}
+                onChange={V.setNewPassword}
+                placeholder="Create a password"
+                style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }}
+              />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Confirm password</span>
+              <input
+                type="password"
+                value={V.newPasswordConfirm}
+                onChange={V.setNewPasswordConfirm}
+                placeholder="Re-enter your password"
+                style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }}
+              />
+            </label>
+            <button
+              onClick={V.submitNewPassword}
+              disabled={V.newPasswordDisabled}
+              style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '14px 24px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.newPasswordDisabled ? 0.5 : 1 }}
+            >
+              {V.newPasswordSubmitting ? 'Saving…' : 'Save password & continue'}
+            </button>
+            {V.newPasswordError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.newPasswordError}</div>}
+          </div>
+        </div>
+      )}
+
       {V.isVendorDashboard && (
         <div style={{ padding: '34px 0 0', maxWidth: 780 }}>
           <button
@@ -5959,33 +6095,86 @@ export default function App() {
                       key={v.id}
                       style={{
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 16,
-                        flexWrap: 'wrap',
+                        flexDirection: 'column',
+                        gap: 10,
                         borderTop: '1px solid #ECECEC',
                         padding: '16px 2px',
                       }}
                     >
-                      <div>
-                        <div style={{ fontSize: 15, fontWeight: 700 }}>{v.name}</div>
-                        <div style={{ marginTop: 2, fontFamily: MONO, fontSize: 12, color: '#9A9A9A' }}>{v.city}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 700 }}>{v.name}</div>
+                          <div style={{ marginTop: 2, fontFamily: MONO, fontSize: 12, color: '#9A9A9A' }}>{v.city}</div>
+                        </div>
+                        <button
+                          onClick={() => V.togglePublish(v.id, !v.published)}
+                          style={{
+                            border: '1px solid #D7D7D2',
+                            borderRadius: 999,
+                            background: v.published ? '#171717' : 'transparent',
+                            color: v.published ? '#FFFFFF' : '#171717',
+                            padding: '9px 16px',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {v.published ? 'Published' : 'Draft — publish'}
+                        </button>
                       </div>
-                      <button
-                        onClick={() => V.togglePublish(v.id, !v.published)}
-                        style={{
-                          border: '1px solid #D7D7D2',
-                          borderRadius: 999,
-                          background: v.published ? '#171717' : 'transparent',
-                          color: v.published ? '#FFFFFF' : '#171717',
-                          padding: '9px 16px',
-                          cursor: 'pointer',
-                          fontSize: 13,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {v.published ? 'Published' : 'Draft — publish'}
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        {v.owner_user_id ? (
+                          <>
+                            <span style={{ fontSize: 12, color: '#16A34A', fontWeight: 700 }}>✓ Login active</span>
+                            <button
+                              onClick={() => V.resendAdminVendorSetupEmail(v.id)}
+                              disabled={!!v.loginBusy}
+                              style={{
+                                border: '1px solid #D7D7D2',
+                                borderRadius: 999,
+                                background: 'transparent',
+                                color: '#171717',
+                                padding: '7px 14px',
+                                cursor: v.loginBusy ? 'default' : 'pointer',
+                                fontSize: 12.5,
+                                fontWeight: 700,
+                                opacity: v.loginBusy ? 0.6 : 1,
+                              }}
+                            >
+                              {v.loginBusy ? 'Sending…' : 'Resend setup email'}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <input
+                              type="email"
+                              value={v.loginEmailDraft ?? v.email ?? ''}
+                              onChange={V.setAdminLoginEmailDraft(v.id)}
+                              placeholder="vendor@business.tt"
+                              style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#F7F7F5', padding: '7px 14px', fontFamily: SANS, fontSize: 13, minWidth: 200 }}
+                            />
+                            <button
+                              onClick={() => V.createAdminVendorLogin(v.id)}
+                              disabled={!!v.loginBusy || !(v.loginEmailDraft ?? v.email ?? '').trim()}
+                              style={{
+                                border: 0,
+                                borderRadius: 999,
+                                background: '#171717',
+                                color: '#FFFFFF',
+                                padding: '7px 16px',
+                                cursor: 'pointer',
+                                fontSize: 12.5,
+                                fontWeight: 700,
+                                opacity: v.loginBusy || !(v.loginEmailDraft ?? v.email ?? '').trim() ? 0.5 : 1,
+                              }}
+                            >
+                              {v.loginBusy ? 'Creating…' : 'Create login & send setup email'}
+                            </button>
+                          </>
+                        )}
+                        {v.loginDone && <span style={{ fontSize: 12, color: '#16A34A' }}>Setup email sent ✓</span>}
+                        {v.loginError && <span style={{ fontSize: 12, color: '#B3261E' }}>{v.loginError}</span>}
+                      </div>
                     </div>
                   ))}
                   {V.adminVendors.length === 0 && (
@@ -6046,6 +6235,11 @@ export default function App() {
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>WhatsApp number</span>
                       <input type="tel" value={V.adminWhatsapp} onChange={V.setAdminWhatsapp} placeholder="e.g. 868 123 4567" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }} />
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Vendor's email (optional)</span>
+                      <input type="email" value={V.adminEmail} onChange={V.setAdminEmail} placeholder="vendor@business.tt" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }} />
+                      <span style={{ fontSize: 12, color: '#9A9A9A' }}>Needed later if you want to create their login and hand off the profile.</span>
                     </label>
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Short description</span>

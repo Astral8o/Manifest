@@ -217,7 +217,7 @@ export async function adminListVendors() {
   }
   const { data, error } = await supabase
     .from('vendors')
-    .select('id, name, category_code, city, published, created_at')
+    .select('id, name, category_code, city, published, created_at, email, owner_user_id')
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -229,6 +229,50 @@ export async function adminSetPublished(vendorId, published) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
   const { error } = await supabase.from('vendors').update({ published }).eq('id', vendorId);
+  if (error) throw error;
+}
+
+// Creates a real login for a vendor the admin built a profile for, via an
+// edge function running under the service role — this does NOT sign the
+// admin's own browser in as the new account, unlike a plain client-side
+// signUp() would. The password it sets is random and thrown away; call
+// sendVendorAccountSetupEmail() right after so the vendor sets their own.
+export async function adminCreateVendorLogin(vendorId, email) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase.functions.invoke('admin-create-vendor-login', {
+    body: { vendorId, email },
+  });
+  if (error) {
+    let message = error.message;
+    try {
+      if (error.context && typeof error.context.text === 'function') {
+        message = (await error.context.text()) || message;
+      }
+    } catch {
+      // keep the generic message
+    }
+    throw new Error(message);
+  }
+  return data;
+}
+
+export async function sendVendorAccountSetupEmail(email) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname,
+  });
+  if (error) throw error;
+}
+
+export async function updateVendorPassword(password) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.auth.updateUser({ password });
   if (error) throw error;
 }
 
@@ -250,6 +294,7 @@ export async function adminCreateVendor(v) {
       bio: v.bio,
       description: v.description,
       phone: v.phone,
+      email: v.email || null,
       logo_url: v.logoUrl || null,
       cover_photo_url: v.coverUrl || null,
       min_group: 1,
