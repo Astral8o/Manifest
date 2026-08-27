@@ -252,6 +252,7 @@ function whatsappDigits(phone) {
 }
 
 const VD_GUIDE_TABS = ['profile', 'packages', 'gallery', 'menu', 'faqs', 'policies'];
+const VD_TAB_LABELS = { profile: 'Profile', packages: 'Packages', gallery: 'Gallery', menu: 'Menu', faqs: 'FAQ', policies: 'Policies', inquiries: 'Inquiries' };
 
 const MOBILE_BREAKPOINT = 760;
 function useIsMobile() {
@@ -1595,9 +1596,8 @@ export default function App() {
     exitVdGuide: () => patch({ vdGuidedOpen: false }),
     vdGuideStepNumber: VD_GUIDE_TABS.indexOf(st.vdTab || 'profile') + 1,
     vdGuideStepCount: VD_GUIDE_TABS.length,
-    vdGuideStepLabel: ({ profile: 'Profile', packages: 'Packages', gallery: 'Gallery', menu: 'Menu', faqs: 'FAQ', policies: 'Policies' })[
-      st.vdTab || 'profile'
-    ],
+    vdGuideStepLabel: VD_TAB_LABELS[st.vdTab || 'profile'],
+    vdTabLabel: VD_TAB_LABELS[st.vdTab] || '',
     vdGuideIsFirst: VD_GUIDE_TABS.indexOf(st.vdTab || 'profile') === 0,
     vdGuideIsLast: VD_GUIDE_TABS.indexOf(st.vdTab || 'profile') === VD_GUIDE_TABS.length - 1,
     vdGuidePrev: () => {
@@ -5439,7 +5439,7 @@ export default function App() {
                 <div style={{ marginTop: 22 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                     <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                      Step {V.vdGuideStepNumber} of {V.vdGuideStepCount} · {V.vdGuideStepLabel}
+                      Step {V.vdGuideStepNumber} of {V.vdGuideStepCount}
                     </div>
                     <button
                       onClick={V.exitVdGuide}
@@ -5448,7 +5448,8 @@ export default function App() {
                       Exit — edit sections directly
                     </button>
                   </div>
-                  <div style={{ marginTop: 10, display: 'flex', gap: 4 }}>
+                  <h2 style={{ margin: '6px 0 0', fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: '-0.01em' }}>{V.vdGuideStepLabel}</h2>
+                  <div style={{ marginTop: 12, display: 'flex', gap: 4 }}>
                     {VD_GUIDE_TABS.map((k) => (
                       <div key={k} style={{ flex: 1, height: 4, borderRadius: 2, background: VD_GUIDE_TABS.indexOf(V.vdTab) >= VD_GUIDE_TABS.indexOf(k) ? '#171717' : '#ECECEC' }} />
                     ))}
@@ -5477,7 +5478,9 @@ export default function App() {
                       </button>
                     ))}
                   </div>
-                  {!V.vdTab && (
+                  {V.vdTab ? (
+                    <h2 style={{ margin: '18px 0 0', fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, letterSpacing: '-0.01em' }}>{V.vdTabLabel}</h2>
+                  ) : (
                     <p style={{ margin: '18px 0 0', fontSize: 14, color: '#9A9A9A' }}>Pick a section above to start editing.</p>
                   )}
                 </div>
