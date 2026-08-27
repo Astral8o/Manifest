@@ -155,56 +155,35 @@ const SUGGESTED_POLICIES = [
   'Setup & Access Policy',
   'Health & Safety Policy',
 ];
-const SPOTLIGHT_FREE_INCLUDED = [
-  'Full vendor profile page (photo/cover image, description, category)',
-  'Gallery organized by event type',
-  'Package cards (name, photo, description, inclusions, price)',
-  'FAQ section',
-  'Policies section (payment, deposit, rescheduling, cancellation)',
-  'Customer reviews',
-  'Direct WhatsApp contact from your profile',
-  'Listed and searchable in your category',
-  'Appear in planner search/filter results',
-  'Vendor dashboard (manage your profile, view inquiries)',
-];
+const SPOTLIGHT_STARTER_PLAN = {
+  name: 'Starter',
+  price: 'Free',
+  tagline: 'List. Get found. Get booked.',
+  bullets: [
+    'Storefront — your own mini-website inside Eventory',
+    'Direct inquiries — planners message you, straight to WhatsApp',
+    'Active planners, not passive scrollers — visibility to buyers actively searching for vendors',
+  ],
+  cta: 'Create My Storefront',
+};
 const SPOTLIGHT_PLANS = [
   {
-    key: 'directory-boost',
-    name: 'Directory Boost',
-    price: 'TTD $150',
-    period: '/ 30 days',
-    tagline: 'Get seen first in your category.',
-    bullets: ['Priority placement when planners browse your category', 'Runs for 30 days'],
-    cta: 'Get Boosted',
-  },
-  {
-    key: 'homepage-feature',
-    name: 'Homepage Feature',
-    price: 'TTD $250',
-    period: '/ 30 days',
-    tagline: 'Get in front of every planner, not just your category.',
-    bullets: ['Featured placement on the Eventory homepage', 'Runs for 30 days'],
-    cta: 'Get Featured',
-  },
-  {
-    key: 'buyer-email-spotlight',
-    name: 'Buyer Email Spotlight',
-    price: 'TTD $400–500',
-    period: '/ 30 days',
-    tagline: 'Reach planners actively looking, straight to their inbox.',
-    bullets: ['Included in the email sent to our list of active event planners', 'Runs for 30 days'],
+    key: 'spotlight',
+    name: 'Spotlight',
+    price: 'TTD $175',
+    period: '/month',
+    priceNote: 'TTD $175/month, or TTD $1,750/year — 2 months free',
+    tagline: 'Reach more planners, faster.',
+    bullets: [
+      'Priority placement — first name they see, not the fifth they scroll past',
+      "Featured badge — a mark that says you're active, established, worth a look",
+      "In planners' inboxes — featured in Eventory's marketing to buyers actively planning",
+      'On Google, too — Business Profile set up and optimized, done for you',
+      "Proof it's working — profile views and inquiries, tracked",
+    ],
     cta: 'Get Spotlighted',
   },
 ];
-const SPOTLIGHT_PREMIUM_PLAN = {
-  key: 'content-creation',
-  name: 'Content Creation',
-  price: 'Custom pricing',
-  period: '',
-  tagline: 'Let us tell your story.',
-  bullets: ['Social media posts featuring your work', 'Short-form video content', 'Delivered on a schedule that fits your business'],
-  cta: 'Get in Touch',
-};
 const POST_AUTH_RETURN_KEY = 'eventoryPostAuthReturn';
 const PROMO_ACCENT = '#FF5A36';
 const ACCENT = '#E0512B';
@@ -888,7 +867,7 @@ export default function App() {
     closePromoPlan: () => patch({ promoPlanOpen: false, promoPlanSent: false }),
     promoPlanOpen: !!st.promoPlanOpen,
     promoPlanSent: !!st.promoPlanSent,
-    promoPlan: [...SPOTLIGHT_PLANS, SPOTLIGHT_PREMIUM_PLAN].find((p) => p.key === st.promoPlanKey) || SPOTLIGHT_PLANS[0],
+    promoPlan: SPOTLIGHT_PLANS.find((p) => p.key === st.promoPlanKey) || SPOTLIGHT_PLANS[0],
     promoPlanNameInput: st.promoPlanName || '',
     setPromoPlanName: (e) => patch({ promoPlanName: e.target.value }),
     promoPlanEmailInput: st.promoPlanEmail || '',
@@ -903,7 +882,7 @@ export default function App() {
       const name = (st.promoPlanName || '').trim();
       const email = (st.promoPlanEmail || '').trim();
       if (!name || !email || email.indexOf('@') < 1 || st.promoPlanSubmitting) return;
-      const plan = [...SPOTLIGHT_PLANS, SPOTLIGHT_PREMIUM_PLAN].find((p) => p.key === st.promoPlanKey) || SPOTLIGHT_PLANS[0];
+      const plan = SPOTLIGHT_PLANS.find((p) => p.key === st.promoPlanKey) || SPOTLIGHT_PLANS[0];
       patch({ promoPlanSubmitting: true, promoPlanError: null });
       try {
         await submitSpotlightInterest({
@@ -4354,88 +4333,117 @@ export default function App() {
 
           <div style={{ marginTop: 22, maxWidth: 620 }}>
             <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: PROMO_ACCENT, fontWeight: 700 }}>
-              Spotlight
+              Eventory Spotlight Advertising
             </div>
             <h1 style={{ margin: '10px 0 0', fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
-              Your listing is always free.
+              Get found by planners actively booking.
             </h1>
-            <p style={{ margin: '10px 0 0', fontSize: 16, lineHeight: 1.5, color: '#5B5B5B' }}>Add Spotlight when you're ready to grow.</p>
+            <p style={{ margin: '10px 0 0', fontSize: 16, lineHeight: 1.5, color: '#5B5B5B' }}>
+              Every vendor on Eventory is discoverable. Spotlight gets you there faster.
+            </p>
           </div>
 
-          <div style={{ marginTop: 28, border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 22 : 30, background: '#F7F7F5' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>Included free, always</div>
-              <span
+          <div style={{ marginTop: 28, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, alignItems: 'stretch' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                border: '1px solid #ECECEC',
+                borderRadius: 24,
+                padding: isMobile ? 22 : 30,
+                background: '#F7F7F5',
+              }}
+            >
+              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                {SPOTLIGHT_STARTER_PLAN.name} — {SPOTLIGHT_STARTER_PLAN.price}
+              </div>
+              <div style={{ marginTop: 10, fontSize: isMobile ? 20 : 22, fontWeight: 800, letterSpacing: '-0.01em' }}>
+                {SPOTLIGHT_STARTER_PLAN.tagline}
+              </div>
+              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+                {SPOTLIGHT_STARTER_PLAN.bullets.map((b) => {
+                  const [label, ...rest] = b.split(' — ');
+                  return (
+                    <div key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#171717" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}>
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span style={{ fontSize: 13.5, lineHeight: 1.5, color: '#4A4A4A' }}>
+                        <strong style={{ color: '#171717' }}>{label}</strong>
+                        {rest.length > 0 ? ' — ' + rest.join(' — ') : ''}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <button
+                onClick={V.goVendorOnboarding}
                 style={{
-                  fontFamily: MONO,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: '0.04em',
-                  color: '#171717',
-                  border: '1px solid #D7D7D2',
+                  marginTop: 24,
+                  alignSelf: 'flex-start',
+                  border: '1px solid #171717',
                   borderRadius: 999,
-                  padding: '4px 12px',
-                  background: '#FFFFFF',
+                  background: 'transparent',
+                  color: '#171717',
+                  padding: '13px 24px',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  fontWeight: 700,
                 }}
               >
-                TTD $0 · forever
-              </span>
+                {SPOTLIGHT_STARTER_PLAN.cta} →
+              </button>
             </div>
-            <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '11px 28px' }}>
-              {SPOTLIGHT_FREE_INCLUDED.map((item) => (
-                <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#171717" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}>
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span style={{ fontSize: 13.5, lineHeight: 1.5, color: '#4A4A4A' }}>{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          <div style={{ marginTop: 32, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-            Add when you're ready
-          </div>
-          <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14 }}>
             {SPOTLIGHT_PLANS.map((plan) => (
               <div
                 key={plan.key}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  border: '1px solid #ECECEC',
-                  borderRadius: 20,
-                  padding: isMobile ? 20 : 24,
-                  background: '#FFFFFF',
+                  borderRadius: 24,
+                  padding: isMobile ? 22 : 30,
+                  background: '#171717',
+                  color: '#FFFFFF',
                 }}
               >
-                <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em' }}>{plan.name}</div>
-                <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                  <span style={{ fontFamily: MONO, fontSize: 21, fontWeight: 700, color: PROMO_ACCENT }}>{plan.price}</span>
-                  <span style={{ fontFamily: MONO, fontSize: 12, color: '#9A9A9A' }}>{plan.period}</span>
+                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#F0946F', fontWeight: 700 }}>
+                  {plan.name} — {plan.price}{plan.period}
                 </div>
-                <p style={{ margin: '10px 0 0', fontSize: 13.5, lineHeight: 1.5, color: '#5B5B5B' }}>{plan.tagline}</p>
-                <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-                  {plan.bullets.map((b) => (
-                    <div key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={PROMO_ACCENT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}>
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      <span style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>{b}</span>
-                    </div>
-                  ))}
+                <div style={{ marginTop: 10, fontSize: isMobile ? 20 : 22, fontWeight: 800, letterSpacing: '-0.01em' }}>{plan.tagline}</div>
+                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+                  {plan.bullets.map((b) => {
+                    const [label, ...rest] = b.split(' — ');
+                    return (
+                      <div key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F0946F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}>
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span style={{ fontSize: 13.5, lineHeight: 1.5, color: 'rgba(255,255,255,0.85)' }}>
+                          <strong style={{ color: '#FFFFFF' }}>{label}</strong>
+                          {rest.length > 0 ? ' — ' + rest.join(' — ') : ''}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
+                {plan.priceNote && (
+                  <div style={{ marginTop: 18, fontFamily: MONO, fontSize: 12, lineHeight: 1.5, color: 'rgba(255,255,255,0.6)' }}>
+                    {plan.priceNote}
+                  </div>
+                )}
                 <button
                   onClick={V.openPromoPlan(plan.key)}
                   style={{
-                    marginTop: 20,
-                    border: `1px solid ${PROMO_ACCENT}`,
+                    marginTop: 16,
+                    alignSelf: 'flex-start',
+                    border: 0,
                     borderRadius: 999,
-                    background: 'transparent',
-                    color: PROMO_ACCENT,
-                    padding: '11px 20px',
+                    background: '#FFFFFF',
+                    color: '#171717',
+                    padding: '13px 24px',
                     cursor: 'pointer',
-                    fontSize: 13.5,
+                    fontSize: 14,
                     fontWeight: 700,
                   }}
                 >
@@ -4445,58 +4453,8 @@ export default function App() {
             ))}
           </div>
 
-          <div
-            style={{
-              marginTop: 20,
-              display: 'flex',
-              flexDirection: isMobile ? 'column' : 'row',
-              alignItems: isMobile ? 'flex-start' : 'center',
-              justifyContent: 'space-between',
-              gap: isMobile ? 20 : 32,
-              borderRadius: 24,
-              background: '#171717',
-              color: '#FFFFFF',
-              padding: isMobile ? '24px 22px' : '32px 36px',
-            }}
-          >
-            <div style={{ maxWidth: 480 }}>
-              <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#F0946F', fontWeight: 700 }}>
-                Premium
-              </div>
-              <div style={{ marginTop: 8, fontSize: isMobile ? 20 : 24, fontWeight: 800, letterSpacing: '-0.02em' }}>{SPOTLIGHT_PREMIUM_PLAN.name}</div>
-              <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: 'rgba(255,255,255,0.72)' }}>{SPOTLIGHT_PREMIUM_PLAN.tagline}</p>
-              <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                {SPOTLIGHT_PREMIUM_PLAN.bullets.map((b) => (
-                  <div key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,0.85)' }}>
-                    <span style={{ color: '#F0946F' }}>—</span>
-                    <span>{b}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div style={{ textAlign: isMobile ? 'left' : 'right', flexShrink: 0 }}>
-              <div style={{ fontFamily: MONO, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{SPOTLIGHT_PREMIUM_PLAN.price}</div>
-              <button
-                onClick={V.openPromoPlan(SPOTLIGHT_PREMIUM_PLAN.key)}
-                style={{
-                  marginTop: 10,
-                  border: 0,
-                  borderRadius: 999,
-                  background: '#FFFFFF',
-                  color: '#171717',
-                  padding: '13px 24px',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  fontWeight: 700,
-                }}
-              >
-                {SPOTLIGHT_PREMIUM_PLAN.cta} →
-              </button>
-            </div>
-          </div>
-
-          <p style={{ margin: '22px 0 0', maxWidth: 560, fontSize: 13, fontStyle: 'italic', lineHeight: 1.55, color: '#9A9A9A' }}>
-            Combine any placements for maximum visibility. Pay for the visibility you want, when you want it.
+          <p style={{ margin: '22px 0 0', maxWidth: 560, fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: '#171717' }}>
+            {SPOTLIGHT_STARTER_PLAN.name} gets you found. {SPOTLIGHT_PLANS[0].name} gets you found first.
           </p>
         </div>
       )}
