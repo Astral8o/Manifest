@@ -14,6 +14,7 @@ import {
   fetchMyQuoteRequests,
   adminListVendors,
   adminSetPublished,
+  submitVendorForReview,
   adminCreateVendor,
   adminCreateVendorLogin,
   sendVendorAccountSetupEmail,
@@ -1564,6 +1565,28 @@ export default function App() {
       { key: 'policies', label: 'Policies (' + ((st.vdVendor && st.vdVendor.policies) || []).length + ')' },
       { key: 'inquiries', label: 'Inquiries (' + (st.vdQuotes || []).length + ')' },
     ].map((t) => ({ ...t, active: (st.vdTab || 'profile') === t.key, go: () => patch({ vdTab: t.key }) })),
+    vdSubmittedAt: (st.vdVendor && st.vdVendor.submittedAt) || null,
+    vdProgressSteps: [
+      { key: 'profile', label: 'Profile', done: !!(st.vdVendor && (st.vdVendor.bio || st.vdVendor.description)) },
+      { key: 'gallery', label: 'Gallery', done: !!(st.vdVendor && (st.vdVendor.gallery || []).length) },
+      { key: 'packages', label: 'Packages', done: !!(st.vdVendor && (st.vdVendor.packages || []).length) },
+      { key: 'faqs', label: 'FAQ', done: !!(st.vdVendor && (st.vdVendor.faqs || []).length) },
+      { key: 'policies', label: 'Policies', done: !!(st.vdVendor && (st.vdVendor.policies || []).length) },
+    ].map((s) => ({ ...s, go: () => patch({ vdTab: s.key }) })),
+    vdSubmitting: !!st.vdSubmitting,
+    vdSubmitError: st.vdSubmitError || '',
+    vdSubmitForReview: () => {
+      if (!st.vdVendor || st.vdSubmitting) return;
+      patch({ vdSubmitting: true, vdSubmitError: null });
+      submitVendorForReview(st.vdVendor.id)
+        .then(() =>
+          patch((s) => ({
+            vdSubmitting: false,
+            vdVendor: s.vdVendor ? { ...s.vdVendor, submittedAt: new Date().toISOString() } : s.vdVendor,
+          }))
+        )
+        .catch((err) => patch({ vdSubmitting: false, vdSubmitError: err.message || 'Could not submit for review. Please try again.' }));
+    },
     goVdPublicProfile: () =>
       st.vdVendor &&
       patch({ screen: 'supplier', supId: st.vdVendor.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
@@ -1858,7 +1881,13 @@ export default function App() {
     isAdmin: st.screen === 'admin',
     adminIsAuthed: st.signedIn && st.email === ADMIN_EMAIL,
     adminSubScreen: st.adminSubScreen || 'dashboard',
-    adminVendors: st.adminVendors || [],
+    adminVendors: (st.adminVendors || [])
+      .slice()
+      .sort((a, b) => {
+        const aReady = !a.published && a.submitted_at ? 1 : 0;
+        const bReady = !b.published && b.submitted_at ? 1 : 0;
+        return bReady - aReady;
+      }),
     adminVendorsLoading: !!st.adminVendorsLoading,
     adminVendorsError: st.adminVendorsError || '',
     loadAdminVendors: async () => {
@@ -5339,9 +5368,62 @@ export default function App() {
                   </button>
                 </div>
               </div>
-              {!V.vdVendor.published && (
+              {!V.vdVendor.published && !V.vdSubmittedAt && (
+                <div style={{ marginTop: 18, border: '1px solid #ECECEC', borderRadius: 20, padding: isMobile ? 18 : 22, background: '#F7F7F5' }}>
+                  <div style={{ fontSize: 15, fontWeight: 700 }}>Build your profile at your own pace</div>
+                  <p style={{ margin: '6px 0 0', fontSize: 13.5, lineHeight: 1.5, color: '#5B5B5B' }}>
+                    Work through the sections below in any order — everything saves as you go, so you can always come back
+                    later. Submit for review whenever you're ready.
+                  </p>
+                  <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {V.vdProgressSteps.map((s) => (
+                      <button
+                        key={s.key}
+                        onClick={s.go}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          border: `1px solid ${s.done ? '#171717' : '#D7D7D2'}`,
+                          borderRadius: 999,
+                          background: s.done ? '#171717' : 'transparent',
+                          color: s.done ? '#FFFFFF' : '#5B5B5B',
+                          padding: '7px 14px',
+                          cursor: 'pointer',
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {s.done ? '✓' : '·'} {s.label}
+                      </button>
+                    ))}
+                  </div>
+                  {V.vdSubmitError && <div style={{ marginTop: 12, fontSize: 13, color: '#B3261E' }}>{V.vdSubmitError}</div>}
+                  <button
+                    onClick={V.vdSubmitForReview}
+                    disabled={V.vdSubmitting}
+                    style={{
+                      marginTop: 16,
+                      border: 0,
+                      borderRadius: 999,
+                      background: ACCENT,
+                      color: '#FFFFFF',
+                      padding: '12px 22px',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 700,
+                      opacity: V.vdSubmitting ? 0.6 : 1,
+                    }}
+                  >
+                    {V.vdSubmitting ? 'Submitting…' : 'Submit for review'}
+                  </button>
+                </div>
+              )}
+
+              {!V.vdVendor.published && V.vdSubmittedAt && (
                 <p style={{ margin: '10px 0 0', fontSize: 13, color: '#8A8A8A' }}>
-                  Your listing isn't live yet — we review new listings before publishing. You can keep editing it in the meantime.
+                  Submitted for review on {new Date(V.vdSubmittedAt).toLocaleDateString()}. We review new listings by hand
+                  before publishing — you can keep editing anytime in the meantime.
                 </p>
               )}
 
@@ -5894,7 +5976,26 @@ export default function App() {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                         <div>
-                          <div style={{ fontSize: 15, fontWeight: 700 }}>{v.name}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: 15, fontWeight: 700 }}>{v.name}</div>
+                            {!v.published && v.submitted_at && (
+                              <span
+                                style={{
+                                  fontFamily: MONO,
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  letterSpacing: '0.04em',
+                                  textTransform: 'uppercase',
+                                  color: '#171717',
+                                  border: '1px solid #171717',
+                                  borderRadius: 999,
+                                  padding: '2px 9px',
+                                }}
+                              >
+                                Ready for review
+                              </span>
+                            )}
+                          </div>
                           <div style={{ marginTop: 2, fontFamily: MONO, fontSize: 12, color: '#9A9A9A' }}>{v.city}</div>
                         </div>
                         <button

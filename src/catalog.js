@@ -217,7 +217,7 @@ export async function adminListVendors() {
   }
   const { data, error } = await supabase
     .from('vendors')
-    .select('id, name, category_code, city, published, created_at, email, owner_user_id')
+    .select('id, name, category_code, city, published, submitted_at, created_at, email, owner_user_id')
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -229,6 +229,16 @@ export async function adminSetPublished(vendorId, published) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
   const { error } = await supabase.from('vendors').update({ published }).eq('id', vendorId);
+  if (error) throw error;
+}
+
+// Vendor-facing: marks a listing as ready for admin review. Doesn't lock
+// anything — the vendor can keep editing before or after calling this.
+export async function submitVendorForReview(vendorId) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('vendors').update({ submitted_at: new Date().toISOString() }).eq('id', vendorId);
   if (error) throw error;
 }
 
@@ -524,6 +534,7 @@ export async function fetchMyVendor() {
     mapLink: data.map_link || '',
     startingPrice: data.starting_price === null || data.starting_price === undefined ? null : Number(data.starting_price),
     published: !!data.published,
+    submittedAt: data.submitted_at || null,
     packages: (data.products || [])
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
