@@ -4,7 +4,9 @@ import './index.css'
 import App from './App.jsx'
 import ComingSoon from './ComingSoon.jsx'
 
-const comingSoon = import.meta.env.VITE_COMING_SOON === 'true'
+// Site is in "coming soon" mode — flip to `false` (or remove this override
+// and restore `import.meta.env.VITE_COMING_SOON === 'true'`) to go live.
+const comingSoon = true
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
