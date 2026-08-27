@@ -19,6 +19,7 @@ import {
   sendVendorAccountSetupEmail,
   updateVendorPassword,
   createVendorAccount,
+  createVendorListing,
   uploadVendorMedia,
   signInVendor,
   fetchMyVendor,
@@ -526,11 +527,16 @@ export default function App() {
   useEffect(() => {
     if (!supabase) return;
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) patch({ signedIn: true, email: data.session.user.email || '' });
+      if (data.session)
+        patch({
+          signedIn: true,
+          email: data.session.user.email || '',
+          accountRole: (data.session.user.user_metadata || {}).role || '',
+        });
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
-        patch({ screen: 'vendor-set-password', signedIn: true, email: (session && session.user.email) || '' });
+        patch({ screen: 'vendor-set-password', signedIn: true, email: (session && session.user.email) || '', accountRole: 'vendor' });
         return;
       }
       if (session) {
@@ -567,9 +573,16 @@ export default function App() {
         } catch {
           // ignore malformed/inaccessible storage
         }
-        patch({ signedIn: true, email: session.user.email || '', authSent: false, authError: null, ...extra });
+        patch({
+          signedIn: true,
+          email: session.user.email || '',
+          accountRole: (session.user.user_metadata || {}).role || '',
+          authSent: false,
+          authError: null,
+          ...extra,
+        });
       } else {
-        patch({ signedIn: false });
+        patch({ signedIn: false, accountRole: '' });
       }
     });
     return () => sub.subscription.unsubscribe();
@@ -896,7 +909,7 @@ export default function App() {
         patch({ promoPlanSubmitting: false, promoPlanError: err.message || 'Could not send your request. Please try again.' });
       }
     },
-    goAccount: nav('account'),
+    goAccount: st.accountRole === 'vendor' ? nav('vendor-dashboard') : nav('account'),
     navMenuOpen: !!st.navMenuOpen,
     toggleNavMenu: () => patch((s) => ({ navMenuOpen: !s.navMenuOpen })),
     closeNavMenu: () => patch({ navMenuOpen: false }),
@@ -1506,7 +1519,7 @@ export default function App() {
       patch({ vsiSubmitting: true, vsiError: null });
       try {
         const user = await signInVendor(st.vsiEmail, st.vsiPassword);
-        patch({ vsiSubmitting: false, signedIn: true, email: user.email || st.vsiEmail, screen: 'vendor-dashboard' });
+        patch({ vsiSubmitting: false, signedIn: true, email: user.email || st.vsiEmail, accountRole: 'vendor', screen: 'vendor-dashboard' });
       } catch (err) {
         patch({ vsiSubmitting: false, vsiError: err.message || 'Could not sign in. Check your email and password and try again.' });
       }
@@ -2123,7 +2136,11 @@ export default function App() {
     goVendorOnboarding: () =>
       patch({
         screen: 'vendor-onboarding',
-        voStep: 1,
+        // Already signed in (e.g. confirmed their email and landed back
+        // logged in, but never got a listing created) — skip straight to
+        // business info instead of asking them to sign up again, which
+        // would just fail since the account already exists.
+        voStep: st.signedIn ? 2 : 1,
         voDone: false,
         voVendorId: null,
         voSectors: [],
@@ -2135,7 +2152,7 @@ export default function App() {
         voCity: null,
         voCityOther: '',
         voStartingPrice: '',
-        voEmail: '',
+        voEmail: st.signedIn ? st.email || '' : '',
         voPhone: '',
         voPassword: '',
         voConfirmPassword: '',
@@ -2227,10 +2244,8 @@ export default function App() {
       (st.voCity === 'Other' ? (st.voCityOther || '').trim() : st.voCity) &&
       (st.voEmail || '').trim() &&
       (st.voPhone || '').trim() &&
-      (st.voPassword || '').length >= 6 &&
-      st.voPassword === st.voConfirmPassword &&
-      st.voAgreeTerms &&
-      st.voAgreePrivacy
+      (st.signedIn ||
+        ((st.voPassword || '').length >= 6 && st.voPassword === st.voConfirmPassword && st.voAgreeTerms && st.voAgreePrivacy))
     ),
     voStep1Next: async () => {
       const name = (st.voBusinessName || '').trim();
@@ -2250,10 +2265,8 @@ export default function App() {
         !city ||
         !email ||
         !phone ||
-        (st.voPassword || '').length < 6 ||
-        st.voPassword !== st.voConfirmPassword ||
-        !st.voAgreeTerms ||
-        !st.voAgreePrivacy ||
+        (!st.signedIn &&
+          ((st.voPassword || '').length < 6 || st.voPassword !== st.voConfirmPassword || !st.voAgreeTerms || !st.voAgreePrivacy)) ||
         st.voStep1Submitting
       ) {
         return;
@@ -2273,7 +2286,11 @@ export default function App() {
         return;
       }
       try {
-        const vendorId = await createVendorAccount({
+        // Already signed in (e.g. this is a confirmed account that never
+        // got a listing created) — skip signUp, which would just fail
+        // since the account already exists, and create the listing
+        // directly under the current session.
+        const vendorId = await (st.signedIn ? createVendorListing : createVendorAccount)({
           categoryCode: realSectors[0],
           categoryCodes: realSectors,
           otherCategory: otherCategory || null,
@@ -2291,6 +2308,7 @@ export default function App() {
           voStep1Submitting: false,
           voVendorId: vendorId,
           voDone: true,
+          accountRole: 'vendor',
         });
       } catch (err) {
         patch({ voStep1Submitting: false, voStep1Error: err.message || 'Could not create your account. Please try again.' });
@@ -6368,6 +6386,12 @@ export default function App() {
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Contact person *</span>
                     <input type="text" value={V.voContactPerson} onChange={V.setVoContactPerson} placeholder="Your full name" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
                   </label>
+                  {V.signedIn && (
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Phone number *</span>
+                      <input type="tel" value={V.voPhone} onChange={V.setVoPhone} placeholder="868 123 4567" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                    </label>
+                  )}
                   <div>
                     <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Country *</div>
                     <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -6419,7 +6443,7 @@ export default function App() {
                       disabled={V.voStep1Disabled || V.voStep1Submitting}
                       style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.voStep1Disabled || V.voStep1Submitting ? 0.5 : 1 }}
                     >
-                      {V.voStep1Submitting ? 'Creating account…' : 'Continue →'}
+                      {V.voStep1Submitting ? (V.signedIn ? 'Creating your listing…' : 'Creating account…') : 'Continue →'}
                     </button>
                   </div>
                 </div>

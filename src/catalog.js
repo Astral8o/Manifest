@@ -368,7 +368,11 @@ export async function signUpVendor(email, password) {
   if (!supabaseConfigured) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  // Tags the auth user as a vendor account (persists in user_metadata across
+  // sessions/devices) so the app can route a signed-in user to the vendor
+  // dashboard instead of the buyer one, even before they have a listing —
+  // e.g. right after confirming their email.
+  const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { role: 'vendor' } } });
   if (error) throw error;
   return data;
 }
@@ -402,30 +406,11 @@ export async function uploadVendorMedia(file) {
 
 // Step 1 of onboarding: creates the vendor's own account plus a minimal
 // draft vendor row owned by that account.
-export async function createVendorAccount(payload) {
-  if (!supabaseConfigured) {
-    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
-  }
-  const { user, session } = await signUpVendor(payload.email, payload.password);
-  if (!user) {
-    throw new Error('Could not create your account. Please try again.');
-  }
-  // Supabase signals "this email already has an account" by returning the
-  // user with an empty identities array — this can happen even when it
-  // still hands back a (non-functional, stale) session, so it must be
-  // checked before the session check below, not instead of it.
-  if (user.identities && user.identities.length === 0) {
-    throw new Error('That email already has an account. Please sign in instead, or use a different email address.');
-  }
-  if (!session) {
-    throw new Error(
-      'That email needs to be confirmed before continuing. Check your inbox for a confirmation link, or sign in instead if you already have an account.'
-    );
-  }
+async function insertVendorRow(ownerUserId, payload) {
   const { data: vendor, error } = await supabase
     .from('vendors')
     .insert({
-      owner_user_id: user.id,
+      owner_user_id: ownerUserId,
       category_code: payload.categoryCode,
       category_codes: payload.categoryCodes && payload.categoryCodes.length ? payload.categoryCodes : null,
       other_category: payload.otherCategory || null,
@@ -453,6 +438,47 @@ export async function createVendorAccount(payload) {
     throw error;
   }
   return vendor.id;
+}
+
+export async function createVendorAccount(payload) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { user, session } = await signUpVendor(payload.email, payload.password);
+  if (!user) {
+    throw new Error('Could not create your account. Please try again.');
+  }
+  // Supabase signals "this email already has an account" by returning the
+  // user with an empty identities array — this can happen even when it
+  // still hands back a (non-functional, stale) session, so it must be
+  // checked before the session check below, not instead of it.
+  if (user.identities && user.identities.length === 0) {
+    throw new Error('That email already has an account. Please sign in instead, or use a different email address.');
+  }
+  if (!session) {
+    throw new Error(
+      'That email needs to be confirmed before continuing. Check your inbox for a confirmation link, or sign in instead if you already have an account.'
+    );
+  }
+  return insertVendorRow(user.id, payload);
+}
+
+// For a vendor who already has a confirmed, signed-in account but no
+// vendor row yet (e.g. their email confirmation landed them back signed
+// in, but the original signup attempt never got to create the listing).
+// Skips signUp entirely — calling it again on an existing account always
+// fails — and just creates the listing under the current session.
+export async function createVendorListing(payload) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('You need to be signed in.');
+  }
+  return insertVendorRow(user.id, payload);
 }
 
 // ---- Vendor self-service dashboard ----
