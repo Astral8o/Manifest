@@ -261,6 +261,16 @@ const avatarUrl = (seed) =>
   'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(seed) + '&backgroundColor=171717&textColor=ffffff&fontWeight=700';
 const photoUrl = (seed, w, h) => 'https://picsum.photos/seed/' + encodeURIComponent(seed) + '/' + w + '/' + h;
 
+// Normalizes a T&T phone number into the full digits wa.me needs. Vendors
+// often type just the local 7-digit number or the 10-digit "868..." form
+// without the country code, which otherwise makes the WhatsApp link 404.
+function whatsappDigits(phone) {
+  const digits = (phone || '').replace(/\D/g, '');
+  if (digits.length === 7) return '1868' + digits;
+  if (digits.length === 10 && digits.startsWith('868')) return '1' + digits;
+  return digits;
+}
+
 const MOBILE_BREAKPOINT = 760;
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(
@@ -1152,7 +1162,7 @@ export default function App() {
       phone: sup.phone,
       whatsappUrl: sup.phone
         ? 'https://wa.me/' +
-          sup.phone.replace(/\D/g, '') +
+          whatsappDigits(sup.phone) +
           '?text=' +
           encodeURIComponent(`Hi ${sup.name}, I found you on Eventory and I'm interested in your services.`)
         : null,
@@ -1199,7 +1209,7 @@ export default function App() {
     waSendDisabled: !st.waEventType || (st.waEventType === 'other' && !(st.waEventTypeOther || '').trim()),
     waSendUrl: sup.phone
       ? 'https://wa.me/' +
-        sup.phone.replace(/\D/g, '') +
+        whatsappDigits(sup.phone) +
         '?text=' +
         encodeURIComponent(
           buildWaMessage(sup.name, {
