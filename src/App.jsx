@@ -2828,6 +2828,7 @@ export default function App() {
                   <img
                     src={c.photo}
                     alt=""
+                    loading="lazy"
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                   <div
@@ -2871,7 +2872,7 @@ export default function App() {
                     style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: 'pointer' }}
                   >
                     <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
-                      <img src={s.cover} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      <img src={s.cover} alt={s.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                       {s.rating && (
                         <span
                           style={{
@@ -3040,6 +3041,7 @@ export default function App() {
                     <img
                       src={f.photo}
                       alt={f.name}
+                      loading="lazy"
                       style={{ width: '100%', height: isMobile ? 110 : 150, objectFit: 'cover', display: 'block' }}
                     />
                     <div style={{ padding: isMobile ? '12px 14px 0' : '16px 18px 0' }}>
@@ -3485,7 +3487,7 @@ export default function App() {
                   style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: 'pointer' }}
                 >
                   <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
-                    <img src={s.cover} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    <img src={s.cover} alt={s.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     {s.rating && (
                       <span
                         style={{
@@ -3703,6 +3705,7 @@ export default function App() {
                   key={i}
                   src={src}
                   alt={V.sup.name + ' photo ' + (i + 1)}
+                  loading={i === 0 ? undefined : 'lazy'}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', flex: '0 0 100%' }}
                 />
               ))}
@@ -4037,6 +4040,7 @@ export default function App() {
                         <img
                           src={p.photo}
                           alt={p.name}
+                          loading="lazy"
                           style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }}
                         />
                         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -4142,6 +4146,7 @@ export default function App() {
                               key={photo + i}
                               src={photo}
                               alt={g.eventType + ' photo'}
+                              loading="lazy"
                               style={{ width: '100%', height: 160, borderRadius: 14, objectFit: 'cover', display: 'block' }}
                             />
                           ))}
@@ -5165,7 +5170,7 @@ export default function App() {
                   }}
                 >
                   <div style={{ display: 'flex', gap: 14, alignItems: 'center', minWidth: 220 }}>
-                    <img src={s.logo} alt={s.name} style={{ width: 44, height: 44, borderRadius: 999, objectFit: 'cover', flexShrink: 0, background: '#171717' }} />
+                    <img src={s.logo} alt={s.name} loading="lazy" style={{ width: 44, height: 44, borderRadius: 999, objectFit: 'cover', flexShrink: 0, background: '#171717' }} />
                     <div>
                       <button
                         onClick={s.open}
@@ -5209,7 +5214,7 @@ export default function App() {
                   }}
                 >
                   <div style={{ display: 'flex', gap: 14, alignItems: 'center', minWidth: 220 }}>
-                    <img src={p.photo} alt={p.name} style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
+                    <img src={p.photo} alt={p.name} loading="lazy" style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
                     <div>
                       <div style={{ fontSize: 15, fontWeight: 700 }}>{p.name}</div>
                       <button
@@ -5891,7 +5896,7 @@ export default function App() {
                       <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, border: '1px solid #ECECEC', borderRadius: 16, padding: '14px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           {p.photoUrl && (
-                            <img src={p.photoUrl} alt={p.name} style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                            <img src={p.photoUrl} alt={p.name} loading="lazy" style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
                           )}
                           <div style={{ fontSize: 14 }}>
                             <strong>{p.name}</strong> — TT${p.priceMin}–TT${p.priceMax}
@@ -5939,7 +5944,7 @@ export default function App() {
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                     {V.vdVendor.gallery.map((g) => (
                       <div key={g.id} style={{ position: 'relative' }}>
-                        <img src={g.photoUrl} alt={g.eventType} style={{ width: 140, height: 100, borderRadius: 12, objectFit: 'cover' }} />
+                        <img src={g.photoUrl} alt={g.eventType} loading="lazy" style={{ width: 140, height: 100, borderRadius: 12, objectFit: 'cover' }} />
                         <div style={{ marginTop: 4, fontSize: 11, color: '#8A8A8A' }}>{g.eventType}</div>
                         <button onClick={V.removeVdGalleryPhoto(g.id)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700, padding: 0 }}>Remove</button>
                       </div>
