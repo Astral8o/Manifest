@@ -830,3 +830,15 @@ export async function submitPlanningRequest(request) {
 
   if (error) throw error;
 }
+
+// company is a honeypot — real users never see or fill this field (it's
+// visually hidden), so anything landing here is almost certainly a bot and
+// gets dropped silently rather than surfaced as a submission error.
+export async function submitContactMessage({ name, email, message, company }) {
+  if (company) return;
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('contact_messages').insert({ name, email, message });
+  if (error) throw error;
+}

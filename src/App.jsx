@@ -37,6 +37,7 @@ import {
   removeVendorPolicy,
   fetchVendorQuoteRequests,
   submitSpotlightInterest,
+  submitContactMessage,
 } from './catalog';
 import { supabase } from './supabaseClient';
 import heroPhoto from './assets/hero-photo.jpg';
@@ -237,6 +238,86 @@ const ABOUT_FAQS = [
   },
 ];
 
+const LEGAL_UPDATED = 'August 28, 2026';
+
+const TERMS_SECTIONS = [
+  {
+    h: 'What Eventory is',
+    p: 'Eventory is a discovery platform connecting people planning events with independent vendors — caterers, venues, photographers, decorators and more — across Trinidad & Tobago. We help you find and message each other. We are not a party to any booking, contract, or payment between a planner and a vendor.',
+  },
+  {
+    h: 'No payments through Eventory',
+    p: 'Eventory never processes payment. Every booking, deposit, and payment happens directly between you and the vendor, on whatever terms you agree between yourselves. We are not responsible for a vendor’s pricing, availability, deposits, cancellations, or the quality of their work, and we are not responsible for a planner’s conduct toward a vendor.',
+  },
+  {
+    h: 'Accounts',
+    p: 'You’re responsible for keeping your account credentials private and for anything that happens under your account. Vendor accounts are for one real business per account, listing accurate, truthful information you have the right to publish (including photos). We can remove a listing or suspend an account for false information, impersonation, or abusive conduct toward other users.',
+  },
+  {
+    h: 'Content you post',
+    p: 'You keep ownership of anything you upload (photos, descriptions, reviews). By posting it on Eventory, you give us permission to display it on the platform and in reasonable promotion of the platform (for example, a vendor spotlight). You confirm you have the right to post what you upload.',
+  },
+  {
+    h: 'Acceptable use',
+    p: 'Don’t use Eventory to spam, scrape, impersonate someone else, post false or misleading listings, or interfere with the platform’s normal operation. We can suspend or remove access for anyone who does.',
+  },
+  {
+    h: 'No warranty, limited liability',
+    p: 'Eventory is provided as-is. We do our best to keep listings accurate and the site running, but we don’t guarantee a vendor will be available, affordable, or a good fit for your event, and we’re not liable for losses arising from your dealings with a vendor or another user. To the extent allowed by law, our liability for anything related to the platform is limited to the amount (if any) you’ve paid us directly, which for most users is zero.',
+  },
+  {
+    h: 'Changes',
+    p: 'We may update these terms as the platform changes. We’ll update the date below when we do. Continuing to use Eventory after a change means you accept the update.',
+  },
+  {
+    h: 'Governing law',
+    p: 'These terms are governed by the laws of Trinidad and Tobago.',
+  },
+  {
+    h: 'Questions',
+    p: 'Reach us through the Contact us form on our About page.',
+  },
+];
+
+const PRIVACY_SECTIONS = [
+  {
+    h: 'What we collect',
+    p: 'From planners: your email address (for magic-link sign-in) and whatever you include in a vendor inquiry or the contact form (name, phone, event details, message). From vendors: business name, contact person, email, phone, city, category, and whatever you add to your public profile (photos, packages, descriptions). We also automatically receive basic technical data (like IP address and browser type) as part of how our hosting and security infrastructure works.',
+  },
+  {
+    h: 'How we use it',
+    p: 'To run the marketplace: showing vendor listings to planners, delivering inquiries and messages between you and a vendor, letting vendors manage their own listing, and reviewing new listings before they go live. If you’ve opted in, we may also send you promos or offers from vendors — you can opt out at any time.',
+  },
+  {
+    h: 'Who we share it with',
+    p: 'We don’t sell your data. A few service providers process it on our behalf to run the platform: Supabase (database, authentication, and file storage), Resend (sending emails like inquiries and account notifications), and Vercel (website hosting). A vendor inquiry is shared with the specific vendor(s) you’re messaging — that’s the point of it. We don’t share your information with anyone else except where required by law.',
+  },
+  {
+    h: 'How long we keep it',
+    p: 'We keep account and listing data for as long as your account is active, and inquiry/contact records for as long as reasonably useful for support and safety purposes. You can ask us to delete your data at any time (see below).',
+  },
+  {
+    h: 'Your choices',
+    p: 'You can update your vendor profile at any time from your dashboard. To access, correct, or delete your data, or to unsubscribe from promotional emails, contact us through the Contact us form on our About page and we’ll handle it within a reasonable time.',
+  },
+  {
+    h: 'Cookies & local storage',
+    p: 'We use your browser’s local storage to keep you signed in between visits — that’s it. We don’t use third-party advertising trackers.',
+  },
+  {
+    h: 'Children',
+    p: 'Eventory isn’t directed at children, and we don’t knowingly collect data from anyone under 18.',
+  },
+  {
+    h: 'Changes',
+    p: 'We may update this policy as the platform changes. We’ll update the date below when we do.',
+  },
+  {
+    h: 'Questions',
+    p: 'Reach us through the Contact us form on our About page.',
+  },
+];
+
 const avatarUrl = (seed) =>
   'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(seed) + '&backgroundColor=171717&textColor=ffffff&fontWeight=700';
 const photoUrl = (seed, w, h) => 'https://picsum.photos/seed/' + encodeURIComponent(seed) + '/' + w + '/' + h;
@@ -329,6 +410,12 @@ const initialState = {
   copiedVendorId: null,
   supCarouselIndex: 0,
   contactSent: false,
+  contactName: '',
+  contactEmail: '',
+  contactMessage: '',
+  contactCompany: '',
+  contactSubmitting: false,
+  contactError: null,
   sourcingOpen: false,
   sourcingSent: false,
   supplierTab: 'services',
@@ -377,6 +464,10 @@ const initialState = {
   vsiPassword: '',
   vsiSubmitting: false,
   vsiError: null,
+  vsiForgotMode: false,
+  vsiForgotSubmitting: false,
+  vsiForgotSent: false,
+  vsiForgotError: null,
 
   newPassword: '',
   newPasswordConfirm: '',
@@ -857,8 +948,27 @@ export default function App() {
     isVendorSignIn: st.screen === 'vendor-signin',
     isVendorSetPassword: st.screen === 'vendor-set-password',
     isVendorDashboard: st.screen === 'vendor-dashboard',
-    goVendorSignIn: () => patch({ screen: 'vendor-signin', navMenuOpen: false, vsiEmail: '', vsiPassword: '', vsiSubmitting: false, vsiError: null }),
+    goVendorSignIn: () =>
+      patch({
+        screen: 'vendor-signin',
+        navMenuOpen: false,
+        vsiEmail: '',
+        vsiPassword: '',
+        vsiSubmitting: false,
+        vsiError: null,
+        vsiForgotMode: false,
+        vsiForgotSent: false,
+        vsiForgotError: null,
+      }),
     isAbout: st.screen === 'about',
+    isTerms: st.screen === 'terms',
+    isPrivacy: st.screen === 'privacy',
+    goTerms: nav('terms'),
+    goPrivacy: nav('privacy'),
+    // Real browser back, not a fixed "go home" — so opening Terms/Privacy
+    // mid-onboarding (or from anywhere else) returns to exactly where you
+    // were, since only `screen` changes on the way there.
+    goBack: () => window.history.back(),
     sourcingOpen: st.sourcingOpen,
     goHome: nav('home'),
     goSuppliers: nav('suppliers'),
@@ -869,8 +979,32 @@ export default function App() {
     goHowItWorks: nav('how-it-works'),
     goSpotlight: nav('spotlight'),
     goVendorHowItWorks: nav('join'),
-    goAbout: nav('about', { contactSent: false }),
-    submitContact: () => patch({ contactSent: true }),
+    goAbout: nav('about', { contactSent: false, contactName: '', contactEmail: '', contactMessage: '', contactError: null }),
+    contactName: st.contactName || '',
+    setContactName: (e) => patch({ contactName: e.target.value }),
+    contactEmail: st.contactEmail || '',
+    setContactEmail: (e) => patch({ contactEmail: e.target.value }),
+    contactMessage: st.contactMessage || '',
+    setContactMessage: (e) => patch({ contactMessage: e.target.value }),
+    contactCompany: st.contactCompany || '',
+    setContactCompany: (e) => patch({ contactCompany: e.target.value }),
+    contactSubmitting: !!st.contactSubmitting,
+    contactError: st.contactError || '',
+    contactDisabled:
+      !((st.contactName || '').trim() && (st.contactEmail || '').trim() && (st.contactMessage || '').trim()) || !!st.contactSubmitting,
+    submitContact: async () => {
+      const name = (st.contactName || '').trim();
+      const email = (st.contactEmail || '').trim();
+      const message = (st.contactMessage || '').trim();
+      if (!name || !email || !message || st.contactSubmitting) return;
+      patch({ contactSubmitting: true, contactError: null });
+      try {
+        await submitContactMessage({ name, email, message, company: st.contactCompany });
+        patch({ contactSubmitting: false, contactSent: true, contactName: '', contactEmail: '', contactMessage: '' });
+      } catch (err) {
+        patch({ contactSubmitting: false, contactError: err.message || 'Could not send your message. Please try again.' });
+      }
+    },
     contactSent: !!st.contactSent,
     openPromoPlan: (planKey) => () =>
       patch({
@@ -1528,6 +1662,23 @@ export default function App() {
         patch({ vsiSubmitting: false, signedIn: true, email: user.email || st.vsiEmail, accountRole: 'vendor', screen: 'vendor-dashboard' });
       } catch (err) {
         patch({ vsiSubmitting: false, vsiError: err.message || 'Could not sign in. Check your email and password and try again.' });
+      }
+    },
+    vsiForgotMode: !!st.vsiForgotMode,
+    openVsiForgot: () => patch({ vsiForgotMode: true, vsiForgotSent: false, vsiForgotError: null }),
+    closeVsiForgot: () => patch({ vsiForgotMode: false, vsiForgotSent: false, vsiForgotError: null }),
+    vsiForgotSubmitting: !!st.vsiForgotSubmitting,
+    vsiForgotSent: !!st.vsiForgotSent,
+    vsiForgotError: st.vsiForgotError || '',
+    vsiForgotDisabled: !(st.vsiEmail && st.vsiEmail.indexOf('@') > 0) || !!st.vsiForgotSubmitting,
+    submitVsiForgot: async () => {
+      if (!st.vsiEmail || st.vsiEmail.indexOf('@') < 1 || st.vsiForgotSubmitting) return;
+      patch({ vsiForgotSubmitting: true, vsiForgotError: null });
+      try {
+        await sendVendorAccountSetupEmail(st.vsiEmail);
+        patch({ vsiForgotSubmitting: false, vsiForgotSent: true });
+      } catch (err) {
+        patch({ vsiForgotSubmitting: false, vsiForgotError: err.message || 'Could not send a reset link. Please try again.' });
       }
     },
 
@@ -4729,6 +4880,8 @@ export default function App() {
                     </span>
                     <input
                       type="text"
+                      value={V.contactName}
+                      onChange={V.setContactName}
                       placeholder="Your name"
                       style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
                     />
@@ -4739,6 +4892,8 @@ export default function App() {
                     </span>
                     <input
                       type="email"
+                      value={V.contactEmail}
+                      onChange={V.setContactEmail}
                       placeholder="you@example.com"
                       style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
                     />
@@ -4748,6 +4903,8 @@ export default function App() {
                       Message
                     </span>
                     <textarea
+                      value={V.contactMessage}
+                      onChange={V.setContactMessage}
                       placeholder="How can we help?"
                       style={{
                         minHeight: 120,
@@ -4763,9 +4920,16 @@ export default function App() {
                       }}
                     />
                   </label>
+                  {/* Honeypot — hidden from real visitors via CSS, not just off-screen positioning, so screen readers skip it too. Bots that fill every field trip it; humans never see it. */}
+                  <label style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }} aria-hidden="true">
+                    Company
+                    <input type="text" tabIndex={-1} autoComplete="off" value={V.contactCompany} onChange={V.setContactCompany} />
+                  </label>
                 </div>
+                {V.contactError && <div style={{ marginTop: 12, fontSize: 13, color: '#B3261E' }}>{V.contactError}</div>}
                 <button
                   onClick={V.submitContact}
+                  disabled={V.contactDisabled}
                   style={{
                     marginTop: 20,
                     border: 0,
@@ -4776,12 +4940,60 @@ export default function App() {
                     cursor: 'pointer',
                     fontSize: 15,
                     fontWeight: 700,
+                    opacity: V.contactDisabled ? 0.5 : 1,
                   }}
                 >
-                  Send message
+                  {V.contactSubmitting ? 'Sending…' : 'Send message'}
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {(V.isTerms || V.isPrivacy) && (
+        <div style={{ padding: '34px 0 0' }}>
+          <button
+            onClick={V.goBack}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← Back
+          </button>
+
+          <div style={{ marginTop: 22, maxWidth: 680 }}>
+            <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 46, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
+              {V.isTerms ? 'Terms of Service' : 'Privacy Policy'}
+            </h1>
+            <p style={{ margin: '10px 0 0', fontFamily: MONO, fontSize: 12, color: '#8A8A8A' }}>Last updated {LEGAL_UPDATED}</p>
+
+            <div style={{ marginTop: 30, display: 'flex', flexDirection: 'column', gap: 26 }}>
+              {(V.isTerms ? TERMS_SECTIONS : PRIVACY_SECTIONS).map((s) => (
+                <div key={s.h}>
+                  <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{s.h}</h2>
+                  <p style={{ margin: '8px 0 0', fontSize: 14.5, lineHeight: 1.65, color: '#4A4A4A' }}>{s.p}</p>
+                </div>
+              ))}
+            </div>
+
+            <p style={{ marginTop: 34, fontSize: 13, color: '#8A8A8A' }}>
+              {V.isTerms ? (
+                <>
+                  See also our{' '}
+                  <button onClick={V.goPrivacy} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+                    Privacy Policy
+                  </button>
+                  .
+                </>
+              ) : (
+                <>
+                  See also our{' '}
+                  <button onClick={V.goTerms} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+                    Terms of Service
+                  </button>
+                  .
+                </>
+              )}
+            </p>
           </div>
         </div>
       )}
@@ -5241,36 +5453,92 @@ export default function App() {
             .
           </p>
 
-          <div style={{ marginTop: 22, border: '1px solid #ECECEC', borderRadius: 24, padding: 26, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Email address</span>
-              <input
-                type="email"
-                value={V.vsiEmail}
-                onChange={V.setVsiEmail}
-                placeholder="your@email.com"
-                style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }}
-              />
-            </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Password</span>
-              <input
-                type="password"
-                value={V.vsiPassword}
-                onChange={V.setVsiPassword}
-                placeholder="Your password"
-                style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }}
-              />
-            </label>
-            <button
-              onClick={V.vsiSignIn}
-              disabled={V.vsiDisabled}
-              style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '14px 24px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.vsiDisabled ? 0.5 : 1 }}
-            >
-              {V.vsiSubmitting ? 'Signing in…' : 'Sign in'}
-            </button>
-            {V.vsiError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.vsiError}</div>}
-          </div>
+          {V.vsiForgotMode ? (
+            <div style={{ marginTop: 22, border: '1px solid #ECECEC', borderRadius: 24, padding: 26, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {V.vsiForgotSent ? (
+                <>
+                  <div style={{ fontSize: 18, fontWeight: 700 }}>Check your email</div>
+                  <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                    If {V.vsiEmail} has a vendor account, we've sent a link to reset the password. Click it to choose a new one.
+                  </p>
+                  <button
+                    onClick={V.closeVsiForgot}
+                    style={{ alignSelf: 'flex-start', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#5B5B5B', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+                  >
+                    Back to sign in
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 18, fontWeight: 700 }}>Reset your password</div>
+                  <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                    Enter your account email and we'll send you a link to set a new password.
+                  </p>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Email address</span>
+                    <input
+                      type="email"
+                      value={V.vsiEmail}
+                      onChange={V.setVsiEmail}
+                      placeholder="your@email.com"
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }}
+                    />
+                  </label>
+                  <button
+                    onClick={V.submitVsiForgot}
+                    disabled={V.vsiForgotDisabled}
+                    style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '14px 24px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.vsiForgotDisabled ? 0.5 : 1 }}
+                  >
+                    {V.vsiForgotSubmitting ? 'Sending…' : 'Send reset link'}
+                  </button>
+                  {V.vsiForgotError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.vsiForgotError}</div>}
+                  <button
+                    onClick={V.closeVsiForgot}
+                    style={{ alignSelf: 'flex-start', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#5B5B5B', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+                  >
+                    Back to sign in
+                  </button>
+                </>
+              )}
+            </div>
+          ) : (
+            <div style={{ marginTop: 22, border: '1px solid #ECECEC', borderRadius: 24, padding: 26, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Email address</span>
+                <input
+                  type="email"
+                  value={V.vsiEmail}
+                  onChange={V.setVsiEmail}
+                  placeholder="your@email.com"
+                  style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }}
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Password</span>
+                <input
+                  type="password"
+                  value={V.vsiPassword}
+                  onChange={V.setVsiPassword}
+                  placeholder="Your password"
+                  style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }}
+                />
+              </label>
+              <button
+                onClick={V.vsiSignIn}
+                disabled={V.vsiDisabled}
+                style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '14px 24px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.vsiDisabled ? 0.5 : 1 }}
+              >
+                {V.vsiSubmitting ? 'Signing in…' : 'Sign in'}
+              </button>
+              {V.vsiError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.vsiError}</div>}
+              <button
+                onClick={V.openVsiForgot}
+                style={{ alignSelf: 'flex-start', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#5B5B5B', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -6495,18 +6763,34 @@ export default function App() {
                   </label>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <button onClick={V.toggleVoAgreeTerms} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                    <div onClick={V.toggleVoAgreeTerms} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, border: `1px solid ${V.voAgreeTerms ? '#171717' : '#C8C8C2'}`, borderRadius: 5, background: V.voAgreeTerms ? '#171717' : 'transparent', color: '#FFFFFF', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
                         {V.voAgreeTerms ? '✓' : ''}
                       </span>
-                      <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>I agree to the Terms of Service</span>
-                    </button>
-                    <button onClick={V.toggleVoAgreePrivacy} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>
+                        I agree to the{' '}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); V.goTerms(); }}
+                          style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', font: 'inherit', color: '#171717', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                        >
+                          Terms of Service
+                        </button>
+                      </span>
+                    </div>
+                    <div onClick={V.toggleVoAgreePrivacy} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, border: `1px solid ${V.voAgreePrivacy ? '#171717' : '#C8C8C2'}`, borderRadius: 5, background: V.voAgreePrivacy ? '#171717' : 'transparent', color: '#FFFFFF', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
                         {V.voAgreePrivacy ? '✓' : ''}
                       </span>
-                      <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>I agree to the Privacy Policy</span>
-                    </button>
+                      <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>
+                        I agree to the{' '}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); V.goPrivacy(); }}
+                          style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', font: 'inherit', color: '#171717', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                        >
+                          Privacy Policy
+                        </button>
+                      </span>
+                    </div>
                   </div>
 
                   <button
@@ -7976,8 +8260,22 @@ export default function App() {
             gap: 10,
           }}
         >
-          <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
-            © {new Date().getFullYear()} Eventory. All rights reserved.
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: isMobile ? 10 : 18 }}>
+            <div style={{ fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
+              © {new Date().getFullYear()} Eventory. All rights reserved.
+            </div>
+            <button
+              onClick={V.goTerms}
+              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 12, color: '#8A8A8A', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+            >
+              Terms of Service
+            </button>
+            <button
+              onClick={V.goPrivacy}
+              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 12, color: '#8A8A8A', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+            >
+              Privacy Policy
+            </button>
           </div>
           <div style={{ fontSize: 12, color: '#6E6E6E' }}>
             Eventory never processes payment. You deal directly with each vendor.
