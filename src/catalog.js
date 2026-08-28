@@ -488,6 +488,19 @@ export async function createVendorListing(payload) {
   if (!user) {
     throw new Error('You need to be signed in.');
   }
+  // The dashboard (fetchMyVendor) assumes exactly one vendor row per
+  // account — a second one breaks it outright rather than just looking
+  // odd, so this has to be checked up front rather than left to a
+  // database constraint.
+  const { data: existing, error: existingError } = await supabase
+    .from('vendors')
+    .select('id')
+    .eq('owner_user_id', user.id)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (existing) {
+    throw new Error('This account already has a vendor listing. Sign in and use your dashboard to edit it, or use a different email for a second business.');
+  }
   return insertVendorRow(user.id, payload);
 }
 
