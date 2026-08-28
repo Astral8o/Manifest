@@ -429,6 +429,7 @@ const initialState = {
   promoPlanName: '',
   promoPlanEmail: '',
   promoPlanPhone: '',
+  promoPlanCompany: '',
   promoPlanSubmitting: false,
   promoPlanError: null,
   reviewFormOpen: false,
@@ -1027,6 +1028,8 @@ export default function App() {
     setPromoPlanEmail: (e) => patch({ promoPlanEmail: e.target.value }),
     promoPlanPhoneInput: st.promoPlanPhone || '',
     setPromoPlanPhone: (e) => patch({ promoPlanPhone: e.target.value }),
+    promoPlanCompanyInput: st.promoPlanCompany || '',
+    setPromoPlanCompany: (e) => patch({ promoPlanCompany: e.target.value }),
     promoPlanSubmitting: !!st.promoPlanSubmitting,
     promoPlanError: st.promoPlanError || '',
     promoPlanSubmitDisabled:
@@ -1043,6 +1046,7 @@ export default function App() {
           businessName: name,
           email,
           phone: (st.promoPlanPhone || '').trim(),
+          company: st.promoPlanCompany,
         });
         patch({ promoPlanSubmitting: false, promoPlanSent: true });
       } catch (err) {
@@ -1066,6 +1070,7 @@ export default function App() {
         planContactName: '',
         planContactPhone: '',
         planContactEmail: '',
+        planCompany: '',
         planSubmitting: false,
         planSubmitError: null,
       }),
@@ -1130,6 +1135,8 @@ export default function App() {
     setPlanContactPhone: (e) => patch({ planContactPhone: e.target.value }),
     planContactEmail: st.planContactEmail || '',
     setPlanContactEmail: (e) => patch({ planContactEmail: e.target.value }),
+    planCompany: st.planCompany || '',
+    setPlanCompany: (e) => patch({ planCompany: e.target.value }),
     planSubmitting: !!st.planSubmitting,
     planSubmitError: st.planSubmitError || '',
     planSubmitDisabled:
@@ -1153,6 +1160,7 @@ export default function App() {
           contactName: name,
           contactPhone: phone,
           contactEmail: (st.planContactEmail || '').trim(),
+          company: st.planCompany,
         });
         patch({
           planModalOpen: false,
@@ -1476,9 +1484,11 @@ export default function App() {
     setReviewStars: (n) => patch({ reviewStars: n }),
     reviewBody: st.reviewBody || '',
     setReviewBody: (e) => patch({ reviewBody: e.target.value }),
+    reviewCompany: st.reviewCompany || '',
+    setReviewCompany: (e) => patch({ reviewCompany: e.target.value }),
     openReviewForm: () => patch({ reviewFormOpen: true, reviewSent: false, reviewError: null }),
     cancelReviewForm: () =>
-      patch({ reviewFormOpen: false, reviewError: null, reviewAuthor: '', reviewStars: 0, reviewBody: '' }),
+      patch({ reviewFormOpen: false, reviewError: null, reviewAuthor: '', reviewStars: 0, reviewBody: '', reviewCompany: '' }),
     submitReview: async () => {
       if (st.reviewSending) return;
       if (!st.reviewAuthor || !st.reviewAuthor.trim()) {
@@ -1500,6 +1510,7 @@ export default function App() {
           author: st.reviewAuthor.trim(),
           stars: st.reviewStars,
           body: st.reviewBody.trim(),
+          company: st.reviewCompany,
         });
         patch({
           reviewSending: false,
@@ -1508,6 +1519,7 @@ export default function App() {
           reviewAuthor: '',
           reviewStars: 0,
           reviewBody: '',
+          reviewCompany: '',
         });
       } catch (err) {
         patch({ reviewSending: false, reviewError: err.message || 'Something went wrong submitting your review. Please try again.' });
@@ -4248,6 +4260,10 @@ export default function App() {
                                 resize: 'vertical',
                               }}
                             />
+                          </label>
+                          <label style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }} aria-hidden="true">
+                            Company
+                            <input type="text" tabIndex={-1} autoComplete="off" value={V.reviewCompany} onChange={V.setReviewCompany} />
                           </label>
                           {V.reviewError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.reviewError}</div>}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -7306,6 +7322,10 @@ export default function App() {
                     />
                   </div>
                 </div>
+                <label style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }} aria-hidden="true">
+                  Company
+                  <input type="text" tabIndex={-1} autoComplete="off" value={V.planCompany} onChange={V.setPlanCompany} />
+                </label>
                 <button
                   onClick={V.finishPlanning}
                   disabled={V.planSubmitDisabled}
@@ -8086,6 +8106,10 @@ export default function App() {
                     placeholder="868 000 0000"
                     style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
                   />
+                </label>
+                <label style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }} aria-hidden="true">
+                  Company
+                  <input type="text" tabIndex={-1} autoComplete="off" value={V.promoPlanCompanyInput} onChange={V.setPromoPlanCompany} />
                 </label>
 
                 <button

@@ -171,8 +171,11 @@ export async function submitInquiry({ buyer, groups }) {
 }
 
 // New reviews are inserted with the default status ('pending') and only
-// become visible once approved, per the vendor_reviews RLS policy.
-export async function submitVendorReview({ vendorId, author, stars, body }) {
+// become visible once approved, per the vendor_reviews RLS policy. company
+// is a honeypot (see submitContactMessage) — silently dropped, not surfaced
+// as an error, so a bot can't tell its submission was rejected.
+export async function submitVendorReview({ vendorId, author, stars, body, company }) {
+  if (company) return;
   if (!supabaseConfigured) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
@@ -799,7 +802,9 @@ export async function fetchMyQuoteRequests() {
   }));
 }
 
-export async function submitSpotlightInterest({ plan, businessName, email, phone }) {
+// company is a honeypot (see submitContactMessage below).
+export async function submitSpotlightInterest({ plan, businessName, email, phone, company }) {
+  if (company) return;
   if (!supabaseConfigured) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
@@ -813,7 +818,9 @@ export async function submitSpotlightInterest({ plan, businessName, email, phone
   if (error) throw error;
 }
 
+// company is a honeypot (see submitContactMessage below).
 export async function submitPlanningRequest(request) {
+  if (request.company) return;
   if (!supabaseConfigured) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
