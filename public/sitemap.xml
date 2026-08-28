@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Static snapshot, not auto-generated — only the homepage and vendor
+  profiles have distinct, crawlable URLs right now (see the "Give vendor
+  profiles real, shareable URLs" commit). Regenerate this file whenever
+  new vendors are published; a build-time script pulling straight from
+  Supabase would be the next step if this needs to stay current
+  automatically, but that's a separate task from writing it once.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://www.eventorytt.com/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://www.eventorytt.com/?vendor=5691b522-7ea1-48cf-ba62-431507d47645</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.eventorytt.com/?vendor=bcfd521e-69d9-4121-905a-ad0da4f215f1</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.eventorytt.com/?vendor=8911f1ed-db6d-41de-896b-516f1c27ca86</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.eventorytt.com/?vendor=e8a39960-044f-44bf-a64a-588c4e6a3210</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.eventorytt.com/?vendor=5d9622b5-3368-4c97-8920-3808fa4aa7fb</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.eventorytt.com/?vendor=d0463427-cadf-46ea-9476-c7dd04c8512b</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.eventorytt.com/?vendor=f352b27c-f101-47ab-9d0a-a17ae6d390a9</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.eventorytt.com/?vendor=e6eb40e2-0333-4b8a-9bbc-5df2d36a2b89</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.eventorytt.com/?vendor=e9bc12f5-a6b9-43ac-8098-ac978cab3951</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.eventorytt.com/?vendor=71bba426-0552-4ab3-85a5-f06c6d0a9cec</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>
