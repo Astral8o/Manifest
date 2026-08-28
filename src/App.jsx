@@ -916,7 +916,6 @@ export default function App() {
       }
     },
     goAccount: st.accountRole === 'vendor' ? nav('vendor-dashboard') : nav('account'),
-    goAdmin: nav('admin'),
     navMenuOpen: !!st.navMenuOpen,
     toggleNavMenu: () => patch((s) => ({ navMenuOpen: !s.navMenuOpen })),
     closeNavMenu: () => patch({ navMenuOpen: false }),
@@ -2474,23 +2473,6 @@ export default function App() {
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {V.adminIsAuthed && (
-            <button
-              onClick={V.goAdmin}
-              style={{
-                border: '1px solid #D7D7D2',
-                borderRadius: 999,
-                background: 'transparent',
-                color: '#171717',
-                padding: '9px 16px',
-                cursor: 'pointer',
-                fontSize: 14,
-                fontWeight: 700,
-              }}
-            >
-              Admin
-            </button>
-          )}
           <button
             onClick={V.goAccount}
             aria-label={V.accountLabel}
@@ -7948,14 +7930,6 @@ export default function App() {
               >
                 {V.isSignedIn ? 'Dashboard' : 'Sign in'}
               </button>
-              {V.adminIsAuthed && (
-                <button
-                  onClick={V.goAdmin}
-                  style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 500, color: '#D7D7D2' }}
-                >
-                  Admin
-                </button>
-              )}
             </div>
           </div>
           <div>
