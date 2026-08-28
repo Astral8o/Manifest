@@ -411,6 +411,8 @@ const initialState = {
   vdPkgDescription: '',
   vdPkgPriceMin: '',
   vdPkgPriceMax: '',
+  vdPkgPhotoUrl: '',
+  vdUploadingPkgPhoto: false,
   vdAddingPkg: false,
   vdAlbumEventType: '',
   vdUploadingGalleryPhoto: false,
@@ -1727,6 +1729,19 @@ export default function App() {
     vdPkgPriceMax: st.vdPkgPriceMax || '',
     setVdPkgPriceMax: (e) => patch({ vdPkgPriceMax: e.target.value }),
     suggestedVdPackageChips: SUGGESTED_PACKAGES.map((name) => ({ name, pick: () => patch({ vdPkgName: name }) })),
+    vdPkgPhotoUrl: st.vdPkgPhotoUrl || '',
+    vdUploadingPkgPhoto: !!st.vdUploadingPkgPhoto,
+    uploadVdPkgPhoto: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ vdUploadingPkgPhoto: true, vdSaveError: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ vdUploadingPkgPhoto: false, vdPkgPhotoUrl: url });
+      } catch (err) {
+        patch({ vdUploadingPkgPhoto: false, vdSaveError: err.message || 'Could not upload photo.' });
+      }
+    },
     vdAddingPkg: !!st.vdAddingPkg,
     vdAddPkgDisabled: !((st.vdPkgName || '').trim() && st.vdPkgPriceMin && st.vdPkgPriceMax) || !!st.vdAddingPkg,
     addVdPackage: async () => {
@@ -1739,6 +1754,7 @@ export default function App() {
           description: (st.vdPkgDescription || '').trim(),
           priceMin: Number(st.vdPkgPriceMin),
           priceMax: Number(st.vdPkgPriceMax),
+          photoUrl: st.vdPkgPhotoUrl || null,
           sortOrder: st.vdVendor.packages.length,
         });
         patch((s) => ({
@@ -1747,6 +1763,7 @@ export default function App() {
           vdPkgDescription: '',
           vdPkgPriceMin: '',
           vdPkgPriceMax: '',
+          vdPkgPhotoUrl: '',
           vdVendor: {
             ...s.vdVendor,
             packages: s.vdVendor.packages.concat([
@@ -5588,8 +5605,13 @@ export default function App() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {V.vdVendor.packages.map((p) => (
                       <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, border: '1px solid #ECECEC', borderRadius: 16, padding: '14px 16px' }}>
-                        <div style={{ fontSize: 14 }}>
-                          <strong>{p.name}</strong> — TT${p.priceMin}–TT${p.priceMax}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          {p.photoUrl && (
+                            <img src={p.photoUrl} alt={p.name} style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                          )}
+                          <div style={{ fontSize: 14 }}>
+                            <strong>{p.name}</strong> — TT${p.priceMin}–TT${p.priceMax}
+                          </div>
                         </div>
                         <button onClick={V.removeVdPackage(p.id)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 13, color: '#B3261E', fontWeight: 700 }}>Remove</button>
                       </div>
@@ -5609,6 +5631,16 @@ export default function App() {
                       <div style={{ display: 'flex', gap: 8 }}>
                         <input type="number" value={V.vdPkgPriceMin} onChange={V.setVdPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                         <input type="number" value={V.vdPkgPriceMax} onChange={V.setVdPkgPriceMax} placeholder="Price max (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {V.vdPkgPhotoUrl && (
+                          <img src={V.vdPkgPhotoUrl} alt="Package" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                        )}
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Photo (optional)</span>
+                          <input type="file" accept="image/*" onChange={V.uploadVdPkgPhoto} style={{ fontSize: 12 }} />
+                        </label>
+                        {V.vdUploadingPkgPhoto && <span style={{ fontSize: 12, color: '#8A8A8A' }}>Uploading…</span>}
                       </div>
                       <button onClick={V.addVdPackage} disabled={V.vdAddPkgDisabled} style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '10px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.vdAddPkgDisabled ? 0.5 : 1 }}>
                         {V.vdAddingPkg ? 'Adding…' : 'Add package'}
