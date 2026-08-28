@@ -527,6 +527,12 @@ export default function App() {
     const base = { ...initialState, ...loadAccount() };
     const shared = sharedProductFromUrl();
     if (shared) return { ...base, screen: 'supplier', supId: shared.supId, supplierTab: 'services' };
+    // A vendor's own profile URL (?vendor=<id>) — set on every visit to a
+    // vendor page (see the pushState effect below) so it's shareable and
+    // survives a refresh, distinct from ?product= which links one specific
+    // package within a vendor's page.
+    const sharedVendorId = new URLSearchParams(window.location.search).get('vendor');
+    if (sharedVendorId) return { ...base, screen: 'supplier', supId: sharedVendorId, supplierTab: 'services' };
     if (new URLSearchParams(window.location.search).get('admin')) {
       return { ...base, screen: 'admin' };
     }
@@ -718,8 +724,26 @@ export default function App() {
   const isPoppingRef = useRef(false);
   const isFirstScreenRef = useRef(true);
 
+  // A vendor's profile gets a real, shareable URL (?vendor=<id>) so it
+  // survives a refresh and can be pasted/shared — every other screen just
+  // stays on the plain path. Only touches the "vendor"/"product" params;
+  // "admin" (or anything else already in the query string) is left alone,
+  // so a bookmarked ?admin=1 session isn't dropped by navigating around.
+  const urlForScreen = (screen, supId) => {
+    const path = window.location.pathname;
+    const params = new URLSearchParams(window.location.search);
+    params.delete('product');
+    if (screen === 'supplier' && supId) {
+      params.set('vendor', supId);
+    } else {
+      params.delete('vendor');
+    }
+    const qs = params.toString();
+    return path + (qs ? '?' + qs : '');
+  };
+
   useEffect(() => {
-    history.replaceState({ screen: st.screen, supId: st.supId, supplierTab: st.supplierTab }, '');
+    history.replaceState({ screen: st.screen, supId: st.supId, supplierTab: st.supplierTab }, '', urlForScreen(st.screen, st.supId));
     const onPopState = (e) => {
       if (!e.state) return;
       isPoppingRef.current = true;
@@ -739,7 +763,7 @@ export default function App() {
       isFirstScreenRef.current = false;
       return;
     }
-    history.pushState({ screen: st.screen, supId: st.supId, supplierTab: st.supplierTab }, '');
+    history.pushState({ screen: st.screen, supId: st.supId, supplierTab: st.supplierTab }, '', urlForScreen(st.screen, st.supId));
     // Only push a new history entry when the screen itself changes, not on every
     // supId/supplierTab update (e.g. switching tabs shouldn't add a back-button stop).
     // eslint-disable-next-line react-hooks/exhaustive-deps
