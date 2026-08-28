@@ -5988,9 +5988,17 @@ export default function App() {
           {!V.adminIsAuthed ? (
             <div style={{ marginTop: 24, maxWidth: 420, border: '1px solid #ECECEC', borderRadius: 24, padding: 26 }}>
               {V.signedIn ? (
-                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-                  Signed in as {V.email}, but this account doesn't have admin access.
-                </p>
+                <>
+                  <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                    Signed in as {V.email}, but this account doesn't have admin access.
+                  </p>
+                  <button
+                    onClick={V.signOut}
+                    style={{ marginTop: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#5B5B5B', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+                  >
+                    Sign out and use a different account
+                  </button>
+                </>
               ) : V.authSent ? (
                 <>
                   <div style={{ fontSize: 18, fontWeight: 700 }}>Check your email</div>
