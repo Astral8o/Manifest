@@ -266,7 +266,28 @@ export const SUPPLIERS = [
     ] },
 ];
 
-export const LOCATIONS = ["All areas", "Port of Spain", "San Fernando", "Chaguanas", "Arima", "Tobago"];
+// The 14 municipal corporations of Trinidad, plus Tobago and a catch-all —
+// matches the MUNICIPALITIES list vendors pick their own city from in
+// App.jsx, so a vendor based in e.g. Point Fortin or Siparia is actually
+// findable through this filter instead of only ever matching "All areas".
+export const LOCATIONS = [
+  "All areas",
+  "Port of Spain",
+  "San Fernando",
+  "Arima",
+  "Chaguanas",
+  "Point Fortin",
+  "Diego Martin",
+  "San Juan/Laventille",
+  "Tunapuna/Piarco",
+  "Sangre Grande",
+  "Couva/Tabaquite/Talparo",
+  "Princes Town",
+  "Mayaro/Rio Claro",
+  "Penal/Debe",
+  "Siparia",
+  "Tobago",
+];
 export const GROUPS = [["Any size", 0], ["Under 40", 40], ["40 to 100", 100], ["100+", 1000]];
 
 export const FIELDS = {
