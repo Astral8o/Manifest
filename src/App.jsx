@@ -7,6 +7,7 @@ import {
 } from './data';
 import {
   fetchCatalog,
+  fetchVendorDetail,
   submitVendorReview,
   sendMagicLink,
   submitPlanningRequest,
@@ -127,6 +128,9 @@ const EMPTY_SUPPLIER = {
   contactPerson: '',
   country: '',
   startingPrice: null,
+  minProductPrice: null,
+  searchText: '',
+  firstProduct: null,
   promos: [],
   reviews: [],
   faqs: [],
@@ -412,6 +416,13 @@ const initialState = {
   copiedPid: null,
   copiedVendorId: null,
   supCarouselIndex: 0,
+  // Per-vendor full detail (products, gallery, reviews, faqs, policies,
+  // menu, promos), fetched on demand — see ensureVendorDetail. Keyed by
+  // vendor id; vendorDetailLoading tracks in-flight fetches so opening the
+  // same vendor twice or a saved item from an already-open vendor doesn't
+  // refetch.
+  vendorDetail: {},
+  vendorDetailLoading: {},
   contactSent: false,
   contactName: '',
   contactEmail: '',
@@ -569,6 +580,48 @@ export default function App() {
   }, []);
   const CATS = catalog.cats;
   const SUPPLIERS = catalog.suppliers;
+
+  // Full detail (products/gallery/reviews/faqs/policies/menu/promos) for
+  // one vendor, fetched lazily — the profile page and the Saved Items page
+  // both call this for whichever vendor id(s) they need. Defined here
+  // (before the catalog.ready early return below) rather than alongside
+  // the other vendor helpers further down, since the two effects right
+  // below reference it and every hook must run on every render, including
+  // ones that bail out at that early return before reaching the rest of
+  // the function body.
+  const ensureVendorDetail = (id) => {
+    if (!id || st.vendorDetail[id] || st.vendorDetailLoading[id]) return;
+    patch((s) => ({ vendorDetailLoading: { ...s.vendorDetailLoading, [id]: true } }));
+    fetchVendorDetail(id)
+      .then((detail) => {
+        patch((s) => ({
+          vendorDetailLoading: { ...s.vendorDetailLoading, [id]: false },
+          vendorDetail: detail ? { ...s.vendorDetail, [id]: detail } : s.vendorDetail,
+        }));
+      })
+      .catch(() => {
+        patch((s) => ({ vendorDetailLoading: { ...s.vendorDetailLoading, [id]: false } }));
+      });
+  };
+
+  // Fetch the open vendor's full detail (products, gallery, reviews, faqs,
+  // policies, menu, promos) — the lean catalog list doesn't carry any of
+  // that. ensureVendorDetail no-ops if it's already cached or in flight.
+  useEffect(() => {
+    if (st.screen !== 'supplier' || !st.supId) return;
+    ensureVendorDetail(st.supId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [st.screen, st.supId]);
+
+  // The Saved Items page shows name/price/photo for every saved product,
+  // which can span several vendors that aren't the one currently open —
+  // fetch full detail for each distinct vendor referenced in st.saved.
+  useEffect(() => {
+    if (st.screen !== 'account') return;
+    const supIds = new Set((st.saved || []).map((pid) => pid.slice(0, pid.lastIndexOf('-'))));
+    supIds.forEach((id) => ensureVendorDetail(id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [st.screen, st.saved]);
 
   // Load the admin's vendor list (including drafts) whenever the signed-in
   // admin lands on the dashboard — RLS only allows this for ADMIN_EMAIL.
@@ -823,29 +876,37 @@ export default function App() {
     );
   }
 
-  const allProducts = () => {
-    const out = [];
-    SUPPLIERS.forEach((s) =>
-      s.products.forEach((p, i) =>
-        out.push({
-          id: s.id + '-' + (i + 1),
-          supId: s.id,
-          name: p[0],
-          description: p[1],
-          min: p[2],
-          max: p[3],
-          unit: p[4],
-          minQty: p[5],
-          group: p[7] || 'General',
-          photoUrl: p[8] || '',
-          inclusions: p[9] || [],
-          priceOnRequest: !!s.priceOnRequest,
-        })
-      )
-    );
-    return out;
+  // Converts one detail-fetched vendor's raw product tuples into the named
+  // shape the rest of the app expects. Only ever called on a vendor whose
+  // full detail has actually been fetched (see ensureVendorDetail) — never
+  // a global flatten across every vendor, since list-view vendors (from
+  // vendor_list_view) don't carry a .products array at all.
+  const productsOf = (s) =>
+    (s.products || []).map((p, i) => ({
+      id: s.id + '-' + (i + 1),
+      supId: s.id,
+      name: p[0],
+      description: p[1],
+      min: p[2],
+      max: p[3],
+      unit: p[4],
+      minQty: p[5],
+      group: p[7] || 'General',
+      photoUrl: p[8] || '',
+      inclusions: p[9] || [],
+      priceOnRequest: !!s.priceOnRequest,
+    }));
+  // Resolves a single product id ("<vendorId>-<index>") against whichever
+  // vendor's full detail is currently cached — the open profile page, or a
+  // saved-item's vendor once ensureVendorDetail has fetched it. Returns
+  // undefined until that detail has loaded, same as the old lookup did
+  // while the whole catalog was still loading.
+  const product = (id) => {
+    const supId = id.slice(0, id.lastIndexOf('-'));
+    const detail = st.vendorDetail[supId];
+    if (!detail) return undefined;
+    return productsOf(detail).find((p) => p.id === id);
   };
-  const product = (id) => allProducts().find((p) => p.id === id);
   const supplier = (id) => SUPPLIERS.find((s) => s.id === id);
   const catName = (code) => {
     const c = CATS.find((c) => c[0] === code);
@@ -853,7 +914,10 @@ export default function App() {
   };
   const priceLabel = (p) =>
     p.priceOnRequest ? 'Inquire for pricing' : money(p.min) + '–' + money(p.max) + (p.unit === 'flat' ? '' : ' ' + p.unit);
-  const startPrice = (s) => (s.priceOnRequest || !s.products.length ? null : Math.min(...s.products.map((p) => p[2])));
+  // s.minProductPrice comes pre-aggregated from vendor_list_view (min
+  // products.price_min, computed server-side) so this never needs a
+  // vendor's full .products array — safe to call on every list-view row.
+  const startPrice = (s) => (s.priceOnRequest || s.minProductPrice === null || s.minProductPrice === undefined ? null : s.minProductPrice);
 
   const toggleSave = (pid) => {
     patch((s) => {
@@ -938,14 +1002,23 @@ export default function App() {
       s.desc.toLowerCase().indexOf(dirQueryLower) >= 0 ||
       catName(s.code).toLowerCase().indexOf(dirQueryLower) >= 0 ||
       s.tags.some((t) => t.toLowerCase().indexOf(dirQueryLower) >= 0);
-    const inProducts = allProducts().some(
-      (p) => p.supId === s.id && (p.name.toLowerCase().indexOf(dirQueryLower) >= 0 || p.description.toLowerCase().indexOf(dirQueryLower) >= 0)
-    );
+    // s.searchText comes pre-aggregated from vendor_list_view (every
+    // product's name + description, lowercased server-side) so matching a
+    // search term against a vendor's offerings doesn't need its full
+    // .products array.
+    const inProducts = s.searchText.indexOf(dirQueryLower) >= 0;
     return inSupplier || inProducts;
   });
 
-  const sup = supplier(st.supId) || SUPPLIERS[0] || EMPTY_SUPPLIER;
-  const supProducts = allProducts().filter((p) => p.supId === sup.id);
+  // sup merges the lean list-view row (name, city, rating, etc. — always
+  // available) with that vendor's full detail once ensureVendorDetail has
+  // fetched it (products, gallery, reviews, faqs, policies, menu, promos —
+  // all default to [] via EMPTY_SUPPLIER until then, so every tab renders
+  // an empty state instead of erroring while detail is still in flight).
+  const supLean = supplier(st.supId) || SUPPLIERS[0] || EMPTY_SUPPLIER;
+  const sup = { ...EMPTY_SUPPLIER, ...supLean, ...(st.vendorDetail[supLean.id] || {}) };
+  const supDetailLoading = !!st.vendorDetailLoading[sup.id] && !st.vendorDetail[sup.id];
+  const supProducts = productsOf(sup);
   const socialUrl = (platform, handle) => {
     if (!handle) return null;
     const h = handle
@@ -1310,20 +1383,24 @@ export default function App() {
         open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
       })),
 
+    // s.firstProduct comes pre-aggregated from vendor_list_view (that
+    // vendor's first product by sort_order, same one allProducts() used to
+    // find) so this doesn't need every featured vendor's full .products.
     featuredProducts: SUPPLIERS.slice()
       .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating))
       .slice(0, 6)
       .map((s) => {
-        const p = allProducts().find((pr) => pr.supId === s.id);
+        const p = s.firstProduct;
         if (!p) return null;
+        const pid = s.id + '-1';
         return {
-          key: p.id,
-          photo: photoUrl(p.id, 300, 220),
+          key: pid,
+          photo: photoUrl(pid, 300, 220),
           name: p.name,
           supplierName: s.name,
           categoryName: catName(s.code),
-          priceLabel: priceLabel(p),
-          open: () => patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+          priceLabel: priceLabel({ ...p, priceOnRequest: s.priceOnRequest }),
+          open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
         };
       })
       .filter(Boolean),
@@ -1367,6 +1444,7 @@ export default function App() {
     dirSeeAllLabel: 'See all ' + dirFiltered.length + ' vendors',
     seeAllDir: () => patch({ dirVisible: dirFiltered.length }),
 
+    supDetailLoading,
     sup: {
       logo: sup.logoUrl || avatarUrl(sup.name),
       cover: sup.coverUrl || photoUrl(sup.id + '-cover', 960, 360),
@@ -4131,6 +4209,7 @@ export default function App() {
               {V.supplierTab === 'services' && (
                 <div style={{ marginTop: 24 }}>
                   <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Packages</h2>
+                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
                   <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
                     <input
                       type="search"
@@ -4243,7 +4322,7 @@ export default function App() {
                       </div>
                     ))}
                   </div>
-                  {V.supplierProducts.length === 0 && (
+                  {!V.supDetailLoading && V.supplierProducts.length === 0 && (
                     <div style={{ padding: '28px 2px', fontSize: 14, color: '#9A9A9A' }}>No packages match your search.</div>
                   )}
                   {V.svcShowMore && (
@@ -4270,7 +4349,8 @@ export default function App() {
               {V.supplierTab === 'gallery' && (
                 <div style={{ marginTop: 24 }}>
                   <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Gallery</h2>
-                  {V.sup.gallery.length === 0 && (
+                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
+                  {!V.supDetailLoading && V.sup.gallery.length === 0 && (
                     <div style={{ marginTop: 14, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '32px 24px', textAlign: 'center' }}>
                       <div style={{ fontSize: 15, color: '#5B5B5B' }}>No photos added yet.</div>
                     </div>
@@ -4308,6 +4388,7 @@ export default function App() {
               {V.supplierTab === 'menu' && (
                 <div style={{ marginTop: 24 }}>
                   <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Menu</h2>
+                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
                   <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {V.sup.menuItems.map((name) => (
                       <span
@@ -4332,6 +4413,7 @@ export default function App() {
               {V.supplierTab === 'reviews' && (
                 <div style={{ marginTop: 24 }}>
                   <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Reviews</h2>
+                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
                   <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {V.sup.reviews.map((r) => (
                       <div key={r.key} style={{ borderTop: '1px solid #ECECEC', padding: '18px 2px' }}>
@@ -4470,6 +4552,7 @@ export default function App() {
               {V.supplierTab === 'faq' && (
                 <div style={{ marginTop: 24 }}>
                   <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>FAQ</h2>
+                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
                   <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {V.sup.faqs.map((f) => {
                       const open = V.openFaqKey === f.key;
@@ -4509,6 +4592,7 @@ export default function App() {
               {V.supplierTab === 'policies' && (
                 <div style={{ marginTop: 24 }}>
                   <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Policies</h2>
+                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
                   <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {V.sup.policies.map((p) => (
                       <div key={p.key} style={{ borderTop: '1px solid #ECECEC', padding: '18px 2px' }}>
@@ -4523,7 +4607,8 @@ export default function App() {
               {V.supplierTab === 'promos' && (
                 <div style={{ marginTop: 24 }}>
                   <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800, color: PROMO_ACCENT }}>Promotions</h2>
-                  {V.sup.promos.length > 0 ? (
+                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
+                  {!V.supDetailLoading && (V.sup.promos.length > 0 ? (
                     <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {V.sup.promos.map((p) => (
                         <div
@@ -4561,7 +4646,7 @@ export default function App() {
                     <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.55, color: '#9A9A9A' }}>
                       No active promotions right now. Check back later, or send an inquiry and ask directly.
                     </p>
-                  )}
+                  ))}
                 </div>
               )}
             </div>

@@ -91,19 +91,66 @@ function reshapeVendor(v) {
   };
 }
 
+// Lean projection for list/grid views (homepage, Discover Vendors, category
+// tiles) — reads from vendor_list_view (see the add_vendor_list_view
+// migration), which pre-aggregates a min product price, a search-text blob,
+// and a "first product" preview server-side, so this never needs to join
+// the full products/gallery/reviews/faqs/policies/menu/promos tables. Full
+// per-vendor detail is fetched separately, on demand, by fetchVendorDetail.
+function reshapeLeanVendor(v) {
+  return {
+    id: v.id,
+    code: v.category_code,
+    codes: v.category_codes && v.category_codes.length ? v.category_codes : [v.category_code],
+    otherCategory: v.other_category || '',
+    name: v.name,
+    city: v.city,
+    region: v.region,
+    addressLine1: v.address_line1 || '',
+    addressLine2: v.address_line2 || '',
+    desc: v.description,
+    bio: v.bio,
+    tags: v.tags || [],
+    minGroup: Number(v.min_group),
+    lead: Number(v.lead_time_days),
+    radius: Number(v.radius_km),
+    rating: formatRating(v.rating, v.rating_count),
+    response: v.response_time_text,
+    priceOnRequest: !!v.price_on_request,
+    verified: !!v.verified,
+    email: v.email,
+    phone: v.phone,
+    instagram: v.instagram,
+    facebook: v.facebook,
+    tiktok: v.tiktok,
+    mapLink: v.map_link,
+    logoUrl: v.logo_url,
+    coverUrl: v.cover_photo_url,
+    subcategory: v.subcategory,
+    contactPerson: v.contact_person,
+    country: v.country,
+    startingPrice: v.starting_price === null || v.starting_price === undefined ? null : Number(v.starting_price),
+    minProductPrice: v.min_price === null || v.min_price === undefined ? null : Number(v.min_price),
+    searchText: (v.search_text || '').toLowerCase(),
+    firstProduct: v.first_name
+      ? {
+          name: v.first_name,
+          photoUrl: v.first_photo_url || '',
+          min: v.first_price_min === null || v.first_price_min === undefined ? null : Number(v.first_price_min),
+          max: v.first_price_max === null || v.first_price_max === undefined ? null : Number(v.first_price_max),
+          unit: v.first_unit || '',
+        }
+      : null,
+  };
+}
+
 export async function fetchCatalog() {
   if (!supabaseConfigured) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
   const [{ data: categories, error: catError }, { data: vendors, error: venError }] = await Promise.all([
     supabase.from('categories').select('code, name, description').order('sort_order'),
-    supabase
-      .from('vendors')
-      .select(
-        '*, vendor_promos(*), vendor_reviews(*), vendor_faqs(*), products(*), vendor_gallery(*), vendor_policies(*), menu_items(*)'
-      )
-      .eq('published', true)
-      .order('name'),
+    supabase.from('vendor_list_view').select('*').eq('published', true).order('name'),
   ]);
 
   if (catError) throw catError;
@@ -111,8 +158,30 @@ export async function fetchCatalog() {
 
   return {
     cats: (categories || []).map((c) => [c.code, c.name, c.description]),
-    suppliers: (vendors || []).map(reshapeVendor),
+    suppliers: (vendors || []).map(reshapeLeanVendor),
   };
+}
+
+// Full nested detail for exactly one vendor (products, gallery, reviews,
+// faqs, policies, menu, promos) — fetched on demand when a vendor's profile
+// page actually opens, or when a saved item needs full product data for a
+// vendor that isn't the one currently open. Same shape fetchCatalog used to
+// return per-vendor before the lean/detail split.
+export async function fetchVendorDetail(id) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase
+    .from('vendors')
+    .select(
+      '*, vendor_promos(*), vendor_reviews(*), vendor_faqs(*), products(*), vendor_gallery(*), vendor_policies(*), menu_items(*)'
+    )
+    .eq('id', id)
+    .eq('published', true)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? reshapeVendor(data) : null;
 }
 
 // Submits a buyer's cart as one inquiry row plus one inquiry_vendor_groups row
