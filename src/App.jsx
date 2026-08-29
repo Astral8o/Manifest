@@ -2393,12 +2393,16 @@ export default function App() {
         adminDescription: '',
         adminCoverUrl: '',
         adminLogoUrl: '',
+        adminUploadingCover: false,
+        adminUploadingLogo: false,
         adminGallery: [],
         adminGalleryEventType: '',
         adminGalleryPhotoUrl: '',
+        adminUploadingGalleryPhoto: false,
         adminPackages: [],
         adminPkgName: '',
         adminPkgPhotoUrl: '',
+        adminUploadingPkgPhoto: false,
         adminPkgDescription: '',
         adminPkgInclusionsText: '',
         adminPkgPriceMin: '',
@@ -2446,16 +2450,49 @@ export default function App() {
     adminDescription: st.adminDescription || '',
     setAdminDescription: (e) => patch({ adminDescription: e.target.value }),
     adminCoverUrl: st.adminCoverUrl || '',
-    setAdminCoverUrl: (e) => patch({ adminCoverUrl: e.target.value }),
+    adminUploadingCover: !!st.adminUploadingCover,
+    uploadAdminCover: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ adminUploadingCover: true, adminSaveError: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ adminUploadingCover: false, adminCoverUrl: url });
+      } catch (err) {
+        patch({ adminUploadingCover: false, adminSaveError: err.message || 'Could not upload photo.' });
+      }
+    },
     adminLogoUrl: st.adminLogoUrl || '',
-    setAdminLogoUrl: (e) => patch({ adminLogoUrl: e.target.value }),
+    adminUploadingLogo: !!st.adminUploadingLogo,
+    uploadAdminLogo: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ adminUploadingLogo: true, adminSaveError: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ adminUploadingLogo: false, adminLogoUrl: url });
+      } catch (err) {
+        patch({ adminUploadingLogo: false, adminSaveError: err.message || 'Could not upload photo.' });
+      }
+    },
     adminStep2Next: () => patch({ adminStep: 3 }),
 
     adminGallery: st.adminGallery || [],
     adminGalleryEventType: st.adminGalleryEventType || '',
     setAdminGalleryEventType: (e) => patch({ adminGalleryEventType: e.target.value }),
     adminGalleryPhotoUrl: st.adminGalleryPhotoUrl || '',
-    setAdminGalleryPhotoUrl: (e) => patch({ adminGalleryPhotoUrl: e.target.value }),
+    adminUploadingGalleryPhoto: !!st.adminUploadingGalleryPhoto,
+    uploadAdminGalleryPhoto: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ adminUploadingGalleryPhoto: true, adminSaveError: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ adminUploadingGalleryPhoto: false, adminGalleryPhotoUrl: url });
+      } catch (err) {
+        patch({ adminUploadingGalleryPhoto: false, adminSaveError: err.message || 'Could not upload photo.' });
+      }
+    },
     adminAddGalleryPhotoDisabled: !((st.adminGalleryEventType || '').trim() && (st.adminGalleryPhotoUrl || '').trim()),
     adminAddGalleryPhoto: () => {
       const eventType = (st.adminGalleryEventType || '').trim();
@@ -2474,7 +2511,18 @@ export default function App() {
     adminPkgName: st.adminPkgName || '',
     setAdminPkgName: (e) => patch({ adminPkgName: e.target.value }),
     adminPkgPhotoUrl: st.adminPkgPhotoUrl || '',
-    setAdminPkgPhotoUrl: (e) => patch({ adminPkgPhotoUrl: e.target.value }),
+    adminUploadingPkgPhoto: !!st.adminUploadingPkgPhoto,
+    uploadAdminPkgPhoto: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ adminUploadingPkgPhoto: true, adminSaveError: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ adminUploadingPkgPhoto: false, adminPkgPhotoUrl: url });
+      } catch (err) {
+        patch({ adminUploadingPkgPhoto: false, adminSaveError: err.message || 'Could not upload photo.' });
+      }
+    },
     adminPkgDescription: st.adminPkgDescription || '',
     setAdminPkgDescription: (e) => patch({ adminPkgDescription: e.target.value }),
     adminPkgInclusionsText: st.adminPkgInclusionsText || '',
@@ -6824,14 +6872,31 @@ export default function App() {
                       <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Full description</span>
                       <textarea value={V.adminDescription} onChange={V.setAdminDescription} rows={5} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15, resize: 'vertical' }} />
                     </label>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Cover photo URL</span>
-                      <input type="text" value={V.adminCoverUrl} onChange={V.setAdminCoverUrl} placeholder="https://…" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }} />
-                    </label>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Logo URL</span>
-                      <input type="text" value={V.adminLogoUrl} onChange={V.setAdminLogoUrl} placeholder="https://…" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }} />
-                    </label>
+                    <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer' }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Cover photo</span>
+                        {V.adminCoverUrl ? (
+                          <img src={V.adminCoverUrl} alt="Cover" style={{ width: 180, height: 100, borderRadius: 12, objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: 180, height: 100, borderRadius: 12, background: '#F7F7F5', border: '1px dashed #D7D7D2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9A9A9A' }}>
+                            {V.adminUploadingCover ? 'Uploading…' : 'Add photo'}
+                          </div>
+                        )}
+                        <input type="file" accept="image/*" onChange={V.uploadAdminCover} style={{ fontSize: 12 }} />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer' }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Logo</span>
+                        {V.adminLogoUrl ? (
+                          <img src={V.adminLogoUrl} alt="Logo" style={{ width: 100, height: 100, borderRadius: 999, objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: 100, height: 100, borderRadius: 999, background: '#F7F7F5', border: '1px dashed #D7D7D2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#9A9A9A', textAlign: 'center' }}>
+                            {V.adminUploadingLogo ? 'Uploading…' : 'Add logo'}
+                          </div>
+                        )}
+                        <input type="file" accept="image/*" onChange={V.uploadAdminLogo} style={{ fontSize: 12 }} />
+                      </label>
+                    </div>
+                    {V.adminSaveError && <div style={{ fontSize: 12, color: '#B3261E' }}>{V.adminSaveError}</div>}
                     <div style={{ fontSize: 12.5, lineHeight: 1.5, color: '#9A9A9A' }}>
                       Starting price isn't set here — it's calculated automatically from the cheapest package you add in the next steps.
                     </div>
@@ -6847,13 +6912,21 @@ export default function App() {
                 <>
                   <h2 style={{ margin: '6px 0 0', fontSize: 24, letterSpacing: '-0.02em', fontWeight: 800 }}>Gallery</h2>
                   <p style={{ margin: '8px 0 0', fontSize: 14, color: '#5B5B5B' }}>Add photos grouped by event type (e.g. Weddings, Birthdays).</p>
-                  <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                     <input type="text" value={V.adminGalleryEventType} onChange={V.setAdminGalleryEventType} placeholder="Event type, e.g. Weddings" style={{ flex: '1 1 180px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                    <input type="text" value={V.adminGalleryPhotoUrl} onChange={V.setAdminGalleryPhotoUrl} placeholder="Photo URL" style={{ flex: '1 1 220px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    {V.adminGalleryPhotoUrl && (
+                      <img src={V.adminGalleryPhotoUrl} alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                    )}
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Photo</span>
+                      <input type="file" accept="image/*" onChange={V.uploadAdminGalleryPhoto} style={{ fontSize: 12 }} />
+                    </label>
+                    {V.adminUploadingGalleryPhoto && <span style={{ fontSize: 12, color: '#8A8A8A' }}>Uploading…</span>}
                     <button onClick={V.adminAddGalleryPhoto} disabled={V.adminAddGalleryPhotoDisabled} style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.adminAddGalleryPhotoDisabled ? 0.4 : 1 }}>
                       Add photo
                     </button>
                   </div>
+                  {V.adminSaveError && <div style={{ marginTop: 8, fontSize: 12, color: '#B3261E' }}>{V.adminSaveError}</div>}
                   {V.adminGallery.length > 0 && (
                     <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 1 }}>
                       {V.adminGallery.map((g, i) => (
@@ -6878,7 +6951,16 @@ export default function App() {
                   <h2 style={{ margin: '6px 0 0', fontSize: 24, letterSpacing: '-0.02em', fontWeight: 800 }}>Packages</h2>
                   <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <input type="text" value={V.adminPkgName} onChange={V.setAdminPkgName} placeholder="Package name" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                    <input type="text" value={V.adminPkgPhotoUrl} onChange={V.setAdminPkgPhotoUrl} placeholder="Photo URL (optional)" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {V.adminPkgPhotoUrl && (
+                        <img src={V.adminPkgPhotoUrl} alt="Package" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                      )}
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Photo (optional)</span>
+                        <input type="file" accept="image/*" onChange={V.uploadAdminPkgPhoto} style={{ fontSize: 12 }} />
+                      </label>
+                      {V.adminUploadingPkgPhoto && <span style={{ fontSize: 12, color: '#8A8A8A' }}>Uploading…</span>}
+                    </div>
                     <textarea value={V.adminPkgDescription} onChange={V.setAdminPkgDescription} placeholder="Description" rows={2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
                     <input type="text" value={V.adminPkgInclusionsText} onChange={V.setAdminPkgInclusionsText} placeholder="Inclusions, comma separated" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                     <div style={{ display: 'flex', gap: 10 }}>
@@ -6889,6 +6971,7 @@ export default function App() {
                       Add package
                     </button>
                   </div>
+                  {V.adminSaveError && <div style={{ marginTop: 8, fontSize: 12, color: '#B3261E' }}>{V.adminSaveError}</div>}
                   {V.adminPackages.length > 0 && (
                     <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 1 }}>
                       {V.adminPackages.map((p, i) => (
