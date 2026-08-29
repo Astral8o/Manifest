@@ -35,9 +35,12 @@ import {
   removeVendorFaq,
   addVendorPolicy,
   removeVendorPolicy,
+  addVendorPromo,
+  removeVendorPromo,
   fetchVendorQuoteRequests,
   submitSpotlightInterest,
   submitContactMessage,
+  submitSourcingRequest,
 } from './catalog';
 import { supabase } from './supabaseClient';
 import heroPhoto from './assets/hero-photo.jpg';
@@ -332,8 +335,8 @@ function whatsappDigits(phone) {
   return digits;
 }
 
-const VD_GUIDE_TABS = ['profile', 'packages', 'gallery', 'menu', 'faqs', 'policies'];
-const VD_TAB_LABELS = { profile: 'Profile', packages: 'Packages', gallery: 'Gallery', menu: 'Menu', faqs: 'FAQ', policies: 'Policies', inquiries: 'Inquiries' };
+const VD_GUIDE_TABS = ['profile', 'packages', 'gallery', 'menu', 'faqs', 'policies', 'promos'];
+const VD_TAB_LABELS = { profile: 'Profile', packages: 'Packages', gallery: 'Gallery', menu: 'Menu', faqs: 'FAQ', policies: 'Policies', promos: 'Promos', inquiries: 'Inquiries' };
 
 const MOBILE_BREAKPOINT = 760;
 function useIsMobile() {
@@ -418,6 +421,13 @@ const initialState = {
   contactError: null,
   sourcingOpen: false,
   sourcingSent: false,
+  sourcingName: '',
+  sourcingPhone: '',
+  sourcingEmail: '',
+  sourcingDescription: '',
+  sourcingCompany: '',
+  sourcingSubmitting: false,
+  sourcingError: null,
   supplierTab: 'services',
   svcQuery: '',
   svcGroup: 'All',
@@ -516,6 +526,11 @@ const initialState = {
   vdPolicyTitle: '',
   vdPolicyBody: '',
   vdAddingPolicy: false,
+  vdPromoTitle: '',
+  vdPromoDiscount: '',
+  vdPromoDescription: '',
+  vdPromoExpiresAt: '',
+  vdAddingPromo: false,
   vdQuotes: [],
   vdQuotesLoading: false,
   vdQuotesError: null,
@@ -822,7 +837,7 @@ export default function App() {
   };
   const priceLabel = (p) =>
     p.priceOnRequest ? 'Inquire for pricing' : money(p.min) + '–' + money(p.max) + (p.unit === 'flat' ? '' : ' ' + p.unit);
-  const startPrice = (s) => (s.priceOnRequest ? null : Math.min(...s.products.map((p) => p[2])));
+  const startPrice = (s) => (s.priceOnRequest || !s.products.length ? null : Math.min(...s.products.map((p) => p[2])));
 
   const toggleSave = (pid) => {
     patch((s) => {
@@ -997,10 +1012,51 @@ export default function App() {
     sourcingOpen: st.sourcingOpen,
     goHome: nav('home'),
     goSuppliers: nav('suppliers'),
-    goSourcing: () => patch({ sourcingOpen: true, sourcingSent: false }),
+    goSourcing: () =>
+      patch({
+        sourcingOpen: true,
+        sourcingSent: false,
+        sourcingName: '',
+        sourcingPhone: '',
+        sourcingEmail: '',
+        sourcingDescription: '',
+        sourcingCompany: '',
+        sourcingSubmitting: false,
+        sourcingError: null,
+      }),
     closeSourcing: () => patch({ sourcingOpen: false, sourcingSent: false }),
-    submitSourcing: () => patch({ sourcingSent: true }),
     sourcingSent: !!st.sourcingSent,
+    sourcingName: st.sourcingName || '',
+    setSourcingName: (e) => patch({ sourcingName: e.target.value }),
+    sourcingPhone: st.sourcingPhone || '',
+    setSourcingPhone: (e) => patch({ sourcingPhone: e.target.value }),
+    sourcingEmail: st.sourcingEmail || '',
+    setSourcingEmail: (e) => patch({ sourcingEmail: e.target.value }),
+    sourcingDescription: st.sourcingDescription || '',
+    setSourcingDescription: (e) => patch({ sourcingDescription: e.target.value }),
+    sourcingCompany: st.sourcingCompany || '',
+    setSourcingCompany: (e) => patch({ sourcingCompany: e.target.value }),
+    sourcingSubmitting: !!st.sourcingSubmitting,
+    sourcingError: st.sourcingError || '',
+    sourcingDisabled:
+      !(st.sourcingName || '').trim() ||
+      !(st.sourcingDescription || '').trim() ||
+      (!(st.sourcingPhone || '').trim() && !(st.sourcingEmail || '').trim()) ||
+      !!st.sourcingSubmitting,
+    submitSourcing: async () => {
+      const name = (st.sourcingName || '').trim();
+      const description = (st.sourcingDescription || '').trim();
+      const phone = (st.sourcingPhone || '').trim();
+      const email = (st.sourcingEmail || '').trim();
+      if (!name || !description || (!phone && !email) || st.sourcingSubmitting) return;
+      patch({ sourcingSubmitting: true, sourcingError: null });
+      try {
+        await submitSourcingRequest({ name, phone, email, description, company: st.sourcingCompany });
+        patch({ sourcingSubmitting: false, sourcingSent: true });
+      } catch (err) {
+        patch({ sourcingSubmitting: false, sourcingError: err.message || 'Could not send your request. Please try again.' });
+      }
+    },
     goHowItWorks: nav('how-it-works'),
     goSpotlight: nav('spotlight'),
     goVendorHowItWorks: nav('join'),
@@ -1230,7 +1286,7 @@ export default function App() {
         location: s.city,
         categoryName: catName(s.code),
         rating: s.rating,
-        startPriceLabel: s.priceOnRequest ? 'Price on request' : 'From ' + money(startPrice(s)),
+        startPriceLabel: s.priceOnRequest ? 'Price on request' : startPrice(s) === null ? '' : 'From ' + money(startPrice(s)),
         isSaved: (st.savedVendors || []).indexOf(s.id) >= 0,
         toggleSaved: () => toggleSaveVendor(s.id),
         share: () => shareVendor(s.id),
@@ -1284,7 +1340,7 @@ export default function App() {
       categoryName: catName(s.code),
       description: s.bio,
       rating: s.rating,
-      startPriceLabel: s.priceOnRequest ? 'Price on request' : 'From ' + money(startPrice(s)),
+      startPriceLabel: s.priceOnRequest ? 'Price on request' : startPrice(s) === null ? '' : 'From ' + money(startPrice(s)),
       isSaved: (st.savedVendors || []).indexOf(s.id) >= 0,
       toggleSaved: () => toggleSaveVendor(s.id),
       share: () => shareVendor(s.id),
@@ -1311,7 +1367,7 @@ export default function App() {
       categoryName: catName(sup.code),
       verified: !!sup.verified,
       ratingLabel: sup.rating,
-      startPriceLabel: sup.priceOnRequest ? 'Price on request' : 'From ' + money(startPrice(sup)),
+      startPriceLabel: sup.priceOnRequest ? 'Price on request' : startPrice(sup) === null ? '' : 'From ' + money(startPrice(sup)),
       facts: [
         { label: 'Based in', value: sup.city },
         sup.addressLine1
@@ -2079,6 +2135,52 @@ export default function App() {
         patch((s) => ({ vdVendor: { ...s.vdVendor, policies: s.vdVendor.policies.filter((p) => p.id !== id) } }));
       } catch (err) {
         patch({ vdSaveError: err.message || 'Could not remove policy.' });
+      }
+    },
+
+    vdPromoTitle: st.vdPromoTitle || '',
+    setVdPromoTitle: (e) => patch({ vdPromoTitle: e.target.value }),
+    vdPromoDiscount: st.vdPromoDiscount || '',
+    setVdPromoDiscount: (e) => patch({ vdPromoDiscount: e.target.value }),
+    vdPromoDescription: st.vdPromoDescription || '',
+    setVdPromoDescription: (e) => patch({ vdPromoDescription: e.target.value }),
+    vdPromoExpiresAt: st.vdPromoExpiresAt || '',
+    setVdPromoExpiresAt: (e) => patch({ vdPromoExpiresAt: e.target.value }),
+    vdAddingPromo: !!st.vdAddingPromo,
+    addVdPromo: async () => {
+      const title = (st.vdPromoTitle || '').trim();
+      if (!title || st.vdAddingPromo || !st.vdVendor) return;
+      patch({ vdAddingPromo: true, vdSaveError: null });
+      try {
+        const row = await addVendorPromo(st.vdVendor.id, {
+          title,
+          discount: (st.vdPromoDiscount || '').trim(),
+          description: (st.vdPromoDescription || '').trim(),
+          expiresAt: st.vdPromoExpiresAt || null,
+        });
+        patch((s) => ({
+          vdAddingPromo: false,
+          vdPromoTitle: '',
+          vdPromoDiscount: '',
+          vdPromoDescription: '',
+          vdPromoExpiresAt: '',
+          vdVendor: {
+            ...s.vdVendor,
+            promos: s.vdVendor.promos.concat([
+              { id: row.id, title: row.title, discount: row.discount || '', description: row.description || '', expiresAt: row.expires_at || '' },
+            ]),
+          },
+        }));
+      } catch (err) {
+        patch({ vdAddingPromo: false, vdSaveError: err.message || 'Could not add promo.' });
+      }
+    },
+    removeVdPromo: (id) => async () => {
+      try {
+        await removeVendorPromo(id);
+        patch((s) => ({ vdVendor: { ...s.vdVendor, promos: s.vdVendor.promos.filter((p) => p.id !== id) } }));
+      } catch (err) {
+        patch({ vdSaveError: err.message || 'Could not remove promo.' });
       }
     },
 
@@ -2922,7 +3024,9 @@ export default function App() {
                     </div>
                     <div style={{ padding: isMobile ? '14px 14px 0' : '16px 18px 0' }}>
                       <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 700, letterSpacing: '-0.01em' }}>{s.name}</div>
-                      <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.startPriceLabel}</div>
+                      {s.startPriceLabel && (
+                        <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.startPriceLabel}</div>
+                      )}
                     </div>
                   </button>
                   <div
@@ -3537,7 +3641,9 @@ export default function App() {
                   </div>
                   <div style={{ padding: isMobile ? '14px 14px 0' : '16px 18px 0' }}>
                     <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 700, letterSpacing: '-0.01em' }}>{s.name}</div>
-                    <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.startPriceLabel}</div>
+                    {s.startPriceLabel && (
+                      <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.startPriceLabel}</div>
+                    )}
                     <div style={{ marginTop: 8 }}>
                       <span
                         style={{
@@ -3903,19 +4009,21 @@ export default function App() {
                       ★ {V.sup.ratingLabel}
                     </span>
                   )}
-                  <span
-                    style={{
-                      border: '1px solid #E4E4DF',
-                      borderRadius: 999,
-                      background: '#F7F7F5',
-                      padding: '6px 14px',
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      color: '#171717',
-                    }}
-                  >
-                    {V.sup.startPriceLabel}
-                  </span>
+                  {V.sup.startPriceLabel && (
+                    <span
+                      style={{
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: '#F7F7F5',
+                        padding: '6px 14px',
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: '#171717',
+                      }}
+                    >
+                      {V.sup.startPriceLabel}
+                    </span>
+                  )}
                 </div>
                 <p style={{ margin: '14px 0 0', maxWidth: 620, fontSize: 16, lineHeight: 1.55, color: '#4A4A4A' }}>{V.sup.description}</p>
                 <div style={{ marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
@@ -5939,7 +6047,7 @@ export default function App() {
                       ))}
                     </div>
                     <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <input type="text" value={V.vdPkgName} onChange={V.setVdPkgName} placeholder="Package name" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <input type="text" value={V.vdPkgName} onChange={V.setVdPkgName} placeholder="Package name" style={{ border: '2px solid #171717', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14, fontWeight: 600 }} />
                       <input type="text" value={V.vdPkgDescription} onChange={V.setVdPkgDescription} placeholder="Description (optional)" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                       <div style={{ display: 'flex', gap: 8 }}>
                         <input type="number" value={V.vdPkgPriceMin} onChange={V.setVdPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
@@ -5958,6 +6066,7 @@ export default function App() {
                       <button onClick={V.addVdPackage} disabled={V.vdAddPkgDisabled} style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '10px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.vdAddPkgDisabled ? 0.5 : 1 }}>
                         {V.vdAddingPkg ? 'Adding…' : 'Add package'}
                       </button>
+                      {V.vdSaveError && <div style={{ fontSize: 12, color: '#B3261E' }}>{V.vdSaveError}</div>}
                     </div>
                   </div>
                 </div>
@@ -5982,9 +6091,10 @@ export default function App() {
                         <button key={c.name} onClick={c.pick} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#FFFFFF', padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{c.name}</button>
                       ))}
                     </div>
-                    <input type="text" value={V.vdAlbumEventType} onChange={V.setVdAlbumEventType} placeholder="Album name, e.g. Weddings" style={{ marginTop: 10, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <input type="text" value={V.vdAlbumEventType} onChange={V.setVdAlbumEventType} placeholder="Album name, e.g. Weddings" style={{ marginTop: 10, width: '100%', border: '2px solid #171717', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14, fontWeight: 600 }} />
                     <input type="file" accept="image/*" onChange={V.uploadVdGalleryPhoto} style={{ marginTop: 10, fontSize: 12 }} />
                     {V.vdUploadingGalleryPhoto && <div style={{ marginTop: 8, fontSize: 12, color: '#8A8A8A' }}>Uploading…</div>}
+                    {V.vdSaveError && <div style={{ marginTop: 8, fontSize: 12, color: '#B3261E' }}>{V.vdSaveError}</div>}
                   </div>
                 </div>
               )}
@@ -6005,6 +6115,7 @@ export default function App() {
                       Add item
                     </button>
                   </div>
+                  {V.vdSaveError && <div style={{ marginTop: 8, fontSize: 12, color: '#B3261E' }}>{V.vdSaveError}</div>}
                 </div>
               )}
 
@@ -6026,11 +6137,12 @@ export default function App() {
                         <button key={c.q} onClick={c.pick} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#FFFFFF', padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, textAlign: 'left' }}>{c.q}</button>
                       ))}
                     </div>
-                    <input type="text" value={V.vdFaqQ} onChange={V.setVdFaqQ} placeholder="Question" style={{ marginTop: 10, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <input type="text" value={V.vdFaqQ} onChange={V.setVdFaqQ} placeholder="Question" style={{ marginTop: 10, width: '100%', border: '2px solid #171717', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14, fontWeight: 600 }} />
                     <textarea value={V.vdFaqA} onChange={V.setVdFaqA} placeholder="Answer" rows={2} style={{ marginTop: 8, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
                     <button onClick={V.addVdFaq} disabled={!V.vdFaqQ.trim() || !V.vdFaqA.trim() || V.vdAddingFaq} style={{ marginTop: 8, border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '10px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: !V.vdFaqQ.trim() || !V.vdFaqA.trim() || V.vdAddingFaq ? 0.5 : 1 }}>
                       {V.vdAddingFaq ? 'Adding…' : 'Add question'}
                     </button>
+                    {V.vdSaveError && <div style={{ marginTop: 8, fontSize: 12, color: '#B3261E' }}>{V.vdSaveError}</div>}
                   </div>
                 </div>
               )}
@@ -6053,11 +6165,45 @@ export default function App() {
                         <button key={c.title} onClick={c.pick} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#FFFFFF', padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{c.title}</button>
                       ))}
                     </div>
-                    <input type="text" value={V.vdPolicyTitle} onChange={V.setVdPolicyTitle} placeholder="Policy title" style={{ marginTop: 10, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <input type="text" value={V.vdPolicyTitle} onChange={V.setVdPolicyTitle} placeholder="Policy title" style={{ marginTop: 10, width: '100%', border: '2px solid #171717', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14, fontWeight: 600 }} />
                     <textarea value={V.vdPolicyBody} onChange={V.setVdPolicyBody} placeholder="Details" rows={2} style={{ marginTop: 8, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
                     <button onClick={V.addVdPolicy} disabled={!V.vdPolicyTitle.trim() || !V.vdPolicyBody.trim() || V.vdAddingPolicy} style={{ marginTop: 8, border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '10px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: !V.vdPolicyTitle.trim() || !V.vdPolicyBody.trim() || V.vdAddingPolicy ? 0.5 : 1 }}>
                       {V.vdAddingPolicy ? 'Adding…' : 'Add policy'}
                     </button>
+                    {V.vdSaveError && <div style={{ marginTop: 8, fontSize: 12, color: '#B3261E' }}>{V.vdSaveError}</div>}
+                  </div>
+                </div>
+              )}
+
+              {V.vdTab === 'promos' && (
+                <div style={{ marginTop: 22 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {V.vdVendor.promos.map((p) => (
+                      <div key={p.id} style={{ border: '1px solid #ECECEC', borderRadius: 16, padding: 14 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                          <div style={{ fontSize: 14, fontWeight: 700 }}>{p.title}</div>
+                          {p.discount && <div style={{ fontSize: 13, fontWeight: 700, color: PROMO_ACCENT }}>{p.discount}</div>}
+                        </div>
+                        {p.description && <div style={{ marginTop: 4, fontSize: 13, color: '#5B5B5B' }}>{p.description}</div>}
+                        {p.expiresAt && <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>Ends {p.expiresAt}</div>}
+                        <button onClick={V.removeVdPromo(p.id)} style={{ marginTop: 8, border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 18, border: '1px dashed #D7D7D2', borderRadius: 16, padding: 16 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700 }}>Add a promo</div>
+                    <div style={{ marginTop: 4, fontSize: 12, color: '#8A8A8A' }}>Optional — a limited-time offer shown on your public profile.</div>
+                    <input type="text" value={V.vdPromoTitle} onChange={V.setVdPromoTitle} placeholder="Promo title, e.g. Book early and save" style={{ marginTop: 10, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <input type="text" value={V.vdPromoDiscount} onChange={V.setVdPromoDiscount} placeholder="Discount, e.g. 15% off (optional)" style={{ marginTop: 8, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <textarea value={V.vdPromoDescription} onChange={V.setVdPromoDescription} placeholder="Details (optional)" rows={2} style={{ marginTop: 8, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
+                    <label style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Ends (optional)</span>
+                      <input type="date" value={V.vdPromoExpiresAt} onChange={V.setVdPromoExpiresAt} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    </label>
+                    <button onClick={V.addVdPromo} disabled={!V.vdPromoTitle.trim() || V.vdAddingPromo} style={{ marginTop: 8, border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '10px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: !V.vdPromoTitle.trim() || V.vdAddingPromo ? 0.5 : 1 }}>
+                      {V.vdAddingPromo ? 'Adding…' : 'Add promo'}
+                    </button>
+                    {V.vdSaveError && <div style={{ marginTop: 8, fontSize: 12, color: '#B3261E' }}>{V.vdSaveError}</div>}
                   </div>
                 </div>
               )}
@@ -6216,6 +6362,8 @@ export default function App() {
                     </span>
                     <input
                       type="text"
+                      value={V.sourcingName}
+                      onChange={V.setSourcingName}
                       placeholder="Your name"
                       style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
                     />
@@ -6226,6 +6374,8 @@ export default function App() {
                     </span>
                     <input
                       type="tel"
+                      value={V.sourcingPhone}
+                      onChange={V.setSourcingPhone}
                       placeholder="868 000 0000"
                       style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
                     />
@@ -6236,6 +6386,8 @@ export default function App() {
                     </span>
                     <input
                       type="email"
+                      value={V.sourcingEmail}
+                      onChange={V.setSourcingEmail}
                       placeholder="you@example.com"
                       style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
                     />
@@ -6243,6 +6395,8 @@ export default function App() {
                 </div>
 
                 <textarea
+                  value={V.sourcingDescription}
+                  onChange={V.setSourcingDescription}
                   placeholder="e.g. A 20x30 tent with sidewalls for 120 people on the church grounds in Arima, first Saturday in November"
                   style={{
                     marginTop: 18,
@@ -6259,9 +6413,15 @@ export default function App() {
                     resize: 'vertical',
                   }}
                 />
+                <label style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }} aria-hidden="true">
+                  Company
+                  <input type="text" tabIndex={-1} autoComplete="off" value={V.sourcingCompany} onChange={V.setSourcingCompany} />
+                </label>
 
+                {V.sourcingError && <div style={{ marginTop: 12, fontSize: 13, color: '#B3261E' }}>{V.sourcingError}</div>}
                 <button
                   onClick={V.submitSourcing}
+                  disabled={V.sourcingDisabled}
                   style={{
                     marginTop: 20,
                     width: '100%',
@@ -6273,9 +6433,10 @@ export default function App() {
                     cursor: 'pointer',
                     fontSize: 15,
                     fontWeight: 700,
+                    opacity: V.sourcingDisabled ? 0.5 : 1,
                   }}
                 >
-                  Submit request
+                  {V.sourcingSubmitting ? 'Sending…' : 'Submit request'}
                 </button>
                 <div style={{ marginTop: 12, fontSize: 12, color: '#5B5B5B', textAlign: 'center' }}>
                   We follow up by email within one business day.
