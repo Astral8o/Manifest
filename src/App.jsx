@@ -801,8 +801,24 @@ export default function App() {
 
   if (!catalog.ready) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 13, color: '#9A9A9A', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-        Loading Eventory…
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
+        <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', color: '#171717' }}>Eventory</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="eventory-loading-dot"
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: ACCENT,
+                animation: 'eventory-loading-dot 1s ease-in-out infinite',
+                animationDelay: `${i * 0.15}s`,
+              }}
+            />
+          ))}
+        </div>
       </div>
     );
   }
