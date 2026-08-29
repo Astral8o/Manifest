@@ -523,7 +523,7 @@ export async function fetchMyVendor() {
 
   const { data, error } = await supabase
     .from('vendors')
-    .select('*, products(*), vendor_gallery(*), vendor_faqs(*), vendor_policies(*), menu_items(*)')
+    .select('*, products(*), vendor_gallery(*), vendor_faqs(*), vendor_policies(*), menu_items(*), vendor_promos(*)')
     .eq('owner_user_id', user.id)
     .maybeSingle();
   if (error) throw error;
@@ -577,6 +577,13 @@ export async function fetchMyVendor() {
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((p) => ({ id: p.id, title: p.title, body: p.body })),
+    promos: (data.vendor_promos || []).map((p) => ({
+      id: p.id,
+      title: p.title,
+      discount: p.discount || '',
+      description: p.description || '',
+      expiresAt: p.expires_at || '',
+    })),
   };
 }
 
@@ -721,6 +728,33 @@ export async function removeVendorPolicy(id) {
   if (error) throw error;
 }
 
+export async function addVendorPromo(vendorId, p) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase
+    .from('vendor_promos')
+    .insert({
+      vendor_id: vendorId,
+      title: p.title,
+      discount: p.discount || null,
+      description: p.description || null,
+      expires_at: p.expiresAt || null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function removeVendorPromo(id) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('vendor_promos').delete().eq('id', id);
+  if (error) throw error;
+}
+
 // Quote requests received by a vendor. Filtered explicitly by vendor_id
 // (rather than relying on RLS alone) so an admin or dual-role account never
 // sees unrelated buyer-side rows mixed in here.
@@ -847,5 +881,20 @@ export async function submitContactMessage({ name, email, message, company }) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
   const { error } = await supabase.from('contact_messages').insert({ name, email, message });
+  if (error) throw error;
+}
+
+// company is a honeypot (see submitContactMessage above).
+export async function submitSourcingRequest({ name, phone, email, description, company }) {
+  if (company) return;
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('sourcing_requests').insert({
+    name,
+    phone: phone || null,
+    email: email || null,
+    description,
+  });
   if (error) throw error;
 }
