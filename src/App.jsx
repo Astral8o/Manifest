@@ -3220,18 +3220,11 @@ export default function App() {
               <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700 }}>
                 What we do
               </div>
-              <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 22 }}>
-                {[
-                  ['Discover trusted vendors', "Browse verified caterers, venues, photographers and more, all in one place."],
-                  ['Plan your special moment', 'Get quotes and manage every detail without ever picking up the phone first.'],
-                  ['Connect with the right people', 'Message vendors directly and book with confidence — no middleman.'],
-                ].map(([title, body]) => (
-                  <div key={title} style={{ display: 'flex', gap: 16 }}>
-                    <div style={{ flexShrink: 0, width: 4, borderRadius: 2, background: ACCENT }} />
-                    <div>
-                      <div style={{ fontSize: isMobile ? 18 : 20, fontWeight: 800, letterSpacing: '-0.01em' }}>{title}</div>
-                      <p style={{ margin: '6px 0 0', fontSize: 14.5, lineHeight: 1.55, color: '#5B5B5B', maxWidth: 420 }}>{body}</p>
-                    </div>
+              <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
+                {['Discover trusted vendors', 'Plan your special moment', 'Connect with the right people'].map((title) => (
+                  <div key={title} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div style={{ flexShrink: 0, width: 4, alignSelf: 'stretch', borderRadius: 2, background: ACCENT }} />
+                    <div style={{ fontSize: isMobile ? 18 : 20, fontWeight: 800, letterSpacing: '-0.01em' }}>{title}</div>
                   </div>
                 ))}
               </div>
