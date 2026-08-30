@@ -3244,21 +3244,43 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ marginTop: isMobile ? 48 : 84, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: isMobile ? 24 : 56 }}>
+          <div
+            style={{
+              marginTop: isMobile ? 48 : 84,
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              borderRadius: 28,
+              overflow: 'hidden',
+              boxShadow: '0 24px 60px -30px rgba(23,23,23,0.35)',
+            }}
+          >
             <img
               src={heroSidePhoto}
               alt="A newly married couple and their wedding party dancing together at the reception"
-              style={{ flex: isMobile ? 'none' : '1 1 0', width: isMobile ? '100%' : 'auto', height: isMobile ? 220 : 380, borderRadius: 28, objectFit: 'cover' }}
+              style={{ flex: isMobile ? 'none' : '1 1 46%', width: isMobile ? '100%' : 'auto', height: isMobile ? 240 : 440, objectFit: 'cover', display: 'block' }}
             />
-            <div style={{ flex: isMobile ? 'none' : '1 1 0' }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700 }}>
+            <div
+              style={{
+                flex: isMobile ? 'none' : '1 1 54%',
+                background: '#171717',
+                color: '#FFFFFF',
+                padding: isMobile ? '32px 26px' : '52px 52px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                gap: isMobile ? 26 : 34,
+              }}
+            >
+              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700 }}>
                 What we do
               </div>
-              <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
-                {['Discover trusted vendors', 'Plan your special moment', 'Connect with the right people'].map((title) => (
-                  <div key={title} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ flexShrink: 0, width: 4, alignSelf: 'stretch', borderRadius: 2, background: ACCENT }} />
-                    <div style={{ fontSize: isMobile ? 18 : 20, fontWeight: 800, letterSpacing: '-0.01em' }}>{title}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 22 : 28 }}>
+                {['Discover trusted vendors', 'Plan your special moment', 'Connect with the right people'].map((title, i) => (
+                  <div key={title} style={{ display: 'flex', alignItems: 'baseline', gap: isMobile ? 14 : 20 }}>
+                    <div style={{ flexShrink: 0, fontFamily: MONO, fontSize: isMobile ? 20 : 28, fontWeight: 600, color: ACCENT }}>
+                      {'0' + (i + 1)}
+                    </div>
+                    <div style={{ fontSize: isMobile ? 19 : 25, fontWeight: 800, letterSpacing: '-0.015em', lineHeight: 1.15 }}>{title}</div>
                   </div>
                 ))}
               </div>
