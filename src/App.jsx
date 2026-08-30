@@ -63,17 +63,29 @@ import soundSystemPhoto from './assets/sound system.jpg';
 
 // Real event photography, used as the fallback whenever a vendor or product
 // has no photo of its own yet (Featured Vendors / Featured Offerings on the
-// homepage) — cycled through by index rather than the generic Picsum
-// placeholder the rest of the site still falls back to.
-const FEATURED_FALLBACK_PHOTOS = [
-  photographerPhoto,
-  videographersPhoto,
+// homepage) — matched to the vendor's own category rather than the generic
+// Picsum placeholder the rest of the site still falls back to, so a caterer
+// gets a food photo and a production/AV vendor gets the speaker photo, etc.
+const DEFAULT_FALLBACK_PHOTOS = [
   weddingVenuePhoto,
   weddingVenue2Photo,
+  photographerPhoto,
+  videographersPhoto,
   cateringPhoto1,
   cateringSpreadPhoto,
   soundSystemPhoto,
 ];
+const CATEGORY_FALLBACK_PHOTOS = {
+  'CAT.01': [cateringPhoto1, cateringSpreadPhoto], // Catering
+  'CAT.02': [weddingVenuePhoto, weddingVenue2Photo], // Venues
+  'CAT.06': [soundSystemPhoto], // Production
+  'CAT.08': [photographerPhoto, videographersPhoto], // Photography
+  'CAT.09': [soundSystemPhoto, videographersPhoto], // Entertainment
+};
+const fallbackPhotoFor = (categoryCode, seed) => {
+  const pool = CATEGORY_FALLBACK_PHOTOS[categoryCode] || DEFAULT_FALLBACK_PHOTOS;
+  return pool[seed % pool.length];
+};
 
 const CATEGORY_PHOTOS = {
   'CAT.01': cateringPhoto,
@@ -1511,7 +1523,7 @@ export default function App() {
       .slice(0, 6)
       .map((s, i) => ({
         key: s.id,
-        cover: s.coverUrl || FEATURED_FALLBACK_PHOTOS[i % FEATURED_FALLBACK_PHOTOS.length],
+        cover: s.coverUrl || fallbackPhotoFor(s.code, i),
         name: s.name,
         location: s.city,
         categoryName: catName(s.code),
@@ -1536,7 +1548,7 @@ export default function App() {
         const pid = s.id + '-1';
         return {
           key: pid,
-          photo: p.photoUrl || FEATURED_FALLBACK_PHOTOS[i % FEATURED_FALLBACK_PHOTOS.length],
+          photo: p.photoUrl || fallbackPhotoFor(s.code, i),
           name: p.name,
           supplierName: s.name,
           categoryName: catName(s.code),
