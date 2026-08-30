@@ -3210,6 +3210,34 @@ export default function App() {
             </div>
           </div>
 
+          <div style={{ marginTop: isMobile ? 48 : 84, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: isMobile ? 24 : 56 }}>
+            <img
+              src={venuesPhoto}
+              alt="An event space set up for a gala, with uplighting and round tables"
+              style={{ flex: isMobile ? 'none' : '1 1 0', width: isMobile ? '100%' : 'auto', height: isMobile ? 220 : 380, borderRadius: 28, objectFit: 'cover' }}
+            />
+            <div style={{ flex: isMobile ? 'none' : '1 1 0' }}>
+              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700 }}>
+                What we do
+              </div>
+              <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 22 }}>
+                {[
+                  ['Discover trusted vendors', "Browse verified caterers, venues, photographers and more, all in one place."],
+                  ['Plan your special moment', 'Get quotes and manage every detail without ever picking up the phone first.'],
+                  ['Connect with the right people', 'Message vendors directly and book with confidence — no middleman.'],
+                ].map(([title, body]) => (
+                  <div key={title} style={{ display: 'flex', gap: 16 }}>
+                    <div style={{ flexShrink: 0, width: 4, borderRadius: 2, background: ACCENT }} />
+                    <div>
+                      <div style={{ fontSize: isMobile ? 18 : 20, fontWeight: 800, letterSpacing: '-0.01em' }}>{title}</div>
+                      <p style={{ margin: '6px 0 0', fontSize: 14.5, lineHeight: 1.55, color: '#5B5B5B', maxWidth: 420 }}>{body}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Browse by category</h2>
