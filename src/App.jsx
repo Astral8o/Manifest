@@ -362,7 +362,6 @@ const PRIVACY_SECTIONS = [
 
 const avatarUrl = (seed) =>
   'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(seed) + '&backgroundColor=171717&textColor=ffffff&fontWeight=700';
-const photoUrl = (seed, w, h) => 'https://picsum.photos/seed/' + encodeURIComponent(seed) + '/' + w + '/' + h;
 
 // Normalizes a T&T phone number into the full digits wa.me needs. Vendors
 // often type just the local 7-digit number or the 10-digit "868..." form
@@ -1122,7 +1121,7 @@ export default function App() {
     return {
       code: c[0],
       name: c[1],
-      photo: CATEGORY_PHOTOS[c[0]] || photoUrl('category-' + c[0], 400, 300),
+      photo: CATEGORY_PHOTOS[c[0]] || fallbackPhotoFor(c[0], 0),
       supplierLabel: n ? n + (n === 1 ? ' vendor' : ' vendors') : 'Coming soon',
       open: openCat(c[0]),
     };
@@ -1180,7 +1179,7 @@ export default function App() {
     if (details.length) msg += ' ' + details.join(' ');
     return msg + '.';
   };
-  const supCoverFallback = sup.coverUrl || photoUrl(sup.id + '-cover', 960, 360);
+  const supCoverFallback = sup.coverUrl || fallbackPhotoFor(sup.code, 0);
   const supCarouselPhotos = (() => {
     const galleryPhotos = (sup.gallery || []).map((g) => g.photoUrl).filter(Boolean);
     const photos = [supCoverFallback, ...galleryPhotos].filter(Boolean).slice(0, 3);
@@ -1565,9 +1564,9 @@ export default function App() {
     dirQuery: st.dirQuery || '',
     setDirQuery: (e) => patch({ dirQuery: e.target.value, dirVisible: 6 }),
     dirResultLabel: dirFiltered.length + ' of ' + SUPPLIERS.length + ' vendors',
-    dirSupplierRows: dirFiltered.slice(0, st.dirVisible || 6).map((s) => ({
+    dirSupplierRows: dirFiltered.slice(0, st.dirVisible || 6).map((s, i) => ({
       key: s.id,
-      cover: s.coverUrl || photoUrl(s.id + '-cover', 400, 300),
+      cover: s.coverUrl || fallbackPhotoFor(s.code, i),
       name: s.name,
       location: s.city,
       categoryName: catName(s.code),
@@ -1587,7 +1586,7 @@ export default function App() {
     supDetailLoading,
     sup: {
       logo: sup.logoUrl || avatarUrl(sup.name),
-      cover: sup.coverUrl || photoUrl(sup.id + '-cover', 960, 360),
+      cover: supCoverFallback,
       carouselPhotos: supCarouselPhotos,
       carouselIndex: (st.supCarouselIndex || 0) % supCarouselPhotos.length,
       isSaved: (st.savedVendors || []).indexOf(sup.id) >= 0,
@@ -1855,9 +1854,9 @@ export default function App() {
     svcShowMore: svcFiltered.length > svcVisible.length,
     svcRemainingLabel: 'Show ' + Math.min(8, svcFiltered.length - svcVisible.length) + ' more',
     loadMoreSvc: () => patch((s) => ({ svcVisible: (s.svcVisible || 8) + 8 })),
-    supplierProducts: svcVisible.map((p) => ({
+    supplierProducts: svcVisible.map((p, i) => ({
       key: p.id,
-      photo: p.photoUrl || photoUrl(p.id, 300, 220),
+      photo: p.photoUrl || fallbackPhotoFor(sup.code, i),
       name: p.name,
       description: p.description,
       inclusions: p.inclusions || [],
@@ -1928,7 +1927,7 @@ export default function App() {
         const s = supplier(p.supId);
         return {
           key: pid,
-          photo: photoUrl(pid, 200, 150),
+          photo: p.photoUrl || fallbackPhotoFor(s ? s.code : null, 0),
           name: p.name,
           supplierName: s ? s.name : '',
           priceLabel: priceLabel(p),
