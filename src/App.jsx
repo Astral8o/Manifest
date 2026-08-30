@@ -52,6 +52,28 @@ import rentalsPhoto from './assets/categories/rentals.jpg';
 import productionPhoto from './assets/categories/production.jpg';
 import photographyPhoto from './assets/categories/photography.jpg';
 import entertainmentPhoto from './assets/categories/entertainment.jpg';
+import heroSidePhoto from './assets/Photo for under hero.jpg';
+import photographerPhoto from './assets/photographer.jpg';
+import videographersPhoto from './assets/videographers.jpg';
+import weddingVenuePhoto from './assets/wedding venue.jpg';
+import weddingVenue2Photo from './assets/wedding venue 2.jpg';
+import cateringPhoto1 from './assets/catering 1.jpg';
+import cateringSpreadPhoto from './assets/catering spread.jpg';
+import soundSystemPhoto from './assets/sound system.jpg';
+
+// Real event photography, used as the fallback whenever a vendor or product
+// has no photo of its own yet (Featured Vendors / Featured Offerings on the
+// homepage) — cycled through by index rather than the generic Picsum
+// placeholder the rest of the site still falls back to.
+const FEATURED_FALLBACK_PHOTOS = [
+  photographerPhoto,
+  videographersPhoto,
+  weddingVenuePhoto,
+  weddingVenue2Photo,
+  cateringPhoto1,
+  cateringSpreadPhoto,
+  soundSystemPhoto,
+];
 
 const CATEGORY_PHOTOS = {
   'CAT.01': cateringPhoto,
@@ -1487,9 +1509,9 @@ export default function App() {
     topSuppliers: SUPPLIERS.slice()
       .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating))
       .slice(0, 6)
-      .map((s) => ({
+      .map((s, i) => ({
         key: s.id,
-        cover: s.coverUrl || photoUrl(s.id + '-cover', 400, 300),
+        cover: s.coverUrl || FEATURED_FALLBACK_PHOTOS[i % FEATURED_FALLBACK_PHOTOS.length],
         name: s.name,
         location: s.city,
         categoryName: catName(s.code),
@@ -1508,13 +1530,13 @@ export default function App() {
     featuredProducts: SUPPLIERS.slice()
       .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating))
       .slice(0, 6)
-      .map((s) => {
+      .map((s, i) => {
         const p = s.firstProduct;
         if (!p) return null;
         const pid = s.id + '-1';
         return {
           key: pid,
-          photo: photoUrl(pid, 300, 220),
+          photo: p.photoUrl || FEATURED_FALLBACK_PHOTOS[i % FEATURED_FALLBACK_PHOTOS.length],
           name: p.name,
           supplierName: s.name,
           categoryName: catName(s.code),
@@ -3212,8 +3234,8 @@ export default function App() {
 
           <div style={{ marginTop: isMobile ? 48 : 84, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: isMobile ? 24 : 56 }}>
             <img
-              src={venuesPhoto}
-              alt="An event space set up for a gala, with uplighting and round tables"
+              src={heroSidePhoto}
+              alt="A newly married couple and their wedding party dancing together at the reception"
               style={{ flex: isMobile ? 'none' : '1 1 0', width: isMobile ? '100%' : 'auto', height: isMobile ? 220 : 380, borderRadius: 28, objectFit: 'cover' }}
             />
             <div style={{ flex: isMobile ? 'none' : '1 1 0' }}>
