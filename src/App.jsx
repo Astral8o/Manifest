@@ -17,6 +17,7 @@ import {
   adminSetPublished,
   submitVendorForReview,
   adminCreateVendor,
+  adminBulkCreateVendors,
   adminCreateVendorLogin,
   sendVendorAccountSetupEmail,
   updateVendorPassword,
@@ -337,6 +338,124 @@ function whatsappDigits(phone) {
   if (digits.length === 7) return '1868' + digits;
   if (digits.length === 10 && digits.startsWith('868')) return '1' + digits;
   return digits;
+}
+
+// Minimal RFC4180-ish CSV parser: quoted fields, embedded commas, escaped
+// ("") quotes, and \n/\r\n/\r line endings — enough for a spreadsheet
+// export without pulling in a library for four columns.
+function parseCsvText(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += c;
+      }
+      continue;
+    }
+    if (c === '"') {
+      inQuotes = true;
+    } else if (c === ',') {
+      row.push(field);
+      field = '';
+    } else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(field);
+      field = '';
+      if (row.length > 1 || row[0] !== '') rows.push(row);
+      row = [];
+    } else {
+      field += c;
+    }
+  }
+  if (field !== '' || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows;
+}
+
+const BULK_CSV_HEADER_ALIASES = {
+  name: 'name',
+  'business name': 'name',
+  'vendor name': 'name',
+  vendor: 'name',
+  category: 'category',
+  region: 'region',
+  city: 'city',
+  email: 'email',
+  phone: 'phone',
+  whatsapp: 'phone',
+  'phone number': 'phone',
+  'whatsapp number': 'phone',
+  bio: 'bio',
+  'short description': 'bio',
+  description: 'description',
+  'full description': 'description',
+};
+
+// Turns parsed CSV rows into validated vendor rows ready for
+// adminBulkCreateVendors, or a list of reasons a row can't be imported yet.
+// Pure (takes cats/locations in) so it doesn't need any component state.
+function validateBulkCsvRows(csvRows, cats, locations) {
+  if (!csvRows.length) return [];
+  const header = csvRows[0].map((h) => (h || '').trim().toLowerCase());
+  const fieldIndex = {};
+  header.forEach((h, i) => {
+    const field = BULK_CSV_HEADER_ALIASES[h];
+    if (field && !(field in fieldIndex)) fieldIndex[field] = i;
+  });
+  const dataRows = csvRows.slice(1).filter((r) => r.some((v) => (v || '').trim()));
+  const regionNames = locations.filter((l) => l !== 'All areas');
+  return dataRows.map((r, i) => {
+    const get = (field) => (fieldIndex[field] !== undefined ? (r[fieldIndex[field]] || '').trim() : '');
+    const name = get('name');
+    const categoryRaw = get('category');
+    const region = get('region');
+    const city = get('city');
+    const email = get('email');
+    const phone = get('phone');
+    const bio = get('bio');
+    const description = get('description');
+
+    const errors = [];
+    if (!name) errors.push('Missing name');
+    const category = cats.find(
+      (c) => c[0].toLowerCase() === categoryRaw.toLowerCase() || c[1].toLowerCase() === categoryRaw.toLowerCase()
+    );
+    if (!categoryRaw) errors.push('Missing category');
+    else if (!category) errors.push(`Unknown category "${categoryRaw}"`);
+    const matchedRegion = regionNames.find((l) => l.toLowerCase() === region.toLowerCase());
+    if (!region) errors.push('Missing region');
+    else if (!matchedRegion) errors.push(`Unknown region "${region}"`);
+    if (!city) errors.push('Missing city');
+    if (!email) errors.push('Missing email');
+    else if (email.indexOf('@') <= 0) errors.push('Invalid email');
+
+    return {
+      rowNumber: i + 2, // +1 for the header row, +1 for 1-indexing
+      name,
+      categoryCode: category ? category[0] : '',
+      categoryLabel: category ? category[1] : categoryRaw,
+      region: matchedRegion || region,
+      city,
+      email,
+      phone,
+      bio,
+      description,
+      errors,
+    };
+  });
 }
 
 const VD_GUIDE_TABS = ['profile', 'packages', 'gallery', 'menu', 'faqs', 'policies', 'promos'];
@@ -2413,6 +2532,52 @@ export default function App() {
         adminReschedulePolicy: '',
         adminCancellationPolicy: '',
       }),
+
+    goAdminBulkImport: () =>
+      patch({
+        adminSubScreen: 'bulk-import',
+        bulkCsvFileName: '',
+        bulkCsvRows: [],
+        bulkImporting: false,
+        bulkImportError: null,
+        bulkImportResult: null,
+      }),
+    bulkCsvFileName: st.bulkCsvFileName || '',
+    bulkCsvRows: st.bulkCsvRows || [],
+    bulkCsvValidRows: (st.bulkCsvRows || []).filter((r) => r.errors.length === 0),
+    bulkCsvInvalidCount: (st.bulkCsvRows || []).filter((r) => r.errors.length > 0).length,
+    onBulkCsvFileChange: (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ bulkImportError: null, bulkImportResult: null });
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = parseCsvText(String(reader.result || ''));
+          const rows = validateBulkCsvRows(parsed, CATS, LOCATIONS);
+          patch({ bulkCsvFileName: file.name, bulkCsvRows: rows });
+        } catch {
+          patch({ bulkImportError: 'Could not read that file — make sure it is a plain CSV export.' });
+        }
+      };
+      reader.onerror = () => patch({ bulkImportError: 'Could not read that file.' });
+      reader.readAsText(file);
+      e.target.value = '';
+    },
+    bulkImporting: !!st.bulkImporting,
+    bulkImportError: st.bulkImportError || '',
+    bulkImportResult: st.bulkImportResult,
+    runBulkImport: async () => {
+      const validRows = (st.bulkCsvRows || []).filter((r) => r.errors.length === 0);
+      if (!validRows.length || st.bulkImporting) return;
+      patch({ bulkImporting: true, bulkImportError: null });
+      try {
+        const created = await adminBulkCreateVendors(validRows);
+        patch({ bulkImporting: false, bulkImportResult: { created }, bulkCsvRows: [], bulkCsvFileName: '' });
+      } catch (err) {
+        patch({ bulkImporting: false, bulkImportError: err.message || 'Could not import these vendors.' });
+      }
+    },
 
     adminStep: st.adminStep || 1,
     adminTotalSteps: 7,
@@ -6665,12 +6830,20 @@ export default function App() {
             <div style={{ marginTop: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                 <div style={{ fontSize: 14, color: '#5B5B5B' }}>{V.adminVendors.length} vendors (drafts included)</div>
-                <button
-                  onClick={V.goAdminNewVendor}
-                  style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
-                >
-                  + Add vendor
-                </button>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    onClick={V.goAdminBulkImport}
+                    style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: '#FFFFFF', color: '#171717', padding: '11px 20px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
+                  >
+                    Bulk import
+                  </button>
+                  <button
+                    onClick={V.goAdminNewVendor}
+                    style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
+                  >
+                    + Add vendor
+                  </button>
+                </div>
               </div>
               {V.adminVendorsError && (
                 <div style={{ marginTop: 14, fontSize: 13, color: '#B3261E' }}>{V.adminVendorsError}</div>
@@ -6789,6 +6962,78 @@ export default function App() {
                     <div style={{ padding: '20px 2px', fontSize: 14, color: '#9A9A9A' }}>No vendors yet.</div>
                   )}
                 </div>
+              )}
+            </div>
+          ) : V.adminSubScreen === 'bulk-import' ? (
+            <div style={{ marginTop: 24 }}>
+              <button
+                onClick={V.goAdminDashboard}
+                style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+              >
+                ← Dashboard
+              </button>
+              <h2 style={{ margin: '14px 0 0', fontSize: 24, letterSpacing: '-0.02em', fontWeight: 800 }}>Bulk import vendors</h2>
+              <p style={{ margin: '8px 0 0', fontSize: 14, color: '#5B5B5B', maxWidth: 560 }}>
+                Upload a CSV with columns <strong>name, category, region, city, email</strong> (required) and
+                optionally <strong>phone, bio, description</strong>. Category must match one of your categories
+                by name or code; region must match one of the municipalities. Imported vendors are created as
+                unpublished drafts.
+              </p>
+
+              {V.bulkImportResult && (
+                <div style={{ marginTop: 18, border: '1px solid #16A34A', borderRadius: 16, padding: '14px 18px', background: '#F0FDF4', fontSize: 14, color: '#166534' }}>
+                  Imported {V.bulkImportResult.created} vendor{V.bulkImportResult.created === 1 ? '' : 's'} as drafts.
+                  Publish each one from the dashboard once its profile is ready.
+                </div>
+              )}
+
+              <div style={{ marginTop: 18 }}>
+                <input type="file" accept=".csv,text/csv" onChange={V.onBulkCsvFileChange} style={{ fontSize: 13 }} />
+              </div>
+              {V.bulkImportError && <div style={{ marginTop: 10, fontSize: 13, color: '#B3261E' }}>{V.bulkImportError}</div>}
+
+              {V.bulkCsvRows.length > 0 && (
+                <>
+                  <div style={{ marginTop: 18, fontSize: 14, color: '#5B5B5B' }}>
+                    {V.bulkCsvFileName} · {V.bulkCsvValidRows.length} ready to import
+                    {V.bulkCsvInvalidCount > 0 ? `, ${V.bulkCsvInvalidCount} with errors` : ''}
+                  </div>
+                  <div style={{ marginTop: 10, overflowX: 'auto', border: '1px solid #ECECEC', borderRadius: 16 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: '#F7F7F5' }}>
+                          {['Row', 'Name', 'Category', 'Region', 'City', 'Email', 'Status'].map((h) => (
+                            <th key={h} style={{ textAlign: 'left', padding: '10px 12px', fontFamily: MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A', whiteSpace: 'nowrap' }}>
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {V.bulkCsvRows.map((r) => (
+                          <tr key={r.rowNumber} style={{ borderTop: '1px solid #ECECEC', background: r.errors.length ? '#FEF2F2' : 'transparent' }}>
+                            <td style={{ padding: '8px 12px', color: '#9A9A9A' }}>{r.rowNumber}</td>
+                            <td style={{ padding: '8px 12px' }}>{r.name || '—'}</td>
+                            <td style={{ padding: '8px 12px' }}>{r.categoryLabel || '—'}</td>
+                            <td style={{ padding: '8px 12px' }}>{r.region || '—'}</td>
+                            <td style={{ padding: '8px 12px' }}>{r.city || '—'}</td>
+                            <td style={{ padding: '8px 12px' }}>{r.email || '—'}</td>
+                            <td style={{ padding: '8px 12px', color: r.errors.length ? '#B3261E' : '#16A34A', fontWeight: 600 }}>
+                              {r.errors.length ? r.errors.join('; ') : 'Ready'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <button
+                    onClick={V.runBulkImport}
+                    disabled={!V.bulkCsvValidRows.length || V.bulkImporting}
+                    style={{ marginTop: 16, border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: !V.bulkCsvValidRows.length || V.bulkImporting ? 0.4 : 1 }}
+                  >
+                    {V.bulkImporting ? 'Importing…' : `Import ${V.bulkCsvValidRows.length} vendor${V.bulkCsvValidRows.length === 1 ? '' : 's'}`}
+                  </button>
+                </>
               )}
             </div>
           ) : (

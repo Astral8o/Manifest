@@ -444,6 +444,40 @@ export async function adminCreateVendor(v) {
   return vendorId;
 }
 
+// Bulk-creates vendors (basics only — no packages/gallery/faqs, unlike
+// adminCreateVendor) from a validated CSV import. One INSERT statement for
+// the whole batch, so it's all-or-nothing rather than left half-done if a
+// row further down the list turns out to violate a constraint. Always
+// created unpublished — CSV rows have no packages or photos yet, so they
+// shouldn't go live until whoever imported them fleshes each one out.
+export async function adminBulkCreateVendors(rows) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase
+    .from('vendors')
+    .insert(
+      rows.map((v) => ({
+        category_code: v.categoryCode,
+        name: v.name,
+        city: v.city,
+        region: v.region,
+        bio: v.bio || '',
+        description: v.description || '',
+        phone: v.phone || null,
+        email: v.email,
+        min_group: 1,
+        lead_time_days: 0,
+        radius_km: 0,
+        price_on_request: false,
+        published: false,
+      }))
+    )
+    .select('id');
+  if (error) throw error;
+  return data.length;
+}
+
 // Vendor self-serve onboarding: a real (email + password) account, distinct
 // from the passwordless magic-link flow buyers use.
 export async function signUpVendor(email, password) {
