@@ -1005,29 +1005,15 @@ export default function App() {
     );
   }
 
-  if (!catalog.ready) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
-        <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', color: '#171717' }}>Eventory</div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className="eventory-loading-dot"
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                background: ACCENT,
-                animation: 'eventory-loading-dot 1s ease-in-out infinite',
-                animationDelay: `${i * 0.15}s`,
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // catalog.ready no longer gates the whole page — the header, hero, and
+  // "What We Do" section don't need any vendor data, so they render on the
+  // very first paint instead of waiting behind this fetch. CATS/SUPPLIERS
+  // just stay empty arrays until it resolves, which every derived list
+  // below already handles safely (empty .map()/.filter(), EMPTY_SUPPLIER
+  // fallback for sup); the handful of visibly data-dependent sections
+  // (category tiles, Featured Vendors/Offerings, Discover Vendors) show
+  // their own small "Loading…" via V.catalogLoading instead of a
+  // misleading empty state.
 
   // Converts one detail-fetched vendor's raw product tuples into the named
   // shape the rest of the app expects. Only ever called on a vendor whose
@@ -1220,6 +1206,7 @@ export default function App() {
     on ? { bg: '#171717', fg: '#FFFFFF', border: '#171717' } : { bg: '#FFFFFF', fg: '#171717', border: '#D7D7D2' };
 
   const V = {
+    catalogLoading: !catalog.ready,
     isHome: st.screen === 'home',
     isHowItWorks: st.screen === 'how-it-works',
     isSuppliers: st.screen === 'suppliers',
@@ -3314,6 +3301,7 @@ export default function App() {
                 </button>
               </div>
             </div>
+            {V.catalogLoading && <div style={{ marginTop: 16, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
             <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
               {V.topCategoryTiles.map((c) => (
                 <button
@@ -3364,6 +3352,7 @@ export default function App() {
                 From birthday parties to corporate functions, here's who's ready to help.
               </p>
             </div>
+            {V.catalogLoading && <div style={{ marginTop: 16, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
             <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
               {V.topSuppliers.map((s) => (
                 <div
@@ -3517,6 +3506,7 @@ export default function App() {
                 Explore products, packages, rentals and services from event vendors.
               </p>
             </div>
+            {V.catalogLoading && <div style={{ marginTop: 16, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
             <div
               style={{
                 marginTop: 24,
@@ -4140,7 +4130,10 @@ export default function App() {
                 </div>
               </div>
             ))}
-            {V.dirSupplierRows.length === 0 && (
+            {V.catalogLoading && V.dirSupplierRows.length === 0 && (
+              <div style={{ gridColumn: '1 / -1', padding: '28px 2px', fontSize: 14, color: '#9A9A9A' }}>Loading…</div>
+            )}
+            {!V.catalogLoading && V.dirSupplierRows.length === 0 && (
               <div style={{ gridColumn: '1 / -1', padding: '28px 2px', fontSize: 14, color: '#9A9A9A' }}>No vendors match your search.</div>
             )}
           </div>
