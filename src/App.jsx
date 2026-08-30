@@ -2817,7 +2817,7 @@ export default function App() {
         // logged in, but never got a listing created) — skip straight to
         // business info instead of asking them to sign up again, which
         // would just fail since the account already exists.
-        voStep: st.signedIn ? 2 : 1,
+        voStep: st.signedIn ? 2 : 0,
         voDone: false,
         voVendorId: null,
         voSectors: [],
@@ -2838,7 +2838,7 @@ export default function App() {
         voStep1Error: null,
         navMenuOpen: false,
       }),
-    voStep: st.voStep || 1,
+    voStep: st.voStep ?? 1,
     voDone: !!st.voDone,
 
     voSectorTiles: [...CATS.map((c) => ({ key: c[0], name: c[1] })), { key: 'OTHER', name: 'Other' }].map((c) => ({
@@ -7393,13 +7393,17 @@ export default function App() {
       {V.isVendorOnboarding && (
         <div style={{ padding: '34px 0 0', maxWidth: 720 }}>
           <button
-            onClick={V.goHome}
+            onClick={
+              !V.voDone && V.voStep > 0 && !(V.signedIn && V.voStep === 2)
+                ? () => patch({ voStep: V.voStep - 1 })
+                : V.goHome
+            }
             style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
           >
             ← Back
           </button>
           <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 28 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
-            Vendor onboarding
+            {V.voStep === 0 && !V.voDone ? 'List your business on Eventory' : 'Vendor onboarding'}
           </h1>
 
           {V.voDone ? (
@@ -7424,6 +7428,54 @@ export default function App() {
                 </button>
               </div>
             </div>
+          ) : V.voStep === 0 ? (
+            <>
+              <p style={{ margin: '14px 0 0', fontSize: 16, lineHeight: 1.55, color: '#5B5B5B', maxWidth: 560 }}>
+                Trinidad &amp; Tobago's directory for event vendors. Get discovered by people actively
+                planning their event, and manage every inquiry yourself.
+              </p>
+
+              <div style={{ marginTop: 28, borderRadius: 24, background: '#171717', color: '#FFFFFF', padding: isMobile ? '26px 22px' : '32px 36px', display: 'flex', flexDirection: 'column', gap: isMobile ? 20 : 24 }}>
+                {[
+                  ['Get discovered', 'Show up when people search for exactly what you offer.'],
+                  ['Set your own terms', 'List your packages and pricing your way — no commission taken.'],
+                  ['Talk directly to clients', 'Inquiries come straight to you. No middleman, no processing fees.'],
+                ].map(([title, body], i) => (
+                  <div key={title} style={{ display: 'flex', alignItems: 'flex-start', gap: isMobile ? 14 : 20 }}>
+                    <div style={{ flexShrink: 0, fontFamily: MONO, fontSize: isMobile ? 18 : 22, fontWeight: 600, color: ACCENT }}>{'0' + (i + 1)}</div>
+                    <div>
+                      <div style={{ fontSize: isMobile ? 17 : 19, fontWeight: 800, letterSpacing: '-0.01em' }}>{title}</div>
+                      <div style={{ marginTop: 4, fontSize: 14, lineHeight: 1.5, color: '#B8B8B8' }}>{body}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 24, border: '1px solid #ECECEC', borderRadius: 20, padding: isMobile ? '18px 20px' : '22px 26px' }}>
+                <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Before you start</div>
+                <div style={{ marginTop: 10, fontSize: 14.5, lineHeight: 1.6, color: '#4A4A4A' }}>
+                  Have your email, phone number, business name and category handy — it takes about two
+                  minutes. Photos, packages and pricing can all be added afterward from your dashboard,
+                  whenever you're ready.
+                </div>
+              </div>
+
+              <div style={{ marginTop: 26, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => patch({ voStep: 1 })}
+                  style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '15px 30px', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
+                >
+                  Get started →
+                </button>
+                <p style={{ margin: 0, fontSize: 13, color: '#8A8A8A' }}>
+                  Already have a vendor account?{' '}
+                  <button onClick={V.goVendorSignIn} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+                    Sign in
+                  </button>{' '}
+                  instead.
+                </p>
+              </div>
+            </>
           ) : (
             <>
               <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
