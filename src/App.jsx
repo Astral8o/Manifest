@@ -617,6 +617,8 @@ const initialState = {
   waEventTypeOther: '',
   waEventDate: '',
   waVenue: '',
+  waAttendees: '',
+  waService: '',
   quoteModalOpen: false,
   quoteStep: 1,
   quoteEventType: null,
@@ -1170,12 +1172,13 @@ export default function App() {
     if (platform === 'tiktok') return 'https://tiktok.com/@' + h;
     return null;
   };
-  const buildWaMessage = (name, { eventTypeLabel, eventDate, venue }) => {
-    let msg = `Hi ${name}, I found you on Eventory and I'm interested in your services`;
+  const buildWaMessage = (name, { eventTypeLabel, eventDate, venue, attendees, service }) => {
+    let msg = `Hi ${name}, I found you on Eventory and I'm interested in ${service ? `your ${service}` : 'your services'}`;
     const details = [];
     if (eventTypeLabel) details.push(`for a ${eventTypeLabel}`);
     if (eventDate) details.push(`on ${eventDate}`);
     if (venue) details.push(`at ${venue}`);
+    if (attendees) details.push(`for about ${attendees} guests`);
     if (details.length) msg += ' ' + details.join(' ');
     return msg + '.';
   };
@@ -1643,7 +1646,7 @@ export default function App() {
     },
 
     openWaModal: () =>
-      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '' }),
+      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null }),
     closeWaModal: () => patch({ waModalOpen: false }),
     waModalOpen: !!st.waModalOpen,
     waEventTypeTiles: EVENT_TYPES.map((t) => ({
@@ -1658,6 +1661,14 @@ export default function App() {
     setWaEventDate: (e) => patch({ waEventDate: e.target.value }),
     waVenue: st.waVenue || '',
     setWaVenue: (e) => patch({ waVenue: e.target.value }),
+    waAttendees: st.waAttendees || '',
+    setWaAttendees: (e) => patch({ waAttendees: e.target.value.replace(/[^0-9]/g, '') }),
+    waServiceTiles: supProducts.map((p) => ({
+      key: p.name,
+      label: p.name,
+      on: st.waService === p.name,
+      pick: () => patch({ waService: st.waService === p.name ? null : p.name }),
+    })),
     waSendDisabled: !st.waEventType || (st.waEventType === 'other' && !(st.waEventTypeOther || '').trim()),
     waSendUrl: sup.phone
       ? 'https://wa.me/' +
@@ -1671,6 +1682,8 @@ export default function App() {
                 : ((EVENT_TYPES.find((t) => t.key === st.waEventType) || {}).label || '').toLowerCase(),
             eventDate: st.waEventDate,
             venue: st.waVenue,
+            attendees: st.waAttendees,
+            service: st.waService,
           })
         )
       : null,
@@ -8160,6 +8173,34 @@ export default function App() {
               />
             )}
 
+            {V.waServiceTiles.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Service you're interested in (optional)
+                </span>
+                <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {V.waServiceTiles.map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={t.pick}
+                      style={{
+                        border: t.on ? '2px solid #171717' : '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: t.on ? '#171717' : '#FFFFFF',
+                        color: t.on ? '#FFFFFF' : '#171717',
+                        padding: '9px 14px',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <label style={{ flex: '1 1 160px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
@@ -8181,6 +8222,19 @@ export default function App() {
                   value={V.waVenue}
                   onChange={V.setWaVenue}
                   placeholder="e.g. Hyatt Regency"
+                  style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
+                />
+              </label>
+              <label style={{ flex: '1 1 160px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  Guests (optional)
+                </span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={V.waAttendees}
+                  onChange={V.setWaAttendees}
+                  placeholder="e.g. 80"
                   style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
                 />
               </label>
