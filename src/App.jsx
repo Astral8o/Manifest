@@ -7460,7 +7460,7 @@ export default function App() {
             </>
           ) : (
             <>
-              <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+              <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, color: ACCENT }}>
                 Step {V.voStep} of 2 · {['', 'Create your account', 'Your business'][V.voStep]}
               </div>
               <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
