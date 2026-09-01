@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import heroPhoto from './assets/hero-photo.jpg';
+import heroPhoto from './assets/cocktail toast.jpg';
 import { joinWaitlist } from './catalog';
 
 const SANS = 'Manrope, sans-serif';
