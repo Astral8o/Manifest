@@ -955,21 +955,25 @@ export async function submitSpotlightInterest({ plan, businessName, email, phone
   if (error) throw error;
 }
 
-// company is a honeypot (see submitContactMessage below).
+// Saving a plan requires a signed-in buyer — it's the "sign in" step at the
+// end of the Plan My Event wizard, not a separate contact form.
 export async function submitPlanningRequest(request) {
-  if (request.company) return;
   if (!supabaseConfigured) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('You need to be signed in to save your plan.');
+
   const { error } = await supabase.from('planning_requests').insert({
+    buyer_user_id: user.id,
     event_label: request.eventLabel,
     event_date: request.eventDate || null,
     location: request.location || null,
     category_codes: request.categoryCodes,
     budget_label: request.budgetLabel || null,
-    contact_name: request.contactName,
-    contact_phone: request.contactPhone,
-    contact_email: request.contactEmail || null,
+    contact_email: request.contactEmail || user.email || null,
   });
 
   if (error) throw error;

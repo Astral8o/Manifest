@@ -979,11 +979,14 @@ export default function App() {
       }
       if (session) {
         let extra = {};
+        let resumePlan = null;
         try {
           const raw = localStorage.getItem(POST_AUTH_RETURN_KEY);
           if (raw) {
             const parsed = JSON.parse(raw);
-            if (parsed && parsed.screen) {
+            if (parsed && parsed.resumePlan) {
+              resumePlan = parsed.resumePlan;
+            } else if (parsed && parsed.screen) {
               extra = {
                 screen: parsed.screen,
                 ...(parsed.supId ? { supId: parsed.supId } : {}),
@@ -1021,6 +1024,41 @@ export default function App() {
           authError: null,
           ...extra,
         });
+        if (resumePlan) {
+          submitPlanningRequest({
+            eventLabel: resumePlan.eventLabel,
+            eventDate: resumePlan.eventDate,
+            location: resumePlan.locationLabel,
+            categoryCodes: resumePlan.categoryCodes,
+            budgetLabel: resumePlan.budgetLabel,
+            contactEmail: session.user.email || '',
+          })
+            .then(() => {
+              patch({
+                planModalOpen: false,
+                screen: 'suppliers',
+                dirCat: 'ALL',
+                dirCats: resumePlan.categoryCodes || [],
+                dirPlanLabel: resumePlan.eventLabel,
+                dirLoc: resumePlan.locIndex || 0,
+                dirPrice: resumePlan.budgetIndex || 0,
+                dirVisible: 6,
+                navMenuOpen: false,
+              });
+            })
+            .catch((err) => {
+              patch({
+                planModalOpen: true,
+                planStep: 6,
+                planOccasion: resumePlan.eventLabel,
+                planEventDate: resumePlan.eventDate,
+                planLoc: resumePlan.locIndex || 0,
+                planCats: resumePlan.categoryCodes || [],
+                planBudget: resumePlan.budgetIndex || 0,
+                planSubmitError: err.message || 'Could not save your plan. Please try again.',
+              });
+            });
+        }
       } else {
         patch({ signedIn: false, accountRole: '' });
       }
@@ -1496,10 +1534,10 @@ export default function App() {
         planLoc: 0,
         planCats: [],
         planBudget: 0,
-        planContactName: '',
-        planContactPhone: '',
-        planContactEmail: '',
-        planCompany: '',
+        planAuthEmail: st.email || '',
+        planAuthSending: false,
+        planAuthSent: false,
+        planAuthError: null,
         planSubmitting: false,
         planSubmitError: null,
       }),
@@ -1556,22 +1594,45 @@ export default function App() {
     })),
     planBudgetNext: () => patch({ planStep: 6 }),
 
-    planContactName: st.planContactName || '',
-    setPlanContactName: (e) => patch({ planContactName: e.target.value }),
-    planContactPhone: st.planContactPhone || '',
-    setPlanContactPhone: (e) => patch({ planContactPhone: e.target.value }),
-    planContactEmail: st.planContactEmail || '',
-    setPlanContactEmail: (e) => patch({ planContactEmail: e.target.value }),
-    planCompany: st.planCompany || '',
-    setPlanCompany: (e) => patch({ planCompany: e.target.value }),
+    planAuthEmail: st.planAuthEmail || '',
+    setPlanAuthEmail: (e) => patch({ planAuthEmail: e.target.value, planAuthSent: false, planAuthError: null }),
+    planAuthSending: !!st.planAuthSending,
+    planAuthSent: !!st.planAuthSent,
+    planAuthError: st.planAuthError || '',
+    planSendMagicLink: async () => {
+      const email = (st.planAuthEmail || '').trim();
+      if (!email || email.indexOf('@') < 1 || st.planAuthSending) return;
+      patch({ planAuthSending: true, planAuthError: null });
+      try {
+        localStorage.setItem(
+          POST_AUTH_RETURN_KEY,
+          JSON.stringify({
+            resumePlan: {
+              eventLabel: st.planOccasion || 'Your event',
+              eventDate: st.planEventDate || '',
+              locationLabel: LOCATIONS[st.planLoc || 0],
+              locIndex: st.planLoc || 0,
+              categoryCodes: st.planCats || [],
+              budgetLabel: PRICE_FILTERS[st.planBudget || 0].label,
+              budgetIndex: st.planBudget || 0,
+            },
+          })
+        );
+      } catch {
+        // ignore storage failures — worst case they land back signed in without the plan auto-saved
+      }
+      try {
+        await sendMagicLink(email);
+        patch({ planAuthSending: false, planAuthSent: true });
+      } catch (err) {
+        patch({ planAuthSending: false, planAuthError: err.message || 'Something went wrong sending your sign-in link. Please try again.' });
+      }
+    },
     planSubmitting: !!st.planSubmitting,
     planSubmitError: st.planSubmitError || '',
-    planSubmitDisabled:
-      !(st.planContactName || '').trim() || !(st.planContactPhone || '').trim() || !!st.planSubmitting,
+    planSubmitDisabled: !!st.planSubmitting,
     finishPlanning: async () => {
-      const name = (st.planContactName || '').trim();
-      const phone = (st.planContactPhone || '').trim();
-      if (!name || !phone || st.planSubmitting) return;
+      if (st.planSubmitting) return;
       const label = st.planOccasion || 'Your event';
       patch({ planSubmitting: true, planSubmitError: null });
       try {
@@ -1581,10 +1642,7 @@ export default function App() {
           location: LOCATIONS[st.planLoc || 0],
           categoryCodes: st.planCats || [],
           budgetLabel: PRICE_FILTERS[st.planBudget || 0].label,
-          contactName: name,
-          contactPhone: phone,
-          contactEmail: (st.planContactEmail || '').trim(),
-          company: st.planCompany,
+          contactEmail: st.email || '',
         });
         patch({
           planModalOpen: false,
@@ -8128,7 +8186,7 @@ export default function App() {
                   {V.planStep === 3 && 'When & where?'}
                   {V.planStep === 4 && 'Which vendors are you looking for?'}
                   {V.planStep === 5 && "What's your budget?"}
-                  {V.planStep === 6 && 'How can vendors reach you?'}
+                  {V.planStep === 6 && 'Save your plan'}
                 </h2>
               </div>
               <button
@@ -8399,101 +8457,110 @@ export default function App() {
             {V.planStep === 6 && (
               <>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
-                  Last step — this is how we and matching vendors can follow up with you.
+                  {V.signedIn
+                    ? 'Last step — save this plan to your account so you can pick up where you left off.'
+                    : "Last step — sign in to save your plan. We'll email you a link, no password needed."}
                 </p>
-                <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div>
-                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                      Your name
-                    </div>
-                    <input
-                      type="text"
-                      value={V.planContactName}
-                      onChange={V.setPlanContactName}
-                      placeholder="Full name"
+
+                {V.signedIn ? (
+                  <>
+                    <div
                       style={{
-                        marginTop: 8,
-                        width: '100%',
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 14,
-                        background: '#F7F7F5',
-                        padding: '11px 14px',
-                        fontFamily: SANS,
+                        marginTop: 18,
+                        border: '1px solid #ECECEC',
+                        borderRadius: 16,
+                        padding: '14px 18px',
                         fontSize: 14,
-                        color: '#171717',
+                        color: '#5B5B5B',
                       }}
-                    />
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                      Phone number
+                    >
+                      Signed in as <span style={{ fontWeight: 700, color: '#171717' }}>{V.accountEmail}</span>
                     </div>
-                    <input
-                      type="tel"
-                      value={V.planContactPhone}
-                      onChange={V.setPlanContactPhone}
-                      placeholder="e.g. 868 123 4567"
+                    <button
+                      onClick={V.finishPlanning}
+                      disabled={V.planSubmitDisabled}
                       style={{
-                        marginTop: 8,
+                        marginTop: 22,
                         width: '100%',
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 14,
-                        background: '#F7F7F5',
-                        padding: '11px 14px',
-                        fontFamily: SANS,
-                        fontSize: 14,
-                        color: '#171717',
+                        border: 0,
+                        borderRadius: 999,
+                        background: ACCENT,
+                        color: '#FFFFFF',
+                        padding: '15px 26px',
+                        cursor: V.planSubmitDisabled ? 'not-allowed' : 'pointer',
+                        opacity: V.planSubmitDisabled ? 0.5 : 1,
+                        fontSize: 15,
+                        fontWeight: 700,
                       }}
-                    />
+                    >
+                      {V.planSubmitting ? 'Saving…' : 'Save & see my matches →'}
+                    </button>
+                    {V.planSubmitError && (
+                      <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.planSubmitError}</div>
+                    )}
+                  </>
+                ) : V.planAuthSent ? (
+                  <div
+                    style={{
+                      marginTop: 18,
+                      border: '1px solid #16A34A',
+                      borderRadius: 16,
+                      background: '#F0FDF4',
+                      padding: '16px 18px',
+                      fontSize: 14,
+                      lineHeight: 1.5,
+                      color: '#166534',
+                    }}
+                  >
+                    Check your email — tap the link we sent to {V.planAuthEmail} and your plan will be saved automatically.
                   </div>
-                  <div>
-                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                      Email (optional)
+                ) : (
+                  <>
+                    <div style={{ marginTop: 18 }}>
+                      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                        Email address
+                      </div>
+                      <input
+                        type="email"
+                        value={V.planAuthEmail}
+                        onChange={V.setPlanAuthEmail}
+                        placeholder="you@example.com"
+                        style={{
+                          marginTop: 8,
+                          width: '100%',
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 14,
+                          background: '#F7F7F5',
+                          padding: '11px 14px',
+                          fontFamily: SANS,
+                          fontSize: 14,
+                          color: '#171717',
+                        }}
+                      />
                     </div>
-                    <input
-                      type="email"
-                      value={V.planContactEmail}
-                      onChange={V.setPlanContactEmail}
-                      placeholder="you@organisation.tt"
+                    <button
+                      onClick={V.planSendMagicLink}
+                      disabled={V.planAuthSending}
                       style={{
-                        marginTop: 8,
+                        marginTop: 22,
                         width: '100%',
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 14,
-                        background: '#F7F7F5',
-                        padding: '11px 14px',
-                        fontFamily: SANS,
-                        fontSize: 14,
-                        color: '#171717',
+                        border: 0,
+                        borderRadius: 999,
+                        background: ACCENT,
+                        color: '#FFFFFF',
+                        padding: '15px 26px',
+                        cursor: V.planAuthSending ? 'not-allowed' : 'pointer',
+                        opacity: V.planAuthSending ? 0.5 : 1,
+                        fontSize: 15,
+                        fontWeight: 700,
                       }}
-                    />
-                  </div>
-                </div>
-                <label style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }} aria-hidden="true">
-                  Company
-                  <input type="text" tabIndex={-1} autoComplete="off" value={V.planCompany} onChange={V.setPlanCompany} />
-                </label>
-                <button
-                  onClick={V.finishPlanning}
-                  disabled={V.planSubmitDisabled}
-                  style={{
-                    marginTop: 22,
-                    width: '100%',
-                    border: 0,
-                    borderRadius: 999,
-                    background: ACCENT,
-                    color: '#FFFFFF',
-                    padding: '15px 26px',
-                    cursor: V.planSubmitDisabled ? 'not-allowed' : 'pointer',
-                    opacity: V.planSubmitDisabled ? 0.5 : 1,
-                    fontSize: 15,
-                    fontWeight: 700,
-                  }}
-                >
-                  {V.planSubmitting ? 'Finding matches…' : 'See my matches →'}
-                </button>
-                {V.planSubmitError && (
-                  <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.planSubmitError}</div>
+                    >
+                      {V.planAuthSending ? 'Sending…' : 'Email me a magic link →'}
+                    </button>
+                    {V.planAuthError && (
+                      <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.planAuthError}</div>
+                    )}
+                  </>
                 )}
               </>
             )}
