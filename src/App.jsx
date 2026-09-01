@@ -46,12 +46,6 @@ import {
 } from './catalog';
 import { supabase } from './supabaseClient';
 import heroPhoto from './assets/hero-photo.jpg';
-import cateringPhoto from './assets/categories/catering.jpg';
-import venuesPhoto from './assets/categories/venues.jpg';
-import rentalsPhoto from './assets/categories/rentals.jpg';
-import productionPhoto from './assets/categories/production.jpg';
-import photographyPhoto from './assets/categories/photography.jpg';
-import entertainmentPhoto from './assets/categories/entertainment.jpg';
 import heroSidePhoto from './assets/Photo for under hero.jpg';
 import photographerPhoto from './assets/photographer.jpg';
 import videographersPhoto from './assets/videographers.jpg';
@@ -87,14 +81,170 @@ const fallbackPhotoFor = (categoryCode, seed) => {
   return pool[seed % pool.length];
 };
 
-const CATEGORY_PHOTOS = {
-  'CAT.01': cateringPhoto,
-  'CAT.02': venuesPhoto,
-  'CAT.04': rentalsPhoto,
-  'CAT.06': productionPhoto,
-  'CAT.08': photographyPhoto,
-  'CAT.09': entertainmentPhoto,
-};
+// Small line-icon set for the "Browse by category" tiles — one shape per
+// category code, same stroke style as the icons used elsewhere in the app
+// (24x24 viewBox, currentColor-able stroke). Kept as simple geometric marks
+// rather than detailed illustrations so they read cleanly at tile size.
+function CategoryIcon({ code, size = 26, color = '#5B5B5B' }) {
+  const props = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  switch (code) {
+    case 'CAT.01': // Catering
+      return (
+        <svg {...props}>
+          <path d="M5 2v7a2 2 0 0 0 4 0V2" />
+          <line x1="7" y1="2" x2="7" y2="22" />
+          <path d="M17 2c-2 2-3 4-3 7a3 3 0 0 0 3 3v10" />
+        </svg>
+      );
+    case 'CAT.02': // Venues
+      return (
+        <svg {...props}>
+          <rect x="4" y="3" width="16" height="18" rx="1" />
+          <rect x="9" y="7" width="2" height="2" />
+          <rect x="13" y="7" width="2" height="2" />
+          <rect x="9" y="11" width="2" height="2" />
+          <rect x="13" y="11" width="2" height="2" />
+          <rect x="9" y="16" width="6" height="5" />
+        </svg>
+      );
+    case 'CAT.03': // Décor
+      return (
+        <svg {...props}>
+          <path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z" />
+        </svg>
+      );
+    case 'CAT.04': // Rentals
+      return (
+        <svg {...props}>
+          <path d="M6 10V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5" />
+          <path d="M4 10h16v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4z" />
+          <line x1="6" y1="16" x2="6" y2="21" />
+          <line x1="18" y1="16" x2="18" y2="21" />
+        </svg>
+      );
+    case 'CAT.05': // Staging
+      return (
+        <svg {...props}>
+          <path d="M3 20h18" />
+          <path d="M6 20l3-8h6l3 8" />
+          <path d="M12 4l-3 6h6l-3-6z" />
+        </svg>
+      );
+    case 'CAT.06': // Production
+      return (
+        <svg {...props}>
+          <rect x="4" y="2" width="16" height="20" rx="2" />
+          <circle cx="12" cy="8" r="3" />
+          <circle cx="12" cy="16" r="4" />
+        </svg>
+      );
+    case 'CAT.07': // Lighting
+      return (
+        <svg {...props}>
+          <path d="M9 18h6" />
+          <path d="M10 22h4" />
+          <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2.3h6c0-1.1.4-1.8 1-2.3A7 7 0 0 0 12 2z" />
+        </svg>
+      );
+    case 'CAT.08': // Photography
+      return (
+        <svg {...props}>
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+          <circle cx="12" cy="13" r="4" />
+        </svg>
+      );
+    case 'CAT.09': // Entertainment
+      return (
+        <svg {...props}>
+          <path d="M9 18V5l12-2v13" />
+          <circle cx="6" cy="18" r="3" />
+          <circle cx="18" cy="16" r="3" />
+        </svg>
+      );
+    case 'CAT.10': // Event Agencies
+      return (
+        <svg {...props}>
+          <rect x="2" y="7" width="20" height="14" rx="2" />
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+        </svg>
+      );
+    case 'CAT.11': // Printing & Signage
+      return (
+        <svg {...props}>
+          <polyline points="6 9 6 2 18 2 18 9" />
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+          <rect x="6" y="14" width="12" height="8" />
+        </svg>
+      );
+    case 'CAT.12': // Merchandise
+      return (
+        <svg {...props}>
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <path d="M16 10a4 4 0 0 1-8 0" />
+        </svg>
+      );
+    case 'CAT.13': // Logistics
+      return (
+        <svg {...props}>
+          <rect x="1" y="3" width="15" height="13" />
+          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+          <circle cx="5.5" cy="18.5" r="2.5" />
+          <circle cx="18.5" cy="18.5" r="2.5" />
+        </svg>
+      );
+    case 'CAT.14': // Security & Safety
+      return (
+        <svg {...props}>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+      );
+    case 'CAT.15': // Cakes & Desserts
+      return (
+        <svg {...props}>
+          <path d="M12 2v4" />
+          <path d="M5 21v-7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7" />
+          <path d="M3 21h18" />
+          <path d="M5 14c1-2 2-2 3 0s2 2 3 0 2-2 3 0 2 2 3 0" />
+        </svg>
+      );
+    case 'CAT.16': // Hair, Makeup & Styling
+      return (
+        <svg {...props}>
+          <circle cx="6" cy="6" r="3" />
+          <circle cx="6" cy="18" r="3" />
+          <line x1="20" y1="4" x2="8.12" y2="15.88" />
+          <line x1="14.47" y1="14.48" x2="20" y2="20" />
+          <line x1="8.12" y1="8.12" x2="12" y2="12" />
+        </svg>
+      );
+    case 'CAT.17': // Staffing Agencies
+      return (
+        <svg {...props}>
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      );
+    case 'CAT.18': // Favors & Gifts
+      return (
+        <svg {...props}>
+          <polyline points="20 12 20 22 4 22 4 12" />
+          <rect x="2" y="7" width="20" height="5" />
+          <line x1="12" y1="22" x2="12" y2="7" />
+          <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+          <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+        </svg>
+      );
+    default:
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="9" />
+        </svg>
+      );
+  }
+}
 
 const EVENT_TYPES = [
   { key: 'wedding', label: 'Wedding' },
@@ -1273,12 +1423,9 @@ export default function App() {
     patch({ screen: 'suppliers', dirCat: code, dirCats: [], dirPlanLabel: '', dirLoc: 0, dirVisible: 6, navMenuOpen: false });
   const catTile = (c) => {
     const n = SUPPLIERS.filter((s) => (s.codes || [s.code]).includes(c[0])).length;
-    const hasPhoto = !!CATEGORY_PHOTOS[c[0]];
     return {
       code: c[0],
       name: c[1],
-      photo: hasPhoto ? CATEGORY_PHOTOS[c[0]] : null,
-      hasPhoto,
       supplierLabel: n ? n + (n === 1 ? ' vendor' : ' vendors') : 'Coming soon',
       open: openCat(c[0]),
     };
@@ -1672,9 +1819,15 @@ export default function App() {
       if (e.key === 'Enter') patch({ screen: 'suppliers', dirCat: 'ALL', dirCats: [], dirPlanLabel: '', dirLoc: 0, dirVisible: 6, navMenuOpen: false });
     },
 
-    topCategoryTiles: CATS.map((c) => ({ c, n: SUPPLIERS.filter((s) => (s.codes || [s.code]).includes(c[0])).length }))
-      .sort((a, b) => b.n - a.n)
-      .map((x) => catTile(x.c)),
+    topCategoryTiles: (() => {
+      const all = CATS.map((c) => ({ c, n: SUPPLIERS.filter((s) => (s.codes || [s.code]).includes(c[0])).length }))
+        .sort((a, b) => b.n - a.n)
+        .map((x) => catTile(x.c));
+      return st.catExpanded ? all : all.slice(0, 8);
+    })(),
+    catHasMore: CATS.length > 8,
+    catExpanded: !!st.catExpanded,
+    toggleCatExpanded: () => patch((s) => ({ catExpanded: !s.catExpanded })),
 
     topSuppliers: SUPPLIERS.slice()
       .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating))
@@ -3547,93 +3700,57 @@ export default function App() {
           <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Browse by category</h2>
-              <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
-                <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
-                  Pick the category that fits your event to see who's available.
-                </p>
-                <button
-                  onClick={V.runHomeSearch}
-                  style={{
-                    marginTop: 8,
-                    border: 0,
-                    background: 'transparent',
-                    padding: 0,
-                    cursor: 'pointer',
-                    fontFamily: MONO,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: CTA_ACCENT,
-                    textDecoration: 'underline',
-                    textUnderlineOffset: '3px',
-                  }}
-                >
-                  View all categories →
-                </button>
-              </div>
+              <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B', textAlign: isMobile ? 'left' : 'right' }}>
+                Pick the category that fits your event to see who's available.
+              </p>
             </div>
             {V.catalogLoading && <div style={{ marginTop: 16, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
-            <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+            <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
               {V.topCategoryTiles.map((c) => (
                 <button
                   key={c.code}
                   onClick={c.open}
                   style={{
-                    position: 'relative',
-                    isolation: 'isolate',
-                    overflow: 'hidden',
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'flex-end',
-                    textAlign: 'left',
-                    border: 0,
-                    borderRadius: 20,
-                    padding: 18,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    textAlign: 'center',
+                    border: '1px solid #ECECEC',
+                    borderRadius: 18,
+                    padding: '20px 10px',
                     cursor: 'pointer',
-                    minHeight: 148,
-                    background: '#171717',
+                    minHeight: 110,
+                    background: '#F7F7F5',
                   }}
                 >
-                  {c.hasPhoto ? (
-                    <>
-                      <img
-                        src={c.photo}
-                        alt=""
-                        loading="lazy"
-                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
-                      <div
-                        style={{
-                          position: 'absolute',
-                          inset: 0,
-                          background: 'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.7) 100%)',
-                        }}
-                      />
-                    </>
-                  ) : (
-                    <div
-                      aria-hidden="true"
-                      style={{
-                        position: 'absolute',
-                        inset: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontFamily: DISPLAY_BLACK,
-                        fontSize: 72,
-                        color: `${ACCENT}40`,
-                        userSelect: 'none',
-                      }}
-                    >
-                      {c.name[0]}
-                    </div>
-                  )}
-                  <div style={{ position: 'relative' }}>
-                    <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#FFFFFF' }}>{c.name}</div>
-                    <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>{c.supplierLabel}</div>
+                  <CategoryIcon code={c.code} />
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2, color: '#171717' }}>{c.name}</div>
+                    <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 10, color: '#9A9A9A' }}>{c.supplierLabel}</div>
                   </div>
                 </button>
               ))}
             </div>
+            {V.catHasMore && (
+              <button
+                onClick={V.toggleCatExpanded}
+                style={{
+                  marginTop: 16,
+                  border: `1px solid ${CTA_ACCENT}55`,
+                  borderRadius: 999,
+                  background: 'transparent',
+                  padding: '11px 20px',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: CTA_ACCENT,
+                }}
+              >
+                {V.catExpanded ? 'Show less ↑' : 'See all categories ↓'}
+              </button>
+            )}
           </div>
 
           <div id="featured-vendors" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
