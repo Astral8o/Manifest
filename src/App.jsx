@@ -976,6 +976,8 @@ export default function App() {
     // package within a vendor's page.
     const sharedVendorId = new URLSearchParams(window.location.search).get('vendor');
     if (sharedVendorId) return { ...base, screen: 'supplier', supId: sharedVendorId, supplierTab: 'services' };
+    const sharedClaimId = new URLSearchParams(window.location.search).get('claim');
+    if (sharedClaimId) return { ...base, screen: 'unclaimed-vendor', claimId: sharedClaimId };
     if (new URLSearchParams(window.location.search).get('admin')) {
       return { ...base, screen: 'admin' };
     }
@@ -1265,7 +1267,7 @@ export default function App() {
   // stays on the plain path. Only touches the "vendor"/"product" params;
   // "admin" (or anything else already in the query string) is left alone,
   // so a bookmarked ?admin=1 session isn't dropped by navigating around.
-  const urlForScreen = (screen, supId) => {
+  const urlForScreen = (screen, supId, claimId) => {
     const path = window.location.pathname;
     const params = new URLSearchParams(window.location.search);
     params.delete('product');
@@ -1274,12 +1276,21 @@ export default function App() {
     } else {
       params.delete('vendor');
     }
+    if (screen === 'unclaimed-vendor' && claimId) {
+      params.set('claim', claimId);
+    } else {
+      params.delete('claim');
+    }
     const qs = params.toString();
     return path + (qs ? '?' + qs : '');
   };
 
   useEffect(() => {
-    history.replaceState({ screen: st.screen, supId: st.supId, supplierTab: st.supplierTab }, '', urlForScreen(st.screen, st.supId));
+    history.replaceState(
+      { screen: st.screen, supId: st.supId, supplierTab: st.supplierTab, claimId: st.claimId },
+      '',
+      urlForScreen(st.screen, st.supId, st.claimId)
+    );
     const onPopState = (e) => {
       if (!e.state) return;
       isPoppingRef.current = true;
@@ -1299,7 +1310,11 @@ export default function App() {
       isFirstScreenRef.current = false;
       return;
     }
-    history.pushState({ screen: st.screen, supId: st.supId, supplierTab: st.supplierTab }, '', urlForScreen(st.screen, st.supId));
+    history.pushState(
+      { screen: st.screen, supId: st.supId, supplierTab: st.supplierTab, claimId: st.claimId },
+      '',
+      urlForScreen(st.screen, st.supId, st.claimId)
+    );
     // Only push a new history entry when the screen itself changes, not on every
     // supId/supplierTab update (e.g. switching tabs shouldn't add a back-button stop).
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1453,6 +1468,7 @@ export default function App() {
     phone: b.phone,
     sourceUrl: b.sourceUrl,
     photo: weddingVenue2Photo,
+    open: () => patch({ screen: 'unclaimed-vendor', claimId: b.id }),
     claim: () =>
       patch({
         screen: 'vendor-onboarding',
@@ -1566,6 +1582,11 @@ export default function App() {
     isHowItWorks: st.screen === 'how-it-works',
     isSuppliers: st.screen === 'suppliers',
     isSupplier: st.screen === 'supplier',
+    isUnclaimedVendor: st.screen === 'unclaimed-vendor',
+    claimVendorDetail: (() => {
+      const b = unclaimedBusinesses.find((x) => x.id === st.claimId);
+      return b ? claimTile(b) : null;
+    })(),
     isJoin: st.screen === 'join',
     isSpotlight: st.screen === 'spotlight',
     isAccount: st.screen === 'account',
@@ -3981,7 +4002,16 @@ export default function App() {
               </div>
               <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
                 {V.claimBusinessTiles.map((b) => (
-                  <div key={b.key} style={{ display: 'flex', flexDirection: 'column', border: '1px dashed #D9B79C', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden' }}>
+                  <div
+                    key={b.key}
+                    onClick={b.open}
+                    role="link"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') b.open();
+                    }}
+                    style={{ display: 'flex', flexDirection: 'column', border: '1px dashed #D9B79C', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden', cursor: 'pointer' }}
+                  >
                     <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
                       <img src={b.photo} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     </div>
@@ -4011,7 +4041,10 @@ export default function App() {
                       </div>
                       <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #F2E5DA' }}>
                         <button
-                          onClick={b.claim}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            b.open();
+                          }}
                           style={{
                             border: 0,
                             background: 'transparent',
@@ -4667,7 +4700,16 @@ export default function App() {
               </div>
               <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
                 {V.dirClaimBusinessTiles.map((b) => (
-                  <div key={b.key} style={{ display: 'flex', flexDirection: 'column', border: '1px dashed #D9B79C', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden' }}>
+                  <div
+                    key={b.key}
+                    onClick={b.open}
+                    role="link"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') b.open();
+                    }}
+                    style={{ display: 'flex', flexDirection: 'column', border: '1px dashed #D9B79C', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden', cursor: 'pointer' }}
+                  >
                     <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
                       <img src={b.photo} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     </div>
@@ -4697,7 +4739,10 @@ export default function App() {
                       </div>
                       <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #F2E5DA' }}>
                         <button
-                          onClick={b.claim}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            b.open();
+                          }}
                           style={{
                             border: 0,
                             background: 'transparent',
@@ -5669,6 +5714,226 @@ export default function App() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {V.isUnclaimedVendor && (
+        <div style={{ padding: '34px 0 0' }}>
+          <button
+            onClick={() => patch({ screen: 'suppliers' })}
+            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+          >
+            ← Back to Discover Vendors
+          </button>
+
+          {!V.claimVendorDetail ? (
+            <div style={{ marginTop: 60, textAlign: 'center', fontFamily: MONO, fontSize: 13, color: '#9A9A9A' }}>Loading…</div>
+          ) : (
+            <div style={{ marginTop: 22, maxWidth: 760 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    border: '1px solid #E4E4E0',
+                    borderRadius: 999,
+                    padding: '4px 12px',
+                    fontFamily: MONO,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    color: '#5B5B5B',
+                  }}
+                >
+                  {V.claimVendorDetail.categoryName}
+                </span>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    border: `1px solid ${ACCENT}`,
+                    borderRadius: 999,
+                    padding: '4px 12px',
+                    fontFamily: MONO,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    color: ACCENT,
+                  }}
+                >
+                  Unclaimed listing
+                </span>
+              </div>
+
+              <h1 style={{ margin: '14px 0 0', fontSize: isMobile ? 30 : 44, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
+                {V.claimVendorDetail.name}
+              </h1>
+              {V.claimVendorDetail.city && (
+                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 13, color: '#6E6E6E' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  {V.claimVendorDetail.city}
+                </div>
+              )}
+
+              <div style={{ position: 'relative', marginTop: 22, borderRadius: 20, overflow: 'hidden', aspectRatio: isMobile ? '4 / 3' : '21 / 9' }}>
+                <img src={V.claimVendorDetail.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    padding: '28px 20px 16px',
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0))',
+                  }}
+                >
+                  <button
+                    onClick={V.claimVendorDetail.claim}
+                    style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#FFFFFF', textDecoration: 'underline', textUnderlineOffset: 3 }}
+                  >
+                    Claim this listing to add your own photos
+                  </button>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  marginTop: 28,
+                  padding: isMobile ? '18px' : '22px 26px',
+                  borderRadius: 18,
+                  background: 'rgba(224,81,43,0.06)',
+                  border: '1px solid rgba(224,81,43,0.22)',
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#171717' }}>Is this your business?</div>
+                <p style={{ margin: '6px 0 0', fontSize: 13, lineHeight: 1.55, color: '#5B5B5B', maxWidth: 480 }}>
+                  This listing was created from public information we found online. Claim it to edit your profile,
+                  respond to inquiries, and get booked.
+                </p>
+                <button
+                  onClick={V.claimVendorDetail.claim}
+                  style={{
+                    marginTop: 14,
+                    border: 0,
+                    borderRadius: 999,
+                    background: ACCENT,
+                    color: '#FFFFFF',
+                    padding: '11px 22px',
+                    cursor: 'pointer',
+                    fontFamily: DISPLAY,
+                    fontSize: 14,
+                    fontWeight: 600,
+                  }}
+                >
+                  Claim this listing
+                </button>
+              </div>
+
+              <div style={{ marginTop: 28 }}>
+                <div style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9A9A9A' }}>About</div>
+                <p style={{ margin: '8px 0 0', fontSize: 15, lineHeight: 1.6, color: '#3A3A3A' }}>
+                  {V.claimVendorDetail.categoryName} business based in Trinidad &amp; Tobago.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  marginTop: 28,
+                  textAlign: 'center',
+                  padding: isMobile ? '28px 20px' : '40px',
+                  borderRadius: 20,
+                  background: 'rgba(224,81,43,0.06)',
+                  border: '1px solid rgba(224,81,43,0.22)',
+                }}
+              >
+                <div style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, letterSpacing: '-0.01em' }}>Own {V.claimVendorDetail.name}?</div>
+                <p style={{ margin: '10px auto 0', maxWidth: 440, fontSize: 14, lineHeight: 1.6, color: '#5B5B5B' }}>
+                  Claim your free listing to add photos, update your details, receive direct inquiries, and get
+                  discovered by people planning events in T&amp;T.
+                </p>
+                <button
+                  onClick={V.claimVendorDetail.claim}
+                  style={{
+                    marginTop: 18,
+                    border: 0,
+                    borderRadius: 999,
+                    background: ACCENT,
+                    color: '#FFFFFF',
+                    padding: '13px 28px',
+                    cursor: 'pointer',
+                    fontFamily: DISPLAY,
+                    fontSize: 15,
+                    fontWeight: 600,
+                  }}
+                >
+                  Claim your free listing →
+                </button>
+              </div>
+
+              <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
+                <div style={{ border: '1px solid #ECECEC', borderRadius: 16, padding: 20 }}>
+                  <div style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9A9A9A' }}>
+                    Contact
+                  </div>
+                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {V.claimVendorDetail.phone && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#171717' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                        </svg>
+                        {V.claimVendorDetail.phone}
+                      </div>
+                    )}
+                    {V.claimVendorDetail.sourceUrl && (
+                      <a
+                        href={V.claimVendorDetail.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: ACCENT, textDecoration: 'none' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="2" y1="12" x2="22" y2="12" />
+                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                        Website
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ border: '1px solid #ECECEC', borderRadius: 16, padding: 20, background: '#FAFAFA' }}>
+                  <div style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9A9A9A' }}>
+                    Send an inquiry
+                  </div>
+                  <p style={{ margin: '10px 0 0', fontSize: 13, lineHeight: 1.55, color: '#5B5B5B' }}>
+                    This business hasn't activated its listing yet. Claim it to start receiving direct inquiries
+                    through Eventory.
+                  </p>
+                  <button
+                    onClick={V.claimVendorDetail.claim}
+                    style={{
+                      marginTop: 12,
+                      border: 0,
+                      background: 'transparent',
+                      padding: 0,
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: ACCENT,
+                      textDecoration: 'underline',
+                      textUnderlineOffset: 3,
+                    }}
+                  >
+                    Claim listing to enable inquiries →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
