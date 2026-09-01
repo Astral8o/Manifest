@@ -277,7 +277,7 @@ const OCCASIONS_BY_CELEBRATION_TYPE = {
   weddings: ['Ceremony', 'Reception', 'Engagement Party', 'Bridal Shower', 'Vow Renewal'],
   celebrations: ['First Birthday', 'Birthday Party', 'Sweet 16', 'Christening', 'Graduation', 'Retirement', 'Anniversary'],
   familyBaby: ['Baby Shower', 'Gender Reveal', 'Naming Ceremony'],
-  corporate: ['Family Day', 'Year-End Party', 'Company Launch', 'Staff Appreciation', 'Conference/Seminar', 'Team Retreat'],
+  corporate: ['Family Day', 'Year-End Party', 'Company Launch', 'Product Launch', 'Staff Appreciation', 'Conference/Seminar', 'Team Retreat'],
   culturalReligious: ['Divali', 'Eid', 'Hosay', 'Phagwa', 'Church Anniversary', 'Prayer Function'],
   gatherings: ['Family Reunion', 'School Reunion', 'Lime / Cook-out'],
 };
@@ -305,6 +305,7 @@ const OCCASION_SUGGESTED_CATEGORIES = {
   'Family Day': ['Catering', 'Rentals', 'Entertainment', 'Staging', 'Production', 'Security & Safety'],
   'Year-End Party': ['Catering', 'Venues', 'Décor', 'Entertainment', 'Production', 'Lighting'],
   'Company Launch': ['Venues', 'Staging', 'Production', 'Lighting', 'Photography', 'Printing & Signage'],
+  'Product Launch': ['Venues', 'Catering', 'Staging', 'Production', 'Lighting', 'Photography', 'Printing & Signage'],
   'Staff Appreciation': ['Catering', 'Venues', 'Entertainment', 'Favors & Gifts'],
   'Conference/Seminar': ['Venues', 'Staging', 'Production', 'Printing & Signage', 'Logistics', 'Staffing Agencies'],
   'Team Retreat': ['Venues', 'Catering', 'Logistics'],
@@ -3719,36 +3720,36 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, paddingTop: 26 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, paddingTop: 30 }}>
             <button
               onClick={V.startPlanning}
               style={{
-                flex: isMobile ? '1 1 auto' : '0 0 auto',
+                width: isMobile ? '100%' : 'auto',
                 border: 0,
                 borderRadius: 999,
                 background: ACCENT,
                 color: '#FFFFFF',
-                padding: '15px 32px',
+                padding: isMobile ? '18px 36px' : '20px 52px',
                 cursor: 'pointer',
                 fontFamily: DISPLAY,
-                fontSize: 15,
-                fontWeight: 600,
+                fontSize: isMobile ? 16 : 18,
+                fontWeight: 700,
+                boxShadow: '0 18px 36px -14px rgba(224,81,43,0.6)',
               }}
             >
-              Start Planning
+              Plan My Event →
             </button>
             <button
               onClick={V.goVendorOnboarding}
               style={{
-                flex: isMobile ? '1 1 auto' : '0 0 auto',
-                border: 0,
+                border: '1px solid #D7D7D2',
                 borderRadius: 999,
-                background: '#171717',
-                color: '#FFFFFF',
-                padding: '15px 32px',
+                background: 'transparent',
+                color: '#5B5B5B',
+                padding: '11px 24px',
                 cursor: 'pointer',
                 fontFamily: DISPLAY,
-                fontSize: 15,
+                fontSize: 13,
                 fontWeight: 600,
               }}
             >
