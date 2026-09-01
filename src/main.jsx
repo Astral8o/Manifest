@@ -5,15 +5,14 @@ import App from './App.jsx'
 import ComingSoon from './ComingSoon.jsx'
 
 // Automatic switch-over: the site itself is untouched underneath, this just
-// swaps what renders. Coming Soon covers the run-up to launch (Oct 1–9),
-// then the real site takes back over automatically on launch day (Oct 10)
-// — no redeploy needed either direction. VITE_COMING_SOON=true is only an
-// early-testing override to force it on before Oct 1; it's intentionally
-// not able to force it off, so a stale env var can never block launch day.
-const COMING_SOON_START = new Date('2026-10-01T00:00:00-04:00');
+// swaps what renders. Coming Soon is live now and the real site takes back
+// over automatically on launch day (Oct 10) — no redeploy needed. Explicit
+// VITE_COMING_SOON=true/false locally overrides the date, e.g. to preview
+// the real site before launch day; unset (production) always defers to it.
 const LAUNCH_DATE = new Date('2026-10-10T00:00:00-04:00');
-const now = new Date();
-const showComingSoon = import.meta.env.VITE_COMING_SOON === 'true' || (now >= COMING_SOON_START && now < LAUNCH_DATE);
+const comingSoonOverride = import.meta.env.VITE_COMING_SOON;
+const showComingSoon =
+  comingSoonOverride === 'true' ? true : comingSoonOverride === 'false' ? false : new Date() < LAUNCH_DATE;
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
