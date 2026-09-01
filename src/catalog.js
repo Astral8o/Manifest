@@ -162,6 +162,28 @@ export async function fetchCatalog() {
   };
 }
 
+// Public-info businesses found via web search, not yet listed on Eventory —
+// shown in the "Claim Your Business" section as an invitation, not a real
+// vendor profile. Read-only; rows are added by hand, not through any
+// buyer- or vendor-facing flow.
+export async function fetchUnclaimedBusinesses() {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase
+    .from('unclaimed_businesses')
+    .select('id, name, category_code, city, source_url')
+    .order('created_at');
+  if (error) throw error;
+  return (data || []).map((b) => ({
+    id: b.id,
+    name: b.name,
+    categoryCode: b.category_code,
+    city: b.city,
+    sourceUrl: b.source_url,
+  }));
+}
+
 // Full nested detail for exactly one vendor (products, gallery, reviews,
 // faqs, policies, menu, promos) — fetched on demand when a vendor's profile
 // page actually opens, or when a saved item needs full product data for a

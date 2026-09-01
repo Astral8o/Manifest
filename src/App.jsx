@@ -7,6 +7,7 @@ import {
 } from './data';
 import {
   fetchCatalog,
+  fetchUnclaimedBusinesses,
   fetchVendorDetail,
   submitVendorReview,
   sendMagicLink,
@@ -998,6 +999,17 @@ export default function App() {
   const CATS = catalog.cats;
   const SUPPLIERS = catalog.suppliers;
 
+  // Businesses found via web search, not yet on Eventory — powers the
+  // "Claim Your Business" section. Independent of the main catalog load;
+  // a failure here shouldn't block the rest of the page.
+  const [unclaimedBusinesses, setUnclaimedBusinesses] = useState([]);
+  useEffect(() => {
+    fetchUnclaimedBusinesses()
+      .then(setUnclaimedBusinesses)
+      .catch(() => setUnclaimedBusinesses([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Full detail (products/gallery/reviews/faqs/policies/menu/promos) for
   // one vendor, fetched lazily — the profile page and the Saved Items page
   // both call this for whichever vendor id(s) they need. Defined here
@@ -1828,6 +1840,40 @@ export default function App() {
     catHasMore: CATS.length > 8,
     catExpanded: !!st.catExpanded,
     toggleCatExpanded: () => patch((s) => ({ catExpanded: !s.catExpanded })),
+
+    // "Claim Your Business" — real businesses found via web search, not yet
+    // listed on Eventory. Claiming just routes into the normal vendor
+    // onboarding flow, pre-filled with what we already found.
+    claimBusinessTiles: unclaimedBusinesses.map((b) => ({
+      key: b.id,
+      name: b.name,
+      categoryName: catName(b.categoryCode),
+      city: b.city,
+      sourceUrl: b.sourceUrl,
+      claim: () =>
+        patch({
+          screen: 'vendor-onboarding',
+          voStep: st.signedIn ? 2 : 0,
+          voDone: false,
+          voVendorId: null,
+          voSectors: [b.categoryCode],
+          voSectorOtherText: '',
+          voSubcategory: '',
+          voBusinessName: b.name,
+          voContactPerson: '',
+          voCountry: null,
+          voCity: null,
+          voCityOther: '',
+          voStartingPrice: '',
+          voEmail: st.signedIn ? st.email || '' : '',
+          voPhone: '',
+          voPassword: '',
+          voConfirmPassword: '',
+          voAgree: false,
+          voStep1Error: null,
+          navMenuOpen: false,
+        }),
+    })),
 
     topSuppliers: SUPPLIERS.slice()
       .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating))
@@ -3906,6 +3952,56 @@ export default function App() {
               Explore all →
             </button>
           </div>
+
+          {V.claimBusinessTiles.length > 0 && (
+            <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+                <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Claim Your Business</h2>
+                <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
+                  We found these businesses publicly on Google. If one's yours, set up a free listing in minutes.
+                </p>
+              </div>
+              <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
+                {V.claimBusinessTiles.map((b) => (
+                  <div key={b.key} style={{ border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', padding: 18 }}>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: '#F7F7F5',
+                        padding: '4px 10px',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#4A4A4A',
+                      }}
+                    >
+                      {b.categoryName}
+                    </span>
+                    <div style={{ marginTop: 10, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{b.name}</div>
+                    {b.city && <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{b.city}</div>}
+                    <button
+                      onClick={b.claim}
+                      style={{
+                        marginTop: 14,
+                        width: '100%',
+                        border: 0,
+                        borderRadius: 999,
+                        background: '#171717',
+                        color: '#FFFFFF',
+                        padding: '10px 16px',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Claim this listing →
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -4528,6 +4624,56 @@ export default function App() {
               Submit a sourcing request
             </button>
           </div>
+
+          {V.claimBusinessTiles.length > 0 && (
+            <div style={{ marginTop: 48 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+                <h2 style={{ margin: 0, fontSize: isMobile ? 24 : 32, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Claim Your Business</h2>
+                <p style={{ margin: 0, maxWidth: 420, fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
+                  We found these businesses publicly on Google. If one's yours, set up a free listing in minutes.
+                </p>
+              </div>
+              <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
+                {V.claimBusinessTiles.map((b) => (
+                  <div key={b.key} style={{ border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', padding: 18 }}>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: '#F7F7F5',
+                        padding: '4px 10px',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#4A4A4A',
+                      }}
+                    >
+                      {b.categoryName}
+                    </span>
+                    <div style={{ marginTop: 10, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{b.name}</div>
+                    {b.city && <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{b.city}</div>}
+                    <button
+                      onClick={b.claim}
+                      style={{
+                        marginTop: 14,
+                        width: '100%',
+                        border: 0,
+                        borderRadius: 999,
+                        background: '#171717',
+                        color: '#FFFFFF',
+                        padding: '10px 16px',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Claim this listing →
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
