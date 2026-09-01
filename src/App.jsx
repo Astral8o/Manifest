@@ -1272,10 +1272,12 @@ export default function App() {
     patch({ screen: 'suppliers', dirCat: code, dirCats: [], dirPlanLabel: '', dirLoc: 0, dirVisible: 6, navMenuOpen: false });
   const catTile = (c) => {
     const n = SUPPLIERS.filter((s) => (s.codes || [s.code]).includes(c[0])).length;
+    const hasPhoto = !!CATEGORY_PHOTOS[c[0]];
     return {
       code: c[0],
       name: c[1],
-      photo: CATEGORY_PHOTOS[c[0]] || fallbackPhotoFor(c[0], 0),
+      photo: hasPhoto ? CATEGORY_PHOTOS[c[0]] : null,
+      hasPhoto,
       supplierLabel: n ? n + (n === 1 ? ' vendor' : ' vendors') : 'Coming soon',
       open: openCat(c[0]),
     };
@@ -1673,9 +1675,7 @@ export default function App() {
     },
 
     topCategoryTiles: CATS.map((c) => ({ c, n: SUPPLIERS.filter((s) => (s.codes || [s.code]).includes(c[0])).length }))
-      .filter((x) => x.n > 0)
       .sort((a, b) => b.n - a.n)
-      .slice(0, 6)
       .map((x) => catTile(x.c)),
 
     topSuppliers: SUPPLIERS.slice()
@@ -1695,28 +1695,6 @@ export default function App() {
         justCopied: st.copiedVendorId === s.id,
         open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
       })),
-
-    // s.firstProduct comes pre-aggregated from vendor_list_view (that
-    // vendor's first product by sort_order, same one allProducts() used to
-    // find) so this doesn't need every featured vendor's full .products.
-    featuredProducts: SUPPLIERS.slice()
-      .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating))
-      .slice(0, 6)
-      .map((s, i) => {
-        const p = s.firstProduct;
-        if (!p) return null;
-        const pid = s.id + '-1';
-        return {
-          key: pid,
-          photo: p.photoUrl || fallbackPhotoFor(s.code, i),
-          name: p.name,
-          supplierName: s.name,
-          categoryName: catName(s.code),
-          priceLabel: priceLabel({ ...p, priceOnRequest: s.priceOnRequest }),
-          open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
-        };
-      })
-      .filter(Boolean),
 
     dirActiveCat: st.dirCat === 'ALL' ? null : CATS.find((c) => c[0] === st.dirCat) || null,
     dirCategoryFilters: [{ code: 'ALL', name: 'All categories' }, ...CATS.map((c) => ({ code: c[0], name: c[1] }))].map((c) => {
@@ -3609,19 +3587,40 @@ export default function App() {
                     background: '#171717',
                   }}
                 >
-                  <img
-                    src={c.photo}
-                    alt=""
-                    loading="lazy"
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.7) 100%)',
-                    }}
-                  />
+                  {c.hasPhoto ? (
+                    <>
+                      <img
+                        src={c.photo}
+                        alt=""
+                        loading="lazy"
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: 'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.7) 100%)',
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontFamily: DISPLAY_BLACK,
+                        fontSize: 72,
+                        color: `${ACCENT}40`,
+                        userSelect: 'none',
+                      }}
+                    >
+                      {c.name[0]}
+                    </div>
+                  )}
                   <div style={{ position: 'relative' }}>
                     <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#FFFFFF' }}>{c.name}</div>
                     <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>{c.supplierLabel}</div>
@@ -3782,107 +3781,6 @@ export default function App() {
               }}
             >
               Explore all →
-            </button>
-          </div>
-
-          <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-              <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Featured Offerings</h2>
-              <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
-                Explore products, packages, rentals and services from event vendors.
-              </p>
-            </div>
-            {V.catalogLoading && <div style={{ marginTop: 16, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
-            <div
-              style={{
-                marginTop: 24,
-                display: 'grid',
-                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(240px, 1fr))',
-                gap: 16,
-              }}
-            >
-              {V.featuredProducts.map((f) => (
-                <div
-                  key={f.key}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    border: '1px solid #ECECEC',
-                    borderRadius: 20,
-                    overflow: 'hidden',
-                    background: '#FFFFFF',
-                  }}
-                >
-                  <button
-                    onClick={f.open}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      textAlign: 'left',
-                      border: 0,
-                      background: 'transparent',
-                      cursor: 'pointer',
-                      padding: 0,
-                      width: '100%',
-                    }}
-                  >
-                    <img
-                      src={f.photo}
-                      alt={f.name}
-                      loading="lazy"
-                      style={{ width: '100%', height: isMobile ? 110 : 150, objectFit: 'cover', display: 'block' }}
-                    />
-                    <div style={{ padding: isMobile ? '12px 14px 0' : '16px 18px 0' }}>
-                      <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{f.supplierName}</div>
-                      <div style={{ marginTop: 4, fontSize: isMobile ? 14 : 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{f.name}</div>
-                      <div style={{ marginTop: 10 }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            border: '1px solid #E4E4DF',
-                            borderRadius: 999,
-                            background: '#F7F7F5',
-                            padding: '4px 10px',
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: '#4A4A4A',
-                          }}
-                        >
-                          {f.categoryName}
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                  <div
-                    style={{
-                      marginTop: 10,
-                      padding: isMobile ? '0 14px 16px' : '0 18px 20px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 10,
-                    }}
-                  >
-                    <span style={{ fontFamily: MONO, fontSize: isMobile ? 12 : 14, fontWeight: 700 }}>{f.priceLabel}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button
-              onClick={V.runHomeSearch}
-              style={{
-                marginTop: 16,
-                border: `1px solid ${CTA_ACCENT}55`,
-                borderRadius: 999,
-                background: 'transparent',
-                padding: '11px 20px',
-                cursor: 'pointer',
-                fontSize: 14,
-                fontWeight: 700,
-                color: CTA_ACCENT,
-              }}
-            >
-              See more offerings
             </button>
           </div>
         </div>
