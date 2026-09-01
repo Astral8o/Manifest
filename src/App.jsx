@@ -1450,8 +1450,12 @@ export default function App() {
     categoryCode: b.categoryCode,
     categoryName: catName(b.categoryCode),
     city: b.city,
+    phone: b.phone,
     sourceUrl: b.sourceUrl,
-    photo: wineGlassesEventPhoto,
+    photo: weddingVenue2Photo,
+    waUrl: b.phone
+      ? 'https://wa.me/' + whatsappDigits(b.phone) + '?text=' + encodeURIComponent(`Hi ${b.name}, I found your business on Eventory and wanted to reach out.`)
+      : null,
     claim: () =>
       patch({
         screen: 'vendor-onboarding',
@@ -1468,7 +1472,7 @@ export default function App() {
         voCityOther: '',
         voStartingPrice: '',
         voEmail: st.signedIn ? st.email || '' : '',
-        voPhone: '',
+        voPhone: b.phone || '',
         voPassword: '',
         voConfirmPassword: '',
         voAgree: false,
@@ -4003,24 +4007,69 @@ export default function App() {
                     </div>
                     <div style={{ padding: 18 }}>
                       <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{b.name}</div>
-                      {b.city && <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{b.city}</div>}
-                      <button
-                        onClick={b.claim}
-                        style={{
-                          marginTop: 14,
-                          width: '100%',
-                          border: 0,
-                          borderRadius: 999,
-                          background: '#171717',
-                          color: '#FFFFFF',
-                          padding: '10px 16px',
-                          cursor: 'pointer',
-                          fontSize: 13,
-                          fontWeight: 700,
-                        }}
-                      >
-                        Claim now →
-                      </button>
+                      <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        {b.city && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                              <circle cx="12" cy="10" r="3" />
+                            </svg>
+                            {b.city}
+                          </div>
+                        )}
+                        {b.phone && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                            </svg>
+                            {b.phone}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
+                        {b.waUrl && (
+                          <a
+                            href={b.waUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Inquire via WhatsApp"
+                            title="Inquire via WhatsApp"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              width: 38,
+                              border: 0,
+                              borderRadius: 999,
+                              background: '#25D366',
+                              color: '#FFFFFF',
+                              cursor: 'pointer',
+                              textDecoration: 'none',
+                            }}
+                          >
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.64-1.03-5.13-2.9-7-1.87-1.87-4.36-2.94-7.01-2.94zm0 18.13h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.23 8.23 0 0 1-1.26-4.37c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.55-3.7 8.24-8.24 8.24z" />
+                            </svg>
+                          </a>
+                        )}
+                        <button
+                          onClick={b.claim}
+                          style={{
+                            flex: 1,
+                            border: 0,
+                            borderRadius: 999,
+                            background: '#171717',
+                            color: '#FFFFFF',
+                            padding: '10px 16px',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            fontWeight: 700,
+                          }}
+                        >
+                          Claim now →
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -4683,24 +4732,69 @@ export default function App() {
                     </div>
                     <div style={{ padding: 18 }}>
                       <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{b.name}</div>
-                      {b.city && <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{b.city}</div>}
-                      <button
-                        onClick={b.claim}
-                        style={{
-                          marginTop: 14,
-                          width: '100%',
-                          border: 0,
-                          borderRadius: 999,
-                          background: '#171717',
-                          color: '#FFFFFF',
-                          padding: '10px 16px',
-                          cursor: 'pointer',
-                          fontSize: 13,
-                          fontWeight: 700,
-                        }}
-                      >
-                        Claim now →
-                      </button>
+                      <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        {b.city && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                              <circle cx="12" cy="10" r="3" />
+                            </svg>
+                            {b.city}
+                          </div>
+                        )}
+                        {b.phone && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                            </svg>
+                            {b.phone}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
+                        {b.waUrl && (
+                          <a
+                            href={b.waUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Inquire via WhatsApp"
+                            title="Inquire via WhatsApp"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              width: 38,
+                              border: 0,
+                              borderRadius: 999,
+                              background: '#25D366',
+                              color: '#FFFFFF',
+                              cursor: 'pointer',
+                              textDecoration: 'none',
+                            }}
+                          >
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.64-1.03-5.13-2.9-7-1.87-1.87-4.36-2.94-7.01-2.94zm0 18.13h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.23 8.23 0 0 1-1.26-4.37c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.55-3.7 8.24-8.24 8.24z" />
+                            </svg>
+                          </a>
+                        )}
+                        <button
+                          onClick={b.claim}
+                          style={{
+                            flex: 1,
+                            border: 0,
+                            borderRadius: 999,
+                            background: '#171717',
+                            color: '#FFFFFF',
+                            padding: '10px 16px',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            fontWeight: 700,
+                          }}
+                        >
+                          Claim now →
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

@@ -172,7 +172,7 @@ export async function fetchUnclaimedBusinesses() {
   }
   const { data, error } = await supabase
     .from('unclaimed_businesses')
-    .select('id, name, category_code, city, source_url')
+    .select('id, name, category_code, city, phone, source_url')
     .order('created_at');
   if (error) throw error;
   return (data || []).map((b) => ({
@@ -180,6 +180,7 @@ export async function fetchUnclaimedBusinesses() {
     name: b.name,
     categoryCode: b.category_code,
     city: b.city,
+    phone: b.phone,
     sourceUrl: b.source_url,
   }));
 }
