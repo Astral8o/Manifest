@@ -10,8 +10,15 @@ import ComingSoon from './ComingSoon.jsx'
 // read any env var: a stale VITE_COMING_SOON left set in Vercel's dashboard
 // caused this exact toggle to silently misbehave before, so this can't be
 // blocked by project config, only by editing this file.
+//
+// ?admin=1 bypasses Coming Soon entirely (same param App.jsx already uses
+// to route straight to the admin screen) so vendors can be onboarded by
+// hand through the admin panel during this window without the public ever
+// seeing anything but Coming Soon — vendors don't touch the site or see
+// their own profile until it goes live on launch day.
 const LAUNCH_DATE = new Date('2026-10-10T00:00:00-04:00');
-const showComingSoon = new Date() < LAUNCH_DATE;
+const isAdminPreview = new URLSearchParams(window.location.search).has('admin');
+const showComingSoon = !isAdminPreview && new Date() < LAUNCH_DATE;
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
