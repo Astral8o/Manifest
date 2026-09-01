@@ -1844,15 +1844,14 @@ export default function App() {
     // "Claim Your Business" — real businesses found via web search, not yet
     // listed on Eventory. Claiming just routes into the normal vendor
     // onboarding flow, pre-filled with what we already found.
-    claimBusinessTiles: unclaimedBusinesses.map((b, i) => ({
+    claimBusinessTiles: unclaimedBusinesses.map((b) => ({
       key: b.id,
       name: b.name,
       categoryCode: b.categoryCode,
       categoryName: catName(b.categoryCode),
       city: b.city,
       sourceUrl: b.sourceUrl,
-      hasPhoto: !!CATEGORY_FALLBACK_PHOTOS[b.categoryCode],
-      photo: CATEGORY_FALLBACK_PHOTOS[b.categoryCode] ? fallbackPhotoFor(b.categoryCode, i) : null,
+      photo: heroPhoto,
       claim: () =>
         patch({
           screen: 'vendor-onboarding',
@@ -3968,13 +3967,7 @@ export default function App() {
                 {V.claimBusinessTiles.map((b) => (
                   <div key={b.key} style={{ display: 'flex', flexDirection: 'column', border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden' }}>
                     <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
-                      {b.hasPhoto ? (
-                        <img src={b.photo} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      ) : (
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <CategoryIcon code={b.categoryCode} size={40} color="#C4C4BE" />
-                        </div>
-                      )}
+                      <img src={b.photo} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                       <span
                         style={{
                           position: 'absolute',
@@ -4654,13 +4647,7 @@ export default function App() {
                 {V.claimBusinessTiles.map((b) => (
                   <div key={b.key} style={{ display: 'flex', flexDirection: 'column', border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden' }}>
                     <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
-                      {b.hasPhoto ? (
-                        <img src={b.photo} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      ) : (
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <CategoryIcon code={b.categoryCode} size={40} color="#C4C4BE" />
-                        </div>
-                      )}
+                      <img src={b.photo} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                       <span
                         style={{
                           position: 'absolute',
