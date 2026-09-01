@@ -4026,7 +4026,7 @@ export default function App() {
                           </div>
                         )}
                       </div>
-                      <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
+                      <div style={{ marginTop: 14, display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8 }}>
                         {b.waUrl && (
                           <a
                             href={b.waUrl}
@@ -4038,25 +4038,32 @@ export default function App() {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
+                              gap: 6,
                               flexShrink: 0,
-                              width: 38,
+                              order: isMobile ? 1 : 0,
+                              width: isMobile ? '100%' : 38,
                               border: 0,
                               borderRadius: 999,
                               background: '#25D366',
                               color: '#FFFFFF',
+                              padding: isMobile ? '10px 16px' : 0,
                               cursor: 'pointer',
                               textDecoration: 'none',
+                              fontSize: 13,
+                              fontWeight: 700,
                             }}
                           >
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
                               <path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.64-1.03-5.13-2.9-7-1.87-1.87-4.36-2.94-7.01-2.94zm0 18.13h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.23 8.23 0 0 1-1.26-4.37c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.55-3.7 8.24-8.24 8.24z" />
                             </svg>
+                            {isMobile && 'WhatsApp'}
                           </a>
                         )}
                         <button
                           onClick={b.claim}
                           style={{
                             flex: 1,
+                            order: isMobile ? 0 : 1,
                             border: 0,
                             borderRadius: 999,
                             background: '#171717',
@@ -4065,6 +4072,7 @@ export default function App() {
                             cursor: 'pointer',
                             fontSize: 13,
                             fontWeight: 700,
+                            whiteSpace: 'nowrap',
                           }}
                         >
                           Claim now →
@@ -4751,7 +4759,7 @@ export default function App() {
                           </div>
                         )}
                       </div>
-                      <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
+                      <div style={{ marginTop: 14, display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8 }}>
                         {b.waUrl && (
                           <a
                             href={b.waUrl}
@@ -4763,25 +4771,32 @@ export default function App() {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
+                              gap: 6,
                               flexShrink: 0,
-                              width: 38,
+                              order: isMobile ? 1 : 0,
+                              width: isMobile ? '100%' : 38,
                               border: 0,
                               borderRadius: 999,
                               background: '#25D366',
                               color: '#FFFFFF',
+                              padding: isMobile ? '10px 16px' : 0,
                               cursor: 'pointer',
                               textDecoration: 'none',
+                              fontSize: 13,
+                              fontWeight: 700,
                             }}
                           >
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
                               <path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.64-1.03-5.13-2.9-7-1.87-1.87-4.36-2.94-7.01-2.94zm0 18.13h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.23 8.23 0 0 1-1.26-4.37c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.55-3.7 8.24-8.24 8.24z" />
                             </svg>
+                            {isMobile && 'WhatsApp'}
                           </a>
                         )}
                         <button
                           onClick={b.claim}
                           style={{
                             flex: 1,
+                            order: isMobile ? 0 : 1,
                             border: 0,
                             borderRadius: 999,
                             background: '#171717',
@@ -4790,6 +4805,7 @@ export default function App() {
                             cursor: 'pointer',
                             fontSize: 13,
                             fontWeight: 700,
+                            whiteSpace: 'nowrap',
                           }}
                         >
                           Claim now →
