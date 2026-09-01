@@ -587,6 +587,16 @@ function whatsappDigits(phone) {
   return digits;
 }
 
+// A short, readable temp password for the admin to hand a vendor directly
+// (WhatsApp, in person, etc.) — avoids visually ambiguous characters
+// (0/O, 1/l/I) since it has to be read off a screen and typed back in.
+function generateTempPassword() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let out = '';
+  for (let i = 0; i < 10; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+}
+
 // Password field with a show/hide toggle, styled to match the pill inputs
 // used across the vendor sign-in / account-creation screens.
 function PasswordField({ value, onChange, placeholder, show, onToggleShow }) {
@@ -3033,17 +3043,19 @@ export default function App() {
       if (!vendor) return;
       const email = (vendor.loginEmailDraft ?? vendor.email ?? '').trim();
       if (!email || vendor.loginBusy) return;
+      const tempPassword = generateTempPassword();
       patch((s) => ({
         adminVendors: (s.adminVendors || []).map((v) =>
           v.id === vendorId ? { ...v, loginBusy: true, loginError: null } : v
         ),
       }));
       try {
-        await adminCreateVendorLogin(vendorId, email);
-        await sendVendorAccountSetupEmail(email);
+        await adminCreateVendorLogin(vendorId, email, tempPassword);
         patch((s) => ({
           adminVendors: (s.adminVendors || []).map((v) =>
-            v.id === vendorId ? { ...v, loginBusy: false, loginDone: true, email, owner_user_id: v.owner_user_id || 'pending' } : v
+            v.id === vendorId
+              ? { ...v, loginBusy: false, loginDone: true, loginTempPassword: tempPassword, email, owner_user_id: v.owner_user_id || 'pending' }
+              : v
           ),
         }));
       } catch (err) {
@@ -3054,6 +3066,31 @@ export default function App() {
         }));
       }
     },
+    copyAdminTempPassword: (vendorId) => {
+      const vendor = (st.adminVendors || []).find((v) => v.id === vendorId);
+      if (!vendor || !vendor.loginTempPassword) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard
+          .writeText(vendor.loginTempPassword)
+          .then(() => {
+            patch((s) => ({
+              adminVendors: (s.adminVendors || []).map((v) => (v.id === vendorId ? { ...v, tempPasswordCopied: true } : v)),
+            }));
+            setTimeout(
+              () =>
+                patch((s) => ({
+                  adminVendors: (s.adminVendors || []).map((v) => (v.id === vendorId ? { ...v, tempPasswordCopied: false } : v)),
+                })),
+              1800
+            );
+          })
+          .catch(() => {});
+      }
+    },
+    dismissAdminTempPassword: (vendorId) =>
+      patch((s) => ({
+        adminVendors: (s.adminVendors || []).map((v) => (v.id === vendorId ? { ...v, loginTempPassword: null } : v)),
+      })),
     resendAdminVendorSetupEmail: async (vendorId) => {
       const vendor = (st.adminVendors || []).find((v) => v.id === vendorId);
       if (!vendor || !vendor.email || vendor.loginBusy) return;
@@ -8115,13 +8152,57 @@ export default function App() {
                                 opacity: v.loginBusy || !(v.loginEmailDraft ?? v.email ?? '').trim() ? 0.5 : 1,
                               }}
                             >
-                              {v.loginBusy ? 'Creating…' : 'Create login & send setup email'}
+                              {v.loginBusy ? 'Creating…' : 'Create login with temp password'}
                             </button>
                           </>
                         )}
-                        {v.loginDone && <span style={{ fontSize: 12, color: '#16A34A' }}>Setup email sent ✓</span>}
+                        {v.loginDone && !v.loginTempPassword && <span style={{ fontSize: 12, color: '#16A34A' }}>Setup email sent ✓</span>}
                         {v.loginError && <span style={{ fontSize: 12, color: '#B3261E' }}>{v.loginError}</span>}
                       </div>
+                      {v.loginTempPassword && (
+                        <div
+                          style={{
+                            marginTop: 8,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            flexWrap: 'wrap',
+                            border: '1px solid #FDE68A',
+                            borderRadius: 12,
+                            background: '#FFFBEB',
+                            padding: '8px 12px',
+                          }}
+                        >
+                          <span style={{ fontSize: 12, color: '#92400E' }}>
+                            Temp password for <strong>{v.email}</strong> — give it to them yourself, they can change it later:
+                          </span>
+                          <code
+                            style={{
+                              fontFamily: MONO,
+                              fontSize: 13,
+                              fontWeight: 700,
+                              background: '#FFFFFF',
+                              border: '1px solid #FDE68A',
+                              borderRadius: 8,
+                              padding: '3px 8px',
+                            }}
+                          >
+                            {v.loginTempPassword}
+                          </code>
+                          <button
+                            onClick={() => V.copyAdminTempPassword(v.id)}
+                            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#92400E', textDecoration: 'underline' }}
+                          >
+                            {v.tempPasswordCopied ? 'Copied ✓' : 'Copy'}
+                          </button>
+                          <button
+                            onClick={() => V.dismissAdminTempPassword(v.id)}
+                            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 12, color: '#92400E', textDecoration: 'underline' }}
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                   {V.adminVendors.length === 0 && (

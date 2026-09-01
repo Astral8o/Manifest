@@ -350,14 +350,14 @@ export async function submitVendorForReview(vendorId) {
 // Creates a real login for a vendor the admin built a profile for, via an
 // edge function running under the service role — this does NOT sign the
 // admin's own browser in as the new account, unlike a plain client-side
-// signUp() would. The password it sets is random and thrown away; call
-// sendVendorAccountSetupEmail() right after so the vendor sets their own.
-export async function adminCreateVendorLogin(vendorId, email) {
+// signUp() would. Uses the temp password the admin hands to the vendor
+// herself; they can change it later from their own dashboard.
+export async function adminCreateVendorLogin(vendorId, email, password) {
   if (!supabaseConfigured) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
   const { data, error } = await supabase.functions.invoke('admin-create-vendor-login', {
-    body: { vendorId, email },
+    body: { vendorId, email, password },
   });
   if (error) {
     let message = error.message;

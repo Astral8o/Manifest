@@ -4,9 +4,9 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // Lets the admin create a real login for a vendor whose profile they built
 // on the vendor's behalf, without the admin's own browser session being
 // swapped out for the new account (which is what a normal client-side
-// signUp() call would do). The vendor never sees or types this password —
-// the caller immediately follows up with a Supabase password-reset email
-// so the vendor sets their own.
+// signUp() call would do). Uses the temp password the admin sent, which
+// she hands to the vendor herself (WhatsApp, in person, etc.) — the vendor
+// can change it later from their dashboard whenever they actually sign in.
 
 const ADMIN_EMAIL = "astral.ochoa@hotmail.com";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -34,7 +34,7 @@ Deno.serve(async (req: Request) => {
     return new Response("Forbidden", { status: 403 });
   }
 
-  let body: { vendorId?: string; email?: string };
+  let body: { vendorId?: string; email?: string; password?: string };
   try {
     body = await req.json();
   } catch {
@@ -42,8 +42,12 @@ Deno.serve(async (req: Request) => {
   }
   const vendorId = body.vendorId;
   const email = (body.email || "").trim();
+  const password = body.password || "";
   if (!vendorId || !email) {
     return new Response("Missing vendorId or email", { status: 400 });
+  }
+  if (password.length < 8) {
+    return new Response("Password must be at least 8 characters", { status: 400 });
   }
 
   const { data: vendor, error: vendorError } = await adminClient
@@ -61,13 +65,9 @@ Deno.serve(async (req: Request) => {
     return new Response("This vendor already has a login.", { status: 409 });
   }
 
-  // Random throwaway password — nobody ever sees or types it. The vendor
-  // sets their own via the password-reset email sent right after this.
-  const throwawayPassword = crypto.randomUUID() + crypto.randomUUID();
-
   const { data: created, error: createError } = await adminClient.auth.admin.createUser({
     email,
-    password: throwawayPassword,
+    password,
     email_confirm: true,
   });
   if (createError || !created.user) {
