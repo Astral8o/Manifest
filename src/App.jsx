@@ -1635,7 +1635,7 @@ export default function App() {
         toggleSaved: () => toggleSaveVendor(s.id),
         share: () => shareVendor(s.id),
         justCopied: st.copiedVendorId === s.id,
-        open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqSubmitError: null, inqSent: false }),
+        open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
       })),
 
     // s.firstProduct comes pre-aggregated from vendor_list_view (that
@@ -1655,7 +1655,7 @@ export default function App() {
           supplierName: s.name,
           categoryName: catName(s.code),
           priceLabel: priceLabel({ ...p, priceOnRequest: s.priceOnRequest }),
-          open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqSubmitError: null, inqSent: false }),
+          open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
         };
       })
       .filter(Boolean),
@@ -1693,7 +1693,7 @@ export default function App() {
       toggleSaved: () => toggleSaveVendor(s.id),
       share: () => shareVendor(s.id),
       justCopied: st.copiedVendorId === s.id,
-      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqSubmitError: null, inqSent: false }),
+      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
     })),
     dirShowSeeAll: dirFiltered.length > (st.dirVisible || 6),
     dirSeeAllLabel: 'See all ' + dirFiltered.length + ' vendors',
@@ -1912,6 +1912,12 @@ export default function App() {
     setInqGuests: (e) => patch({ inqGuests: e.target.value.replace(/[^0-9]/g, '') }),
     inqMessage: st.inqMessage || '',
     setInqMessage: (e) => patch({ inqMessage: e.target.value }),
+    inqServiceTiles: supProducts.map((p) => ({
+      key: p.name,
+      label: p.name,
+      on: st.inqService === p.name,
+      pick: () => patch({ inqService: st.inqService === p.name ? null : p.name }),
+    })),
     inqEventTypeLabel:
       st.inqEventType === 'other'
         ? (st.inqEventTypeOther || '').trim()
@@ -1928,15 +1934,21 @@ export default function App() {
                 : ((EVENT_TYPES.find((t) => t.key === st.inqEventType) || {}).label || '').toLowerCase(),
             eventDate: st.inqEventDate,
             attendees: st.inqGuests,
+            service: st.inqService,
             buyerName: (st.inqName || '').trim() || null,
             message: (st.inqMessage || '').trim() || null,
           })
         )
       : null,
+    inqServiceRequired: supProducts.length > 0,
+    inqServiceMissing: supProducts.length > 0 && !st.inqService,
+    inqWaDisabled: supProducts.length > 0 && !st.inqService,
     inqSubmitting: !!st.inqSubmitting,
     inqSubmitError: st.inqSubmitError || '',
     inqSent: !!st.inqSent,
-    inqSubmitDisabled: st.signedIn && (!(st.inqName || '').trim() || !(st.inqEmail || '').trim() || !!st.inqSubmitting),
+    inqSubmitDisabled:
+      (supProducts.length > 0 && !st.inqService) ||
+      (st.signedIn && (!(st.inqName || '').trim() || !(st.inqEmail || '').trim() || !!st.inqSubmitting)),
     submitInlineInquiry: async () => {
       if (!st.signedIn) {
         try {
@@ -1955,6 +1967,7 @@ export default function App() {
       patch({ inqSubmitting: true, inqSubmitError: null });
       try {
         const answers = {};
+        if (st.inqService) answers.Service = st.inqService;
         if ((st.inqGuests || '').trim()) answers.Guests = st.inqGuests.trim();
         if ((st.inqMessage || '').trim()) answers.Message = st.inqMessage.trim();
         await submitQuoteRequest({
@@ -1978,6 +1991,7 @@ export default function App() {
     toggleFaq: (key) => patch((s) => ({ openFaqKey: s.openFaqKey === key ? null : key })),
     supplierTab: st.supplierTab || 'services',
     supplierTabs: [
+      { key: 'inquire', label: 'Inquire', highlight: true },
       { key: 'about', label: 'About' },
       { key: 'services', label: 'Packages (' + supProducts.length + ')' },
       { key: 'gallery', label: 'Gallery' },
@@ -1985,7 +1999,6 @@ export default function App() {
       { key: 'reviews', label: 'Reviews (' + (sup.reviews || []).length + ')' },
       { key: 'faq', label: 'FAQ' },
       hasPolicies && { key: 'policies', label: 'Policies' },
-      { key: 'inquire', label: 'Inquire' },
     ]
       .filter(Boolean)
       .map((t) => ({
@@ -2140,7 +2153,7 @@ export default function App() {
           supplierName: s ? s.name : '',
           priceLabel: priceLabel(p),
           openSupplier: () =>
-            patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqSubmitError: null, inqSent: false }),
+            patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
           remove: () => toggleSave(pid),
           share: () => shareProduct(pid),
           shareLabel: st.copiedPid === pid ? 'Copied!' : 'Share',
@@ -2159,7 +2172,7 @@ export default function App() {
           name: s.name,
           categoryName: catName(s.code),
           open: () =>
-            patch({ screen: 'supplier', supId: vid, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqSubmitError: null, inqSent: false }),
+            patch({ screen: 'supplier', supId: vid, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
           unsave: () => toggleSaveVendor(vid),
         };
       })
@@ -2176,7 +2189,7 @@ export default function App() {
       venue: q.venue,
       statusLabel: q.status === 'new' ? 'Sent' : q.status,
       open: () =>
-        patch({ screen: 'supplier', supId: q.vendorId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqSubmitError: null, inqSent: false }),
+        patch({ screen: 'supplier', supId: q.vendorId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
     })),
     hasDashboardInquiries: (st.dashboardQuotes || []).length > 0,
 
@@ -2295,7 +2308,7 @@ export default function App() {
     },
     goVdPublicProfile: () =>
       st.vdVendor &&
-      patch({ screen: 'supplier', supId: st.vdVendor.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqSubmitError: null, inqSent: false }),
+      patch({ screen: 'supplier', supId: st.vdVendor.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
     vdSignOut: async () => {
       if (supabase) await supabase.auth.signOut();
       patch({ signedIn: false, screen: 'home', authSent: false, authError: null, vdVendor: null });
@@ -4667,16 +4680,29 @@ export default function App() {
                   <button
                     key={t.key}
                     onClick={t.go}
-                    style={{
-                      border: `1px solid ${t.active ? '#171717' : '#D7D7D2'}`,
-                      borderRadius: 999,
-                      background: t.active ? '#171717' : 'transparent',
-                      color: t.active ? '#FFFFFF' : '#171717',
-                      padding: '9px 16px',
-                      cursor: 'pointer',
-                      fontSize: 13,
-                      fontWeight: 700,
-                    }}
+                    style={
+                      t.highlight
+                        ? {
+                            border: `1px solid ${ACCENT}`,
+                            borderRadius: 999,
+                            background: t.active ? ACCENT : `${ACCENT}17`,
+                            color: t.active ? '#FFFFFF' : ACCENT,
+                            padding: '9px 16px',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            fontWeight: 800,
+                          }
+                        : {
+                            border: `1px solid ${t.active ? '#171717' : '#D7D7D2'}`,
+                            borderRadius: 999,
+                            background: t.active ? '#171717' : 'transparent',
+                            color: t.active ? '#FFFFFF' : '#171717',
+                            padding: '9px 16px',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            fontWeight: 700,
+                          }
+                    }
                   >
                     {t.label}
                   </button>
@@ -5142,6 +5168,34 @@ export default function App() {
                     </div>
                   ) : (
                     <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      {V.inqServiceTiles.length > 0 && (
+                        <div>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                            Which service are you interested in?
+                          </span>
+                          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            {V.inqServiceTiles.map((t) => (
+                              <button
+                                key={t.key}
+                                onClick={t.pick}
+                                style={{
+                                  border: t.on ? '2px solid #171717' : '1px solid #E4E4DF',
+                                  borderRadius: 999,
+                                  background: t.on ? '#171717' : '#FFFFFF',
+                                  color: t.on ? '#FFFFFF' : '#171717',
+                                  padding: '9px 14px',
+                                  cursor: 'pointer',
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {t.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                         <label style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                           <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Your name</span>
@@ -5233,10 +5287,32 @@ export default function App() {
                         />
                       </label>
 
+                      {V.inqServiceMissing && <div style={{ fontSize: 12, color: '#9A9A9A' }}>Pick a service above to continue.</div>}
                       {V.inqSubmitError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.inqSubmitError}</div>}
 
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                        {V.inqWaUrl && (
+                        {V.inqWaUrl && (V.inqWaDisabled ? (
+                          <div
+                            style={{
+                              flex: '1 1 200px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              textAlign: 'center',
+                              border: 0,
+                              borderRadius: 999,
+                              background: '#25D366',
+                              color: '#FFFFFF',
+                              padding: '14px 20px',
+                              fontFamily: DISPLAY,
+                              fontSize: 14.5,
+                              fontWeight: 700,
+                              opacity: 0.5,
+                            }}
+                          >
+                            Send via WhatsApp →
+                          </div>
+                        ) : (
                           <a
                             href={V.inqWaUrl}
                             target="_blank"
@@ -5261,7 +5337,7 @@ export default function App() {
                           >
                             Send via WhatsApp →
                           </a>
-                        )}
+                        ))}
                         <button
                           onClick={V.submitInlineInquiry}
                           disabled={V.inqSubmitDisabled}
