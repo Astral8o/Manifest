@@ -1844,12 +1844,15 @@ export default function App() {
     // "Claim Your Business" — real businesses found via web search, not yet
     // listed on Eventory. Claiming just routes into the normal vendor
     // onboarding flow, pre-filled with what we already found.
-    claimBusinessTiles: unclaimedBusinesses.map((b) => ({
+    claimBusinessTiles: unclaimedBusinesses.map((b, i) => ({
       key: b.id,
       name: b.name,
+      categoryCode: b.categoryCode,
       categoryName: catName(b.categoryCode),
       city: b.city,
       sourceUrl: b.sourceUrl,
+      hasPhoto: !!CATEGORY_FALLBACK_PHOTOS[b.categoryCode],
+      photo: CATEGORY_FALLBACK_PHOTOS[b.categoryCode] ? fallbackPhotoFor(b.categoryCode, i) : null,
       claim: () =>
         patch({
           screen: 'vendor-onboarding',
@@ -3963,40 +3966,54 @@ export default function App() {
               </div>
               <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
                 {V.claimBusinessTiles.map((b) => (
-                  <div key={b.key} style={{ border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', padding: 18 }}>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 999,
-                        background: '#F7F7F5',
-                        padding: '4px 10px',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: '#4A4A4A',
-                      }}
-                    >
-                      {b.categoryName}
-                    </span>
-                    <div style={{ marginTop: 10, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{b.name}</div>
-                    {b.city && <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{b.city}</div>}
-                    <button
-                      onClick={b.claim}
-                      style={{
-                        marginTop: 14,
-                        width: '100%',
-                        border: 0,
-                        borderRadius: 999,
-                        background: '#171717',
-                        color: '#FFFFFF',
-                        padding: '10px 16px',
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Claim this listing →
-                    </button>
+                  <div key={b.key} style={{ display: 'flex', flexDirection: 'column', border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden' }}>
+                    <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
+                      {b.hasPhoto ? (
+                        <img src={b.photo} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      ) : (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <CategoryIcon code={b.categoryCode} size={40} color="#C4C4BE" />
+                        </div>
+                      )}
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: 10,
+                          left: 10,
+                          display: 'inline-block',
+                          border: 0,
+                          borderRadius: 999,
+                          background: 'rgba(23,23,23,0.72)',
+                          color: '#FFFFFF',
+                          padding: '4px 10px',
+                          fontSize: 11,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {b.categoryName}
+                      </span>
+                    </div>
+                    <div style={{ padding: 18 }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{b.name}</div>
+                      {b.city && <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{b.city}</div>}
+                      <button
+                        onClick={b.claim}
+                        style={{
+                          marginTop: 14,
+                          width: '100%',
+                          border: 0,
+                          borderRadius: 999,
+                          background: '#171717',
+                          color: '#FFFFFF',
+                          padding: '10px 16px',
+                          cursor: 'pointer',
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        Claim now →
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -4635,40 +4652,54 @@ export default function App() {
               </div>
               <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
                 {V.claimBusinessTiles.map((b) => (
-                  <div key={b.key} style={{ border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', padding: 18 }}>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 999,
-                        background: '#F7F7F5',
-                        padding: '4px 10px',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: '#4A4A4A',
-                      }}
-                    >
-                      {b.categoryName}
-                    </span>
-                    <div style={{ marginTop: 10, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{b.name}</div>
-                    {b.city && <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{b.city}</div>}
-                    <button
-                      onClick={b.claim}
-                      style={{
-                        marginTop: 14,
-                        width: '100%',
-                        border: 0,
-                        borderRadius: 999,
-                        background: '#171717',
-                        color: '#FFFFFF',
-                        padding: '10px 16px',
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Claim this listing →
-                    </button>
+                  <div key={b.key} style={{ display: 'flex', flexDirection: 'column', border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden' }}>
+                    <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
+                      {b.hasPhoto ? (
+                        <img src={b.photo} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      ) : (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <CategoryIcon code={b.categoryCode} size={40} color="#C4C4BE" />
+                        </div>
+                      )}
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: 10,
+                          left: 10,
+                          display: 'inline-block',
+                          border: 0,
+                          borderRadius: 999,
+                          background: 'rgba(23,23,23,0.72)',
+                          color: '#FFFFFF',
+                          padding: '4px 10px',
+                          fontSize: 11,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {b.categoryName}
+                      </span>
+                    </div>
+                    <div style={{ padding: 18 }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{b.name}</div>
+                      {b.city && <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{b.city}</div>}
+                      <button
+                        onClick={b.claim}
+                        style={{
+                          marginTop: 14,
+                          width: '100%',
+                          border: 0,
+                          borderRadius: 999,
+                          background: '#171717',
+                          color: '#FFFFFF',
+                          padding: '10px 16px',
+                          cursor: 'pointer',
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        Claim now →
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
