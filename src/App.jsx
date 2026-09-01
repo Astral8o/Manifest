@@ -46,7 +46,8 @@ import {
   submitSourcingRequest,
 } from './catalog';
 import { supabase } from './supabaseClient';
-import wineGlassesEventPhoto from './assets/wine glasses event.jpg';
+import cocktailToastPhoto from './assets/cocktail toast.jpg';
+import babyShowerBalloonsPhoto from './assets/baby shower balloons.jpg';
 import photographerPhoto from './assets/photographer.jpg';
 import videographersPhoto from './assets/videographers.jpg';
 import weddingVenuePhoto from './assets/wedding venue.jpg';
@@ -3645,9 +3646,9 @@ export default function App() {
             }}
           >
             <img
-              src={weddingVenue2Photo}
-              alt="An empty reception hall strung with fairy lights and chandeliers, tables set for guests"
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 55%' }}
+              src={cocktailToastPhoto}
+              alt="A group of friends raising colorful cocktails in a toast at an outdoor event"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%' }}
             />
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.32)' }} />
             <div style={{ position: 'relative', mixBlendMode: 'lighten', display: 'flex', flexDirection: 'column' }}>
@@ -3750,8 +3751,8 @@ export default function App() {
             }}
           >
             <img
-              src={wineGlassesEventPhoto}
-              alt="Wine glasses and fruit on a table at an evening reception, guests mingling under string lights"
+              src={babyShowerBalloonsPhoto}
+              alt="A terracotta balloon garland arch reading 'Baby in Bloom' with a floral arrangement beside it"
               style={{ flex: isMobile ? 'none' : '1 1 46%', width: isMobile ? '100%' : 'auto', height: isMobile ? 240 : 440, objectFit: 'cover', display: 'block' }}
             />
             <div
