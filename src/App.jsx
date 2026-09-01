@@ -3619,9 +3619,15 @@ export default function App() {
               marginTop: 18,
               borderRadius: 28,
               overflow: 'hidden',
-              background: ACCENT,
+              background: '#141414',
             }}
           >
+            <img
+              src={weddingVenue2Photo}
+              alt="An empty reception hall strung with fairy lights and chandeliers, tables set for guests"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 55%' }}
+            />
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.32)' }} />
             <div style={{ position: 'relative', mixBlendMode: 'lighten', display: 'flex', flexDirection: 'column' }}>
               <div style={{ background: '#FFFFFF', padding: isMobile ? '18px 16px 20px' : '26px 28px 30px' }}>
                 <div
@@ -3639,7 +3645,7 @@ export default function App() {
                   Eventory
                 </div>
               </div>
-              <div style={{ height: isMobile ? 28 : 40 }} />
+              <div style={{ height: isMobile ? 190 : 300 }} />
             </div>
           </div>
 
