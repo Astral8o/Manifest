@@ -106,6 +106,64 @@ const EVENT_TYPES = [
   { key: 'other', label: 'Other' },
 ];
 
+// Two-tier taxonomy for the "Plan my event" modal: a broad celebration type
+// (step 1) narrows down to a specific occasion (step 2), which then drives
+// the pre-checked vendor category suggestions in the category step.
+const CELEBRATION_TYPES = [
+  { key: 'weddings', label: 'Weddings', hint: 'e.g. ceremonies, receptions' },
+  { key: 'celebrations', label: 'Celebrations', hint: 'e.g. birthdays, graduations' },
+  { key: 'familyBaby', label: 'Family & Baby', hint: 'e.g. baby showers, gender reveals' },
+  { key: 'corporate', label: 'Corporate', hint: 'e.g. family days, launches' },
+  { key: 'culturalReligious', label: 'Cultural & Religious', hint: 'e.g. Divali, Eid' },
+  { key: 'gatherings', label: 'Gatherings', hint: 'e.g. reunions, limes' },
+];
+
+const OCCASIONS_BY_CELEBRATION_TYPE = {
+  weddings: ['Ceremony', 'Reception', 'Engagement Party', 'Bridal Shower', 'Vow Renewal'],
+  celebrations: ['First Birthday', 'Birthday Party', 'Sweet 16', 'Christening', 'Graduation', 'Retirement', 'Anniversary'],
+  familyBaby: ['Baby Shower', 'Gender Reveal', 'Naming Ceremony'],
+  corporate: ['Family Day', 'Year-End Party', 'Company Launch', 'Staff Appreciation', 'Conference/Seminar', 'Team Retreat'],
+  culturalReligious: ['Divali', 'Eid', 'Hosay', 'Phagwa', 'Church Anniversary', 'Prayer Function'],
+  gatherings: ['Family Reunion', 'School Reunion', 'Lime / Cook-out'],
+};
+
+// Suggested vendor categories per occasion, by category name (matched
+// against the live CATS list fetched from Supabase) — used to pre-check
+// the category step so buyers start from a sensible default and just
+// adjust from there, rather than a blank slate.
+const OCCASION_SUGGESTED_CATEGORIES = {
+  'Ceremony': ['Venues', 'Décor', 'Photography', 'Event Agencies'],
+  'Reception': ['Catering', 'Venues', 'Décor', 'Entertainment', 'Photography', 'Cakes & Desserts'],
+  'Engagement Party': ['Catering', 'Venues', 'Décor', 'Photography', 'Hair, Makeup & Styling'],
+  'Bridal Shower': ['Catering', 'Décor', 'Entertainment', 'Favors & Gifts'],
+  'Vow Renewal': ['Venues', 'Décor', 'Photography', 'Catering'],
+  'First Birthday': ['Catering', 'Décor', 'Entertainment', 'Photography', 'Cakes & Desserts', 'Favors & Gifts'],
+  'Birthday Party': ['Catering', 'Décor', 'Entertainment', 'Photography', 'Cakes & Desserts'],
+  'Sweet 16': ['Catering', 'Décor', 'Entertainment', 'Photography', 'Cakes & Desserts', 'Hair, Makeup & Styling'],
+  'Christening': ['Catering', 'Décor', 'Photography', 'Venues', 'Cakes & Desserts'],
+  'Graduation': ['Catering', 'Décor', 'Photography', 'Venues', 'Cakes & Desserts'],
+  'Retirement': ['Catering', 'Décor', 'Entertainment', 'Photography'],
+  'Anniversary': ['Catering', 'Décor', 'Entertainment', 'Photography', 'Venues', 'Cakes & Desserts'],
+  'Baby Shower': ['Catering', 'Décor', 'Entertainment', 'Favors & Gifts', 'Cakes & Desserts'],
+  'Gender Reveal': ['Catering', 'Décor', 'Production', 'Cakes & Desserts'],
+  'Naming Ceremony': ['Catering', 'Décor', 'Venues'],
+  'Family Day': ['Catering', 'Rentals', 'Entertainment', 'Staging', 'Production', 'Security & Safety'],
+  'Year-End Party': ['Catering', 'Venues', 'Décor', 'Entertainment', 'Production', 'Lighting'],
+  'Company Launch': ['Venues', 'Staging', 'Production', 'Lighting', 'Photography', 'Printing & Signage'],
+  'Staff Appreciation': ['Catering', 'Venues', 'Entertainment', 'Favors & Gifts'],
+  'Conference/Seminar': ['Venues', 'Staging', 'Production', 'Printing & Signage', 'Logistics', 'Staffing Agencies'],
+  'Team Retreat': ['Venues', 'Catering', 'Logistics'],
+  'Divali': ['Catering', 'Décor', 'Lighting', 'Entertainment'],
+  'Eid': ['Catering', 'Décor', 'Venues'],
+  'Hosay': ['Catering', 'Décor', 'Production'],
+  'Phagwa': ['Catering', 'Décor', 'Entertainment'],
+  'Church Anniversary': ['Catering', 'Décor', 'Venues', 'Production'],
+  'Prayer Function': ['Catering', 'Décor', 'Rentals'],
+  'Family Reunion': ['Catering', 'Venues', 'Rentals', 'Entertainment'],
+  'School Reunion': ['Catering', 'Venues', 'Entertainment', 'Photography'],
+  'Lime / Cook-out': ['Catering', 'Rentals', 'Entertainment'],
+};
+
 // Trinidad's 14 municipal corporations (city/borough/regional). Tobago sits
 // outside this system entirely — it's governed by the Tobago House of
 // Assembly, hence the separate Country field.
@@ -608,8 +666,8 @@ const initialState = {
   dirVisible: 6,
   planModalOpen: false,
   planStep: 1,
-  planEventType: null,
-  planOtherLabel: '',
+  planCelebrationType: null,
+  planOccasion: null,
   planCats: [],
   email: '',
   signedIn: false,
@@ -1426,8 +1484,8 @@ export default function App() {
       patch({
         planModalOpen: true,
         planStep: 1,
-        planEventType: null,
-        planOtherLabel: '',
+        planCelebrationType: null,
+        planOccasion: null,
         planEventDate: '',
         planLoc: 0,
         planCats: [],
@@ -1442,27 +1500,25 @@ export default function App() {
     planModalOpen: !!st.planModalOpen,
     closePlanModal: () => patch({ planModalOpen: false }),
     planStep: st.planStep || 1,
-    planTotalSteps: 5,
+    planTotalSteps: 6,
     planStepBack: () => patch((s) => ({ planStep: Math.max(1, (s.planStep || 1) - 1) })),
-    eventTypeTiles: EVENT_TYPES.map((t) => ({
+    celebrationTypeTiles: CELEBRATION_TYPES.map((t) => ({
       key: t.key,
       label: t.label,
-      on: st.planEventType === t.key,
+      hint: t.hint,
+      on: st.planCelebrationType === t.key,
+      pick: () => patch({ planCelebrationType: t.key, planOccasion: null, planStep: 2 }),
+    })),
+    planOccasionTiles: (OCCASIONS_BY_CELEBRATION_TYPE[st.planCelebrationType] || []).map((label) => ({
+      label,
+      on: st.planOccasion === label,
       pick: () => {
-        if (t.key === 'other') {
-          patch({ planEventType: 'other' });
-          return;
-        }
-        patch({ planEventType: t.key, planStep: 2 });
+        const suggested = OCCASION_SUGGESTED_CATEGORIES[label] || [];
+        const codes = CATS.filter((c) => suggested.includes(c[1])).map((c) => c[0]);
+        patch({ planOccasion: label, planCats: codes, planStep: 3 });
       },
     })),
-    planOtherLabel: st.planOtherLabel || '',
-    setPlanOtherLabel: (e) => patch({ planOtherLabel: e.target.value }),
-    confirmOtherEventType: () => patch({ planStep: 2 }),
-    planEventLabel:
-      st.planEventType === 'other'
-        ? st.planOtherLabel.trim() || 'Your event'
-        : (EVENT_TYPES.find((t) => t.key === st.planEventType) || {}).label || '',
+    planEventLabel: st.planOccasion || '',
 
     planEventDate: st.planEventDate || '',
     setPlanEventDate: (e) => patch({ planEventDate: e.target.value }),
@@ -1471,7 +1527,7 @@ export default function App() {
       on: (st.planLoc || 0) === i,
       pick: () => patch({ planLoc: i }),
     })),
-    planWhenWhereNext: () => patch({ planStep: 3 }),
+    planWhenWhereNext: () => patch({ planStep: 4 }),
 
     planCategoryTiles: CATS.map((c) => ({
       code: c[0],
@@ -1484,7 +1540,7 @@ export default function App() {
             : s.planCats.concat([c[0]]),
         })),
     })),
-    planServicesNext: () => patch({ planStep: 4 }),
+    planServicesNext: () => patch({ planStep: 5 }),
     planServicesNextDisabled: !(st.planCats || []).length,
 
     planBudgetTiles: PRICE_FILTERS.map((f, i) => ({
@@ -1492,7 +1548,7 @@ export default function App() {
       on: (st.planBudget || 0) === i,
       pick: () => patch({ planBudget: i }),
     })),
-    planBudgetNext: () => patch({ planStep: 5 }),
+    planBudgetNext: () => patch({ planStep: 6 }),
 
     planContactName: st.planContactName || '',
     setPlanContactName: (e) => patch({ planContactName: e.target.value }),
@@ -1510,10 +1566,7 @@ export default function App() {
       const name = (st.planContactName || '').trim();
       const phone = (st.planContactPhone || '').trim();
       if (!name || !phone || st.planSubmitting) return;
-      const label =
-        st.planEventType === 'other'
-          ? st.planOtherLabel.trim() || 'Your event'
-          : (EVENT_TYPES.find((t) => t.key === st.planEventType) || {}).label || '';
+      const label = st.planOccasion || 'Your event';
       patch({ planSubmitting: true, planSubmitError: null });
       try {
         await submitPlanningRequest({
@@ -7756,11 +7809,12 @@ export default function App() {
                   Step {V.planStep} of {V.planTotalSteps}
                 </div>
                 <h2 style={{ margin: '6px 0 0', fontSize: isMobile ? 22 : 28, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
-                  {V.planStep === 1 && 'What are you planning?'}
-                  {V.planStep === 2 && 'When & where?'}
-                  {V.planStep === 3 && 'Which vendors are you looking for?'}
-                  {V.planStep === 4 && "What's your budget?"}
-                  {V.planStep === 5 && 'How can vendors reach you?'}
+                  {V.planStep === 1 && 'What kind of celebration is it?'}
+                  {V.planStep === 2 && 'Which occasion?'}
+                  {V.planStep === 3 && 'When & where?'}
+                  {V.planStep === 4 && 'Which vendors are you looking for?'}
+                  {V.planStep === 5 && "What's your budget?"}
+                  {V.planStep === 6 && 'How can vendors reach you?'}
                 </h2>
               </div>
               <button
@@ -7782,7 +7836,7 @@ export default function App() {
                     gap: 12,
                   }}
                 >
-                  {V.eventTypeTiles.map((t) => (
+                  {V.celebrationTypeTiles.map((t) => (
                     <button
                       key={t.key}
                       onClick={t.pick}
@@ -7794,56 +7848,53 @@ export default function App() {
                         padding: '18px 16px',
                         cursor: 'pointer',
                         textAlign: 'left',
-                        fontSize: 15,
-                        fontWeight: 700,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 4,
                       }}
                     >
-                      {t.label}
+                      <span style={{ fontSize: 15, fontWeight: 700 }}>{t.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 500, color: t.on ? 'rgba(255,255,255,0.7)' : '#8A8A8A' }}>
+                        {t.hint}
+                      </span>
                     </button>
                   ))}
                 </div>
-                {st.planEventType === 'other' && (
-                  <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <input
-                      type="text"
-                      value={V.planOtherLabel}
-                      onChange={V.setPlanOtherLabel}
-                      placeholder="Tell us what you're planning"
-                      style={{
-                        flex: 1,
-                        minWidth: 220,
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 999,
-                        background: '#F7F7F5',
-                        padding: '11px 16px',
-                        fontFamily: SANS,
-                        fontSize: 14,
-                        color: '#171717',
-                      }}
-                    />
-                    <button
-                      onClick={V.confirmOtherEventType}
-                      disabled={!V.planOtherLabel.trim()}
-                      style={{
-                        border: 0,
-                        borderRadius: 999,
-                        background: '#171717',
-                        color: '#FFFFFF',
-                        padding: '11px 22px',
-                        cursor: V.planOtherLabel.trim() ? 'pointer' : 'not-allowed',
-                        opacity: V.planOtherLabel.trim() ? 1 : 0.4,
-                        fontSize: 14,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Continue
-                    </button>
-                  </div>
-                )}
+                <p style={{ margin: '16px 0 0', fontSize: 12, fontStyle: 'italic', color: '#9A9A9A' }}>
+                  We'll show vendor counts by category here once we've launched.
+                </p>
               </>
             )}
 
             {V.planStep === 2 && (
+              <>
+                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
+                  Pick the occasion that's closest to what you're planning.
+                </p>
+                <div style={{ marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {V.planOccasionTiles.map((o) => (
+                    <button
+                      key={o.label}
+                      onClick={o.pick}
+                      style={{
+                        border: o.on ? '2px solid #171717' : '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: o.on ? '#171717' : '#FFFFFF',
+                        color: o.on ? '#FFFFFF' : '#171717',
+                        padding: '10px 18px',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {V.planStep === 3 && (
               <>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
                   Roughly when is your {V.planEventLabel.toLowerCase()}, and where in Trinidad &amp; Tobago?
@@ -7914,10 +7965,10 @@ export default function App() {
               </>
             )}
 
-            {V.planStep === 3 && (
+            {V.planStep === 4 && (
               <>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
-                  Tell us what you need for your {V.planEventLabel.toLowerCase()} — tick everything that applies.
+                  We've pre-selected the categories most people book for a {V.planEventLabel.toLowerCase()} — tick or untick anything to match what you need.
                 </p>
                 <div
                   style={{
@@ -7986,7 +8037,7 @@ export default function App() {
               </>
             )}
 
-            {V.planStep === 4 && (
+            {V.planStep === 5 && (
               <>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
                   Roughly what are you looking to spend? This helps us show you a realistic shortlist.
@@ -8031,7 +8082,7 @@ export default function App() {
               </>
             )}
 
-            {V.planStep === 5 && (
+            {V.planStep === 6 && (
               <>
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
                   Last step — this is how we and matching vendors can follow up with you.
