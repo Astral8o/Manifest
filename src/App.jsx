@@ -1453,9 +1453,6 @@ export default function App() {
     phone: b.phone,
     sourceUrl: b.sourceUrl,
     photo: weddingVenue2Photo,
-    waUrl: b.phone
-      ? 'https://wa.me/' + whatsappDigits(b.phone) + '?text=' + encodeURIComponent(`Hi ${b.name}, I found your business on Eventory and wanted to reach out.`)
-      : null,
     claim: () =>
       patch({
         screen: 'vendor-onboarding',
@@ -3984,29 +3981,15 @@ export default function App() {
               </div>
               <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
                 {V.claimBusinessTiles.map((b) => (
-                  <div key={b.key} style={{ display: 'flex', flexDirection: 'column', border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden' }}>
+                  <div key={b.key} style={{ display: 'flex', flexDirection: 'column', border: '1px dashed #D9B79C', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden' }}>
                     <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
                       <img src={b.photo} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      <span
-                        style={{
-                          position: 'absolute',
-                          top: 10,
-                          left: 10,
-                          display: 'inline-block',
-                          border: 0,
-                          borderRadius: 999,
-                          background: 'rgba(23,23,23,0.72)',
-                          color: '#FFFFFF',
-                          padding: '4px 10px',
-                          fontSize: 11,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {b.categoryName}
-                      </span>
                     </div>
                     <div style={{ padding: 18 }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{b.name}</div>
+                      <div style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                        {b.categoryName}
+                      </div>
+                      <div style={{ marginTop: 4, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{b.name}</div>
                       <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
                         {b.city && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
@@ -4026,56 +4009,23 @@ export default function App() {
                           </div>
                         )}
                       </div>
-                      <div style={{ marginTop: 14, display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8 }}>
-                        {b.waUrl && (
-                          <a
-                            href={b.waUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label="Inquire via WhatsApp"
-                            title="Inquire via WhatsApp"
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 6,
-                              flexShrink: 0,
-                              order: isMobile ? 1 : 0,
-                              width: isMobile ? '100%' : 38,
-                              border: 0,
-                              borderRadius: 999,
-                              background: '#25D366',
-                              color: '#FFFFFF',
-                              padding: isMobile ? '10px 16px' : 0,
-                              cursor: 'pointer',
-                              textDecoration: 'none',
-                              fontSize: 13,
-                              fontWeight: 700,
-                            }}
-                          >
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
-                              <path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.64-1.03-5.13-2.9-7-1.87-1.87-4.36-2.94-7.01-2.94zm0 18.13h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.23 8.23 0 0 1-1.26-4.37c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.55-3.7 8.24-8.24 8.24z" />
-                            </svg>
-                            {isMobile && 'WhatsApp'}
-                          </a>
-                        )}
+                      <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #F2E5DA' }}>
                         <button
                           onClick={b.claim}
                           style={{
-                            flex: 1,
-                            order: isMobile ? 0 : 1,
                             border: 0,
-                            borderRadius: 999,
-                            background: '#171717',
-                            color: '#FFFFFF',
-                            padding: '10px 16px',
+                            background: 'transparent',
+                            padding: 0,
                             cursor: 'pointer',
+                            fontFamily: 'inherit',
                             fontSize: 13,
                             fontWeight: 700,
-                            whiteSpace: 'nowrap',
+                            color: ACCENT,
+                            textDecoration: 'underline',
+                            textUnderlineOffset: 3,
                           }}
                         >
-                          Claim now →
+                          Is this your business? Claim it →
                         </button>
                       </div>
                     </div>
@@ -4717,29 +4667,15 @@ export default function App() {
               </div>
               <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
                 {V.dirClaimBusinessTiles.map((b) => (
-                  <div key={b.key} style={{ display: 'flex', flexDirection: 'column', border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden' }}>
+                  <div key={b.key} style={{ display: 'flex', flexDirection: 'column', border: '1px dashed #D9B79C', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden' }}>
                     <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
                       <img src={b.photo} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      <span
-                        style={{
-                          position: 'absolute',
-                          top: 10,
-                          left: 10,
-                          display: 'inline-block',
-                          border: 0,
-                          borderRadius: 999,
-                          background: 'rgba(23,23,23,0.72)',
-                          color: '#FFFFFF',
-                          padding: '4px 10px',
-                          fontSize: 11,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {b.categoryName}
-                      </span>
                     </div>
                     <div style={{ padding: 18 }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{b.name}</div>
+                      <div style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                        {b.categoryName}
+                      </div>
+                      <div style={{ marginTop: 4, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{b.name}</div>
                       <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
                         {b.city && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>
@@ -4759,56 +4695,23 @@ export default function App() {
                           </div>
                         )}
                       </div>
-                      <div style={{ marginTop: 14, display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8 }}>
-                        {b.waUrl && (
-                          <a
-                            href={b.waUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label="Inquire via WhatsApp"
-                            title="Inquire via WhatsApp"
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 6,
-                              flexShrink: 0,
-                              order: isMobile ? 1 : 0,
-                              width: isMobile ? '100%' : 38,
-                              border: 0,
-                              borderRadius: 999,
-                              background: '#25D366',
-                              color: '#FFFFFF',
-                              padding: isMobile ? '10px 16px' : 0,
-                              cursor: 'pointer',
-                              textDecoration: 'none',
-                              fontSize: 13,
-                              fontWeight: 700,
-                            }}
-                          >
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
-                              <path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.64-1.03-5.13-2.9-7-1.87-1.87-4.36-2.94-7.01-2.94zm0 18.13h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.23 8.23 0 0 1-1.26-4.37c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.55-3.7 8.24-8.24 8.24z" />
-                            </svg>
-                            {isMobile && 'WhatsApp'}
-                          </a>
-                        )}
+                      <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #F2E5DA' }}>
                         <button
                           onClick={b.claim}
                           style={{
-                            flex: 1,
-                            order: isMobile ? 0 : 1,
                             border: 0,
-                            borderRadius: 999,
-                            background: '#171717',
-                            color: '#FFFFFF',
-                            padding: '10px 16px',
+                            background: 'transparent',
+                            padding: 0,
                             cursor: 'pointer',
+                            fontFamily: 'inherit',
                             fontSize: 13,
                             fontWeight: 700,
-                            whiteSpace: 'nowrap',
+                            color: ACCENT,
+                            textDecoration: 'underline',
+                            textUnderlineOffset: 3,
                           }}
                         >
-                          Claim now →
+                          Is this your business? Claim it →
                         </button>
                       </div>
                     </div>
