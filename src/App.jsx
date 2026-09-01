@@ -254,6 +254,9 @@ const EVENT_TYPES = [
   { key: 'babyShower', label: 'Baby Shower' },
   { key: 'familyDay', label: 'Family Day' },
   { key: 'birthday', label: 'Birthday Party' },
+  { key: '5k', label: '5K' },
+  { key: 'tradeFair', label: 'Trade Fair' },
+  { key: 'thriftEvent', label: 'Thrift Event' },
   { key: 'other', label: 'Other' },
 ];
 
