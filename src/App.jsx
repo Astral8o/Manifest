@@ -987,6 +987,8 @@ export default function App() {
               extra = {
                 screen: parsed.screen,
                 ...(parsed.supId ? { supId: parsed.supId } : {}),
+                ...(parsed.supplierTab ? { supplierTab: parsed.supplierTab } : {}),
+                ...(parsed.supplierTab === 'inquire' ? { inqEmail: session.user.email || '' } : {}),
                 ...(parsed.openQuote
                   ? {
                       quoteModalOpen: true,
@@ -1284,15 +1286,19 @@ export default function App() {
     if (platform === 'tiktok') return 'https://tiktok.com/@' + h;
     return null;
   };
-  const buildWaMessage = (name, { eventTypeLabel, eventDate, venue, attendees, service }) => {
-    let msg = `Hi ${name}, I found you on Eventory and I'm interested in ${service ? `your ${service}` : 'your services'}`;
+  const buildWaMessage = (name, { eventTypeLabel, eventDate, venue, attendees, service, buyerName, message }) => {
+    let msg = buyerName
+      ? `Hi ${name}, I'm ${buyerName} and I found you on Eventory. I'm interested in ${service ? `your ${service}` : 'your services'}`
+      : `Hi ${name}, I found you on Eventory and I'm interested in ${service ? `your ${service}` : 'your services'}`;
     const details = [];
     if (eventTypeLabel) details.push(`for a ${eventTypeLabel}`);
     if (eventDate) details.push(`on ${eventDate}`);
     if (venue) details.push(`at ${venue}`);
     if (attendees) details.push(`for about ${attendees} guests`);
     if (details.length) msg += ' ' + details.join(' ');
-    return msg + '.';
+    msg += '.';
+    if (message) msg += ` ${message}`;
+    return msg;
   };
   const supCoverFallback = sup.coverUrl || fallbackPhotoFor(sup.code, 0);
   const supCarouselPhotos = (() => {
@@ -1629,7 +1635,7 @@ export default function App() {
         toggleSaved: () => toggleSaveVendor(s.id),
         share: () => shareVendor(s.id),
         justCopied: st.copiedVendorId === s.id,
-        open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+        open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqSubmitError: null, inqSent: false }),
       })),
 
     // s.firstProduct comes pre-aggregated from vendor_list_view (that
@@ -1649,7 +1655,7 @@ export default function App() {
           supplierName: s.name,
           categoryName: catName(s.code),
           priceLabel: priceLabel({ ...p, priceOnRequest: s.priceOnRequest }),
-          open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+          open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqSubmitError: null, inqSent: false }),
         };
       })
       .filter(Boolean),
@@ -1687,7 +1693,7 @@ export default function App() {
       toggleSaved: () => toggleSaveVendor(s.id),
       share: () => shareVendor(s.id),
       justCopied: st.copiedVendorId === s.id,
-      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqSubmitError: null, inqSent: false }),
     })),
     dirShowSeeAll: dirFiltered.length > (st.dirVisible || 6),
     dirSeeAllLabel: 'See all ' + dirFiltered.length + ' vendors',
@@ -1887,6 +1893,87 @@ export default function App() {
       }
     },
 
+    // Inline "Inquire" tab on the vendor profile — a single-page version of
+    // the quote/WhatsApp flows above, so a buyer can fill one form and send
+    // it either way without leaving the tab.
+    inqName: st.inqName || '',
+    setInqName: (e) => patch({ inqName: e.target.value }),
+    inqEmail: st.inqEmail || '',
+    setInqEmail: (e) => patch({ inqEmail: e.target.value }),
+    inqPhone: st.inqPhone || '',
+    setInqPhone: (e) => patch({ inqPhone: e.target.value }),
+    inqEventType: st.inqEventType || '',
+    setInqEventType: (e) => patch({ inqEventType: e.target.value }),
+    inqEventTypeOther: st.inqEventTypeOther || '',
+    setInqEventTypeOther: (e) => patch({ inqEventTypeOther: e.target.value }),
+    inqEventDate: st.inqEventDate || '',
+    setInqEventDate: (e) => patch({ inqEventDate: e.target.value }),
+    inqGuests: st.inqGuests || '',
+    setInqGuests: (e) => patch({ inqGuests: e.target.value.replace(/[^0-9]/g, '') }),
+    inqMessage: st.inqMessage || '',
+    setInqMessage: (e) => patch({ inqMessage: e.target.value }),
+    inqEventTypeLabel:
+      st.inqEventType === 'other'
+        ? (st.inqEventTypeOther || '').trim()
+        : (EVENT_TYPES.find((t) => t.key === st.inqEventType) || {}).label || '',
+    inqWaUrl: sup.phone
+      ? 'https://wa.me/' +
+        whatsappDigits(sup.phone) +
+        '?text=' +
+        encodeURIComponent(
+          buildWaMessage(sup.name, {
+            eventTypeLabel:
+              st.inqEventType === 'other'
+                ? (st.inqEventTypeOther || '').trim()
+                : ((EVENT_TYPES.find((t) => t.key === st.inqEventType) || {}).label || '').toLowerCase(),
+            eventDate: st.inqEventDate,
+            attendees: st.inqGuests,
+            buyerName: (st.inqName || '').trim() || null,
+            message: (st.inqMessage || '').trim() || null,
+          })
+        )
+      : null,
+    inqSubmitting: !!st.inqSubmitting,
+    inqSubmitError: st.inqSubmitError || '',
+    inqSent: !!st.inqSent,
+    inqSubmitDisabled: st.signedIn && (!(st.inqName || '').trim() || !(st.inqEmail || '').trim() || !!st.inqSubmitting),
+    submitInlineInquiry: async () => {
+      if (!st.signedIn) {
+        try {
+          localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: 'supplier', supId: sup.id, supplierTab: 'inquire' }));
+        } catch {
+          // ignore storage failures — worst case the user has to click again after signing in
+        }
+        patch({ screen: 'account', navMenuOpen: false });
+        return;
+      }
+      const name = (st.inqName || '').trim();
+      const email = (st.inqEmail || '').trim();
+      if (!name || !email || st.inqSubmitting) return;
+      const eventTypeLabel =
+        st.inqEventType === 'other' ? (st.inqEventTypeOther || '').trim() || 'Other' : (EVENT_TYPES.find((t) => t.key === st.inqEventType) || {}).label || 'Not specified';
+      patch({ inqSubmitting: true, inqSubmitError: null });
+      try {
+        const answers = {};
+        if ((st.inqGuests || '').trim()) answers.Guests = st.inqGuests.trim();
+        if ((st.inqMessage || '').trim()) answers.Message = st.inqMessage.trim();
+        await submitQuoteRequest({
+          vendorId: sup.id,
+          eventType: eventTypeLabel,
+          eventTypeOther: st.inqEventType === 'other' ? st.inqEventTypeOther : null,
+          eventDate: st.inqEventDate,
+          venue: '',
+          categoryAnswers: answers,
+          contactName: name,
+          contactEmail: email,
+          contactPhone: st.inqPhone,
+        });
+        patch({ inqSubmitting: false, inqSent: true });
+      } catch (err) {
+        patch({ inqSubmitting: false, inqSubmitError: err.message || 'Could not send your inquiry. Please try again.' });
+      }
+    },
+
     openFaqKey: st.openFaqKey || null,
     toggleFaq: (key) => patch((s) => ({ openFaqKey: s.openFaqKey === key ? null : key })),
     supplierTab: st.supplierTab || 'services',
@@ -1897,8 +1984,8 @@ export default function App() {
       hasMenu && { key: 'menu', label: 'Menu' },
       { key: 'reviews', label: 'Reviews (' + (sup.reviews || []).length + ')' },
       { key: 'faq', label: 'FAQ' },
-      { key: 'promos', label: 'Promos' + ((sup.promos || []).length ? ' (' + sup.promos.length + ')' : '') },
       hasPolicies && { key: 'policies', label: 'Policies' },
+      { key: 'inquire', label: 'Inquire' },
     ]
       .filter(Boolean)
       .map((t) => ({
@@ -2020,6 +2107,7 @@ export default function App() {
           JSON.stringify({
             screen: existing.screen || st.screen,
             ...(existing.supId ? { supId: existing.supId } : {}),
+            ...(existing.supplierTab ? { supplierTab: existing.supplierTab } : {}),
             ...(existing.openQuote ? { openQuote: true } : {}),
           })
         );
@@ -2052,7 +2140,7 @@ export default function App() {
           supplierName: s ? s.name : '',
           priceLabel: priceLabel(p),
           openSupplier: () =>
-            patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+            patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqSubmitError: null, inqSent: false }),
           remove: () => toggleSave(pid),
           share: () => shareProduct(pid),
           shareLabel: st.copiedPid === pid ? 'Copied!' : 'Share',
@@ -2071,7 +2159,7 @@ export default function App() {
           name: s.name,
           categoryName: catName(s.code),
           open: () =>
-            patch({ screen: 'supplier', supId: vid, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+            patch({ screen: 'supplier', supId: vid, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqSubmitError: null, inqSent: false }),
           unsave: () => toggleSaveVendor(vid),
         };
       })
@@ -2088,7 +2176,7 @@ export default function App() {
       venue: q.venue,
       statusLabel: q.status === 'new' ? 'Sent' : q.status,
       open: () =>
-        patch({ screen: 'supplier', supId: q.vendorId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+        patch({ screen: 'supplier', supId: q.vendorId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqSubmitError: null, inqSent: false }),
     })),
     hasDashboardInquiries: (st.dashboardQuotes || []).length > 0,
 
@@ -2207,7 +2295,7 @@ export default function App() {
     },
     goVdPublicProfile: () =>
       st.vdVendor &&
-      patch({ screen: 'supplier', supId: st.vdVendor.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+      patch({ screen: 'supplier', supId: st.vdVendor.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqSubmitError: null, inqSent: false }),
     vdSignOut: async () => {
       if (supabase) await supabase.auth.signOut();
       patch({ signedIn: false, screen: 'home', authSent: false, authError: null, vdVendor: null });
@@ -2554,6 +2642,9 @@ export default function App() {
       contactEmail: q.contactEmail,
       contactPhone: q.contactPhone,
       statusLabel: q.status === 'new' ? 'New' : q.status,
+      answerRows: Object.entries(q.categoryAnswers || {})
+        .filter(([, v]) => v)
+        .map(([k, v]) => ({ key: k, label: k, value: v })),
     })),
     hasVdQuotes: (st.vdQuotes || []).length > 0,
 
@@ -5011,49 +5102,187 @@ export default function App() {
                 </div>
               )}
 
-              {V.supplierTab === 'promos' && (
-                <div style={{ marginTop: 24 }}>
-                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800, color: PROMO_ACCENT }}>Promotions</h2>
-                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
-                  {!V.supDetailLoading && (V.sup.promos.length > 0 ? (
-                    <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {V.sup.promos.map((p) => (
-                        <div
-                          key={p.key}
-                          style={{
-                            border: `1px solid ${PROMO_ACCENT}`,
-                            borderRadius: 18,
-                            background: `${PROMO_ACCENT}0F`,
-                            padding: '18px 20px',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>{p.title}</div>
-                            <span
-                              style={{
-                                border: `1px solid ${PROMO_ACCENT}`,
-                                borderRadius: 999,
-                                background: PROMO_ACCENT,
-                                padding: '5px 14px',
-                                fontSize: 13,
-                                fontWeight: 800,
-                                color: '#FFFFFF',
-                                flexShrink: 0,
-                              }}
-                            >
-                              {p.discount}
-                            </span>
-                          </div>
-                          <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>{p.description}</p>
-                          <div style={{ marginTop: 8, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>Ends {p.expires}</div>
-                        </div>
-                      ))}
+              {V.supplierTab === 'inquire' && (
+                <div style={{ marginTop: 24, maxWidth: 520 }}>
+                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Check availability</h2>
+                  <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
+                    Send an inquiry directly to {V.sup.name}.
+                  </p>
+
+                  {V.inqSent ? (
+                    <div
+                      style={{
+                        marginTop: 20,
+                        border: '1px solid #16A34A',
+                        borderRadius: 18,
+                        background: '#F0FDF4',
+                        padding: '18px 20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                      }}
+                    >
+                      <span
+                        style={{
+                          flexShrink: 0,
+                          width: 22,
+                          height: 22,
+                          borderRadius: '50%',
+                          background: '#16A34A',
+                          color: '#FFFFFF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 13,
+                        }}
+                      >
+                        ✓
+                      </span>
+                      <div style={{ fontSize: 14, color: '#166534' }}>Your inquiry is on its way — {V.sup.name} will follow up soon.</div>
                     </div>
                   ) : (
-                    <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.55, color: '#9A9A9A' }}>
-                      No active promotions right now. Check back later, or send an inquiry and ask directly.
-                    </p>
-                  ))}
+                    <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        <label style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Your name</span>
+                          <input
+                            type="text"
+                            value={V.inqName}
+                            onChange={V.setInqName}
+                            placeholder="e.g. Sarah Mitchell"
+                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
+                          />
+                        </label>
+                        <label style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Email address</span>
+                          <input
+                            type="email"
+                            value={V.inqEmail}
+                            onChange={V.setInqEmail}
+                            placeholder="sarah@example.com"
+                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
+                          />
+                        </label>
+                      </div>
+
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Phone (optional)</span>
+                        <input
+                          type="tel"
+                          value={V.inqPhone}
+                          onChange={V.setInqPhone}
+                          placeholder="e.g. 868 123 4567"
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
+                        />
+                      </label>
+
+                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        <label style={{ flex: '1 1 160px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Event date (optional)</span>
+                          <input
+                            type="date"
+                            value={V.inqEventDate}
+                            onChange={V.setInqEventDate}
+                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
+                          />
+                        </label>
+                        <label style={{ flex: '1 1 160px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Guests (optional)</span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={V.inqGuests}
+                            onChange={V.setInqGuests}
+                            placeholder="e.g. 150"
+                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
+                          />
+                        </label>
+                      </div>
+
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Event type (optional)</span>
+                        <select
+                          value={V.inqEventType}
+                          onChange={V.setInqEventType}
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
+                        >
+                          <option value="">Select type…</option>
+                          {EVENT_TYPES.map((t) => (
+                            <option key={t.key} value={t.key}>{t.label}</option>
+                          ))}
+                        </select>
+                        {V.inqEventType === 'other' && (
+                          <input
+                            type="text"
+                            value={V.inqEventTypeOther}
+                            onChange={V.setInqEventTypeOther}
+                            placeholder="Tell us what you're planning"
+                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
+                          />
+                        )}
+                      </label>
+
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Message (optional)</span>
+                        <textarea
+                          value={V.inqMessage}
+                          onChange={V.setInqMessage}
+                          placeholder="Tell them about your vision…"
+                          rows={4}
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717', resize: 'vertical' }}
+                        />
+                      </label>
+
+                      {V.inqSubmitError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.inqSubmitError}</div>}
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                        {V.inqWaUrl && (
+                          <a
+                            href={V.inqWaUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              flex: '1 1 200px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              textAlign: 'center',
+                              border: 0,
+                              borderRadius: 999,
+                              background: '#25D366',
+                              color: '#FFFFFF',
+                              padding: '14px 20px',
+                              cursor: 'pointer',
+                              fontFamily: DISPLAY,
+                              fontSize: 14.5,
+                              fontWeight: 700,
+                              textDecoration: 'none',
+                            }}
+                          >
+                            Send via WhatsApp →
+                          </a>
+                        )}
+                        <button
+                          onClick={V.submitInlineInquiry}
+                          disabled={V.inqSubmitDisabled}
+                          style={{
+                            flex: '1 1 200px',
+                            border: 0,
+                            borderRadius: 999,
+                            background: '#171717',
+                            color: '#FFFFFF',
+                            padding: '14px 20px',
+                            cursor: V.inqSubmitDisabled ? 'not-allowed' : 'pointer',
+                            opacity: V.inqSubmitDisabled ? 0.5 : 1,
+                            fontSize: 14.5,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {V.inqSubmitting ? 'Sending…' : V.signedIn ? 'Send inquiry' : 'Sign in to send inquiry'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -6750,6 +6979,15 @@ export default function App() {
                           {q.contactEmail}
                           {q.contactPhone ? ' · ' + q.contactPhone : ''}
                         </div>
+                        {q.answerRows.length > 0 && (
+                          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F2F2ED', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {q.answerRows.map((a) => (
+                              <div key={a.key} style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>
+                                <span style={{ fontWeight: 700 }}>{a.label}:</span> {a.value}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
