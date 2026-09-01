@@ -660,6 +660,7 @@ const initialState = {
   dirCats: [],
   dirPlanLabel: '',
   dirCatMenuOpen: false,
+  dirLocMenuOpen: false,
   dirLoc: 0,
   dirPrice: 0,
   dirQuery: '',
@@ -1568,11 +1569,8 @@ export default function App() {
 
     planEventDate: st.planEventDate || '',
     setPlanEventDate: (e) => patch({ planEventDate: e.target.value }),
-    planLocationTiles: LOCATIONS.map((l, i) => ({
-      label: l,
-      on: (st.planLoc || 0) === i,
-      pick: () => patch({ planLoc: i }),
-    })),
+    planLoc: st.planLoc || 0,
+    setPlanLoc: (e) => patch({ planLoc: Number(e.target.value) }),
     planWhenWhereNext: () => patch({ planStep: 4 }),
 
     planCategoryTiles: CATS.map((c) => ({
@@ -1711,7 +1709,15 @@ export default function App() {
     dirCatMenuOpen: !!st.dirCatMenuOpen,
     toggleDirCatMenu: () => patch((s) => ({ dirCatMenuOpen: !s.dirCatMenuOpen })),
     closeDirCatMenu: () => patch({ dirCatMenuOpen: false }),
-    dirLocationFilters: LOCATIONS.map((l, i) => ({ label: l, ...chip(i === st.dirLoc), pick: () => patch({ dirLoc: i, dirVisible: 6 }) })),
+    dirLocationFilters: LOCATIONS.map((l, i) => ({
+      label: l,
+      on: i === (st.dirLoc || 0),
+      pick: () => patch({ dirLoc: i, dirVisible: 6, dirLocMenuOpen: false }),
+    })),
+    dirLocationLabel: LOCATIONS[st.dirLoc || 0],
+    dirLocMenuOpen: !!st.dirLocMenuOpen,
+    toggleDirLocMenu: () => patch((s) => ({ dirLocMenuOpen: !s.dirLocMenuOpen })),
+    closeDirLocMenu: () => patch({ dirLocMenuOpen: false }),
     dirPriceFilters: PRICE_FILTERS.map((f, i) => ({ label: f.label, ...chip(i === (st.dirPrice || 0)), pick: () => patch({ dirPrice: i, dirVisible: 6 }) })),
     dirQuery: st.dirQuery || '',
     setDirQuery: (e) => patch({ dirQuery: e.target.value, dirVisible: 6 }),
@@ -4080,38 +4086,73 @@ export default function App() {
                 <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
                   Location
                 </span>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    flexWrap: isMobile ? 'nowrap' : 'wrap',
-                    overflowX: isMobile ? 'auto' : 'visible',
-                    WebkitOverflowScrolling: 'touch',
-                    paddingBottom: isMobile ? 2 : 0,
-                    minWidth: 0,
-                  }}
-                >
-                  {V.dirLocationFilters.map((f) => (
-                    <button
-                      key={f.label}
-                      onClick={f.pick}
-                      style={{
-                        border: `1px solid ${f.border}`,
-                        borderRadius: 999,
-                        background: f.bg,
-                        color: f.fg,
-                        padding: isMobile ? '6px 12px' : '7px 14px',
-                        cursor: 'pointer',
-                        fontSize: isMobile ? 12 : 13,
-                        fontWeight: 600,
-                        flexShrink: 0,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={V.toggleDirLocMenu}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: isMobile ? 'space-between' : 'flex-start',
+                      gap: 8,
+                      border: '1px solid #E4E4DF',
+                      borderRadius: 999,
+                      background: '#F7F7F5',
+                      color: '#171717',
+                      padding: isMobile ? '9px 14px' : '9px 16px',
+                      cursor: 'pointer',
+                      fontSize: isMobile ? 13 : 13.5,
+                      fontWeight: 600,
+                      width: isMobile ? '100%' : 'auto',
+                    }}
+                  >
+                    {V.dirLocationLabel}
+                    <span style={{ fontSize: 11 }}>{V.dirLocMenuOpen ? '▲' : '▼'}</span>
+                  </button>
+                  {V.dirLocMenuOpen && (
+                    <>
+                      <div onClick={V.closeDirLocMenu} style={{ position: 'fixed', inset: 0, zIndex: 19, background: 'transparent' }} />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 'calc(100% + 8px)',
+                          left: 0,
+                          width: isMobile ? '100%' : 240,
+                          maxHeight: 320,
+                          overflowY: 'auto',
+                          border: '1px solid #ECECEC',
+                          borderRadius: 16,
+                          background: '#FFFFFF',
+                          boxShadow: '0 12px 28px rgba(0,0,0,0.12)',
+                          padding: 6,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          zIndex: 22,
+                        }}
+                      >
+                        {V.dirLocationFilters.map((f) => (
+                          <button
+                            key={f.label}
+                            onClick={f.pick}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              border: 0,
+                              borderRadius: 10,
+                              background: f.on ? '#F7F7F5' : 'transparent',
+                              padding: '10px 14px',
+                              cursor: 'pointer',
+                              fontSize: 14,
+                              fontWeight: f.on ? 700 : 500,
+                              textAlign: 'left',
+                              color: '#171717',
+                            }}
+                          >
+                            {f.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 8, minWidth: 0 }}>
@@ -8194,26 +8235,25 @@ export default function App() {
                   <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
                     Location
                   </div>
-                  <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {V.planLocationTiles.map((l) => (
-                      <button
-                        key={l.label}
-                        onClick={l.pick}
-                        style={{
-                          border: l.on ? '2px solid #171717' : '1px solid #E4E4DF',
-                          borderRadius: 999,
-                          background: l.on ? '#171717' : '#FFFFFF',
-                          color: l.on ? '#FFFFFF' : '#171717',
-                          padding: '9px 16px',
-                          cursor: 'pointer',
-                          fontSize: 13,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {l.label}
-                      </button>
+                  <select
+                    value={V.planLoc}
+                    onChange={V.setPlanLoc}
+                    style={{
+                      marginTop: 8,
+                      width: '100%',
+                      border: '1px solid #E4E4DF',
+                      borderRadius: 14,
+                      background: '#F7F7F5',
+                      padding: '11px 14px',
+                      fontFamily: SANS,
+                      fontSize: 14,
+                      color: '#171717',
+                    }}
+                  >
+                    {LOCATIONS.map((l, i) => (
+                      <option key={l} value={i}>{l}</option>
                     ))}
-                  </div>
+                  </select>
                 </div>
                 <button
                   onClick={V.planWhenWhereNext}
