@@ -10,7 +10,8 @@ import {
   fetchUnclaimedBusinesses,
   fetchVendorDetail,
   submitVendorReview,
-  sendMagicLink,
+  signUpBuyer,
+  signInBuyer,
   submitPlanningRequest,
   submitQuoteRequest,
   fetchMyQuoteRequests,
@@ -826,8 +827,13 @@ const initialState = {
   planCats: [],
   email: '',
   signedIn: false,
+  authMode: 'signin',
+  authPassword: '',
+  authConfirmPassword: '',
+  authShowPassword: false,
+  authShowConfirmPassword: false,
   authSending: false,
-  authSent: false,
+  authConfirmPending: false,
   authError: null,
   saved: [],
   savedVendors: [],
@@ -1188,7 +1194,9 @@ export default function App() {
           signedIn: true,
           email: session.user.email || '',
           accountRole: (session.user.user_metadata || {}).role || '',
-          authSent: false,
+          authConfirmPending: false,
+          authPassword: '',
+          authConfirmPassword: '',
           authError: null,
           ...extra,
         });
@@ -1756,10 +1764,12 @@ export default function App() {
         planLoc: 0,
         planCats: [],
         planBudget: 0,
-        planAuthEmail: st.email || '',
-        planAuthSending: false,
-        planAuthSent: false,
-        planAuthError: null,
+        authMode: 'signin',
+        authPassword: '',
+        authConfirmPassword: '',
+        authSending: false,
+        authConfirmPending: false,
+        authError: null,
         planSubmitting: false,
         planSubmitError: null,
       }),
@@ -1813,40 +1823,6 @@ export default function App() {
     })),
     planBudgetNext: () => patch({ planStep: 6 }),
 
-    planAuthEmail: st.planAuthEmail || '',
-    setPlanAuthEmail: (e) => patch({ planAuthEmail: e.target.value, planAuthSent: false, planAuthError: null }),
-    planAuthSending: !!st.planAuthSending,
-    planAuthSent: !!st.planAuthSent,
-    planAuthError: st.planAuthError || '',
-    planSendMagicLink: async () => {
-      const email = (st.planAuthEmail || '').trim();
-      if (!email || email.indexOf('@') < 1 || st.planAuthSending) return;
-      patch({ planAuthSending: true, planAuthError: null });
-      try {
-        localStorage.setItem(
-          POST_AUTH_RETURN_KEY,
-          JSON.stringify({
-            resumePlan: {
-              eventLabel: st.planOccasion || 'Your event',
-              eventDate: st.planEventDate || '',
-              locationLabel: LOCATIONS[st.planLoc || 0],
-              locIndex: st.planLoc || 0,
-              categoryCodes: st.planCats || [],
-              budgetLabel: PRICE_FILTERS[st.planBudget || 0].label,
-              budgetIndex: st.planBudget || 0,
-            },
-          })
-        );
-      } catch {
-        // ignore storage failures — worst case they land back signed in without the plan auto-saved
-      }
-      try {
-        await sendMagicLink(email);
-        patch({ planAuthSending: false, planAuthSent: true });
-      } catch (err) {
-        patch({ planAuthSending: false, planAuthError: err.message || 'Something went wrong sending your sign-in link. Please try again.' });
-      }
-    },
     planSubmitting: !!st.planSubmitting,
     planSubmitError: st.planSubmitError || '',
     planSubmitDisabled: !!st.planSubmitting,
@@ -2372,10 +2348,8 @@ export default function App() {
       shareLabel: st.copiedPid === p.id ? 'Copied!' : 'Share',
       share: () => shareProduct(p.id),
     })),
-    signInDisabled: !(st.email && st.email.indexOf('@') > 0) || !!st.authSending,
-
     email: st.email || '',
-    setEmail: (e) => patch({ email: e.target.value, authSent: false, authError: null }),
+    setEmail: (e) => patch({ email: e.target.value, authConfirmPending: false, authError: null }),
     signedIn: !!st.signedIn,
     needsAccount: !st.signedIn,
     accountLabel: st.signedIn ? 'Signed in · ' + st.email : 'Sign in',
@@ -2383,44 +2357,114 @@ export default function App() {
     isSignedIn: !!st.signedIn,
     accountNeedsSignIn: !st.signedIn,
     accountEmail: st.email || '',
-    setAccountEmail: (e) => patch({ email: e.target.value, authSent: false, authError: null }),
+    setAccountEmail: (e) => patch({ email: e.target.value, authConfirmPending: false, authError: null }),
+    authMode: st.authMode || 'signin',
+    toggleAuthMode: () =>
+      patch((s) => ({
+        authMode: (s.authMode || 'signin') === 'signin' ? 'signup' : 'signin',
+        authPassword: '',
+        authConfirmPassword: '',
+        authConfirmPending: false,
+        authError: null,
+      })),
+    authPassword: st.authPassword || '',
+    setAuthPassword: (e) => patch({ authPassword: e.target.value, authError: null }),
+    authConfirmPassword: st.authConfirmPassword || '',
+    setAuthConfirmPassword: (e) => patch({ authConfirmPassword: e.target.value, authError: null }),
+    authShowPassword: !!st.authShowPassword,
+    toggleAuthShowPassword: () => patch((s) => ({ authShowPassword: !s.authShowPassword })),
+    authShowConfirmPassword: !!st.authShowConfirmPassword,
+    toggleAuthShowConfirmPassword: () => patch((s) => ({ authShowConfirmPassword: !s.authShowConfirmPassword })),
     authSending: !!st.authSending,
-    authSent: !!st.authSent,
+    authConfirmPending: !!st.authConfirmPending,
     authError: st.authError || '',
-    useDifferentEmail: () => patch({ authSent: false, authError: null }),
-    signIn: async () => {
-      if (!st.email || st.email.indexOf('@') < 1 || st.authSending) return;
+    authSubmitDisabled:
+      !(st.email && st.email.indexOf('@') > 0) ||
+      ((st.authMode || 'signin') === 'signup'
+        ? (st.authPassword || '').length < 6 || st.authPassword !== st.authConfirmPassword
+        : !(st.authPassword || '').length) ||
+      !!st.authSending,
+    useDifferentEmail: () => patch({ authConfirmPending: false, authError: null }),
+    authSubmit: async () => {
+      const email = (st.email || '').trim();
+      const password = st.authPassword || '';
+      const mode = st.authMode || 'signin';
+      if (!email || email.indexOf('@') < 1 || st.authSending) return;
+      if (mode === 'signup' ? password.length < 6 || password !== st.authConfirmPassword : !password) return;
       patch({ authSending: true, authError: null });
       try {
-        let existing = {};
-        try {
-          const raw = localStorage.getItem(POST_AUTH_RETURN_KEY);
-          if (raw) existing = JSON.parse(raw) || {};
-        } catch {
-          // ignore malformed/inaccessible storage
+        if (st.planModalOpen) {
+          localStorage.setItem(
+            POST_AUTH_RETURN_KEY,
+            JSON.stringify({
+              resumePlan: {
+                eventLabel: st.planOccasion || 'Your event',
+                eventDate: st.planEventDate || '',
+                locationLabel: LOCATIONS[st.planLoc || 0],
+                locIndex: st.planLoc || 0,
+                categoryCodes: st.planCats || [],
+                budgetLabel: PRICE_FILTERS[st.planBudget || 0].label,
+                budgetIndex: st.planBudget || 0,
+              },
+            })
+          );
+        } else {
+          let existing = {};
+          try {
+            const raw = localStorage.getItem(POST_AUTH_RETURN_KEY);
+            if (raw) existing = JSON.parse(raw) || {};
+          } catch {
+            // ignore malformed/inaccessible storage
+          }
+          localStorage.setItem(
+            POST_AUTH_RETURN_KEY,
+            JSON.stringify({
+              screen: existing.screen || st.screen,
+              ...(existing.supId ? { supId: existing.supId } : {}),
+              ...(existing.supplierTab ? { supplierTab: existing.supplierTab } : {}),
+              ...(existing.openQuote ? { openQuote: true } : {}),
+            })
+          );
         }
-        localStorage.setItem(
-          POST_AUTH_RETURN_KEY,
-          JSON.stringify({
-            screen: existing.screen || st.screen,
-            ...(existing.supId ? { supId: existing.supId } : {}),
-            ...(existing.supplierTab ? { supplierTab: existing.supplierTab } : {}),
-            ...(existing.openQuote ? { openQuote: true } : {}),
-          })
-        );
       } catch {
         // ignore storage failures — worst case the user lands back on home
       }
       try {
-        await sendMagicLink(st.email);
-        patch({ authSending: false, authSent: true });
+        if (mode === 'signup') {
+          const { user, session } = await signUpBuyer(email, password);
+          if (!user) throw new Error('Could not create your profile. Please try again.');
+          if (user.identities && user.identities.length === 0) {
+            throw new Error('That email already has a profile. Please sign in instead.');
+          }
+          if (!session) {
+            patch({ authSending: false, authConfirmPending: true });
+            return;
+          }
+          patch({ authSending: false });
+        } else {
+          await signInBuyer(email, password);
+          patch({ authSending: false });
+        }
       } catch (err) {
-        patch({ authSending: false, authError: err.message || 'Something went wrong sending your sign-in link. Please try again.' });
+        patch({ authSending: false, authError: err.message || 'Something went wrong. Please try again.' });
+      }
+    },
+    adminSignInDisabled: !(st.email && st.email.indexOf('@') > 0 && (st.authPassword || '').length) || !!st.authSending,
+    adminSignIn: async () => {
+      const email = (st.email || '').trim();
+      const password = st.authPassword || '';
+      if (!email || email.indexOf('@') < 1 || !password || st.authSending) return;
+      patch({ authSending: true, authError: null });
+      try {
+        await signInBuyer(email, password);
+        patch({ authSending: false });
+      } catch (err) {
+        patch({ authSending: false, authError: err.message || 'Something went wrong. Please try again.' });
       }
     },
     signOut: async () => {
       if (supabase) await supabase.auth.signOut();
-      patch({ signedIn: false, authSent: false, authError: null });
+      patch({ signedIn: false, authConfirmPending: false, authError: null, authPassword: '', authConfirmPassword: '' });
     },
     promoOptIn: !!st.promoOptIn,
     togglePromoOptIn: () => patch((s) => ({ promoOptIn: !s.promoOptIn })),
@@ -2595,7 +2639,7 @@ export default function App() {
       patch({ screen: 'supplier', supId: st.vdVendor.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
     vdSignOut: async () => {
       if (supabase) await supabase.auth.signOut();
-      patch({ signedIn: false, screen: 'home', authSent: false, authError: null, vdVendor: null });
+      patch({ signedIn: false, screen: 'home', authConfirmPending: false, authError: null, vdVendor: null });
     },
 
     vdSubcategory: st.vdSubcategory || '',
@@ -6807,12 +6851,12 @@ export default function App() {
 
           {V.accountNeedsSignIn && (
             <div style={{ marginTop: 26, border: '1px solid #ECECEC', borderRadius: 24, padding: 26 }}>
-              {V.authSent ? (
+              {V.authConfirmPending ? (
                 <>
                   <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Check your email</div>
                   <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-                    We sent a sign-in link to {V.accountEmail}. Click it to come back here signed in — you can close
-                    this tab.
+                    We sent a confirmation link to {V.accountEmail}. Click it to activate your profile, then come
+                    back here.
                   </p>
                   <button
                     onClick={V.useDifferentEmail}
@@ -6823,10 +6867,13 @@ export default function App() {
                 </>
               ) : (
                 <>
-                  <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Sign in</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>
+                    {V.authMode === 'signup' ? 'Create a profile' : 'Sign in'}
+                  </div>
                   <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-                    No password, we email you a link. New here? The same link creates your account so you can
-                    save vendors, send quote requests, and find them again.
+                    {V.authMode === 'signup'
+                      ? 'Create a profile with an email and password so you can save vendors, send quote requests, and find them again.'
+                      : 'Sign in with your email and password.'}
                   </p>
                   <label style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
@@ -6848,46 +6895,74 @@ export default function App() {
                       }}
                     />
                   </label>
-                  <button
-                    onClick={V.togglePromoOptIn}
-                    style={{
-                      marginTop: 16,
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 10,
-                      border: 0,
-                      background: 'transparent',
-                      padding: 0,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                  >
-                    <span
+                  <label style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                      Password
+                    </span>
+                    <PasswordField
+                      value={V.authPassword}
+                      onChange={V.setAuthPassword}
+                      placeholder={V.authMode === 'signup' ? 'Create a password' : 'Your password'}
+                      show={V.authShowPassword}
+                      onToggleShow={V.toggleAuthShowPassword}
+                    />
+                  </label>
+                  {V.authMode === 'signup' && (
+                    <label style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                        Confirm password
+                      </span>
+                      <PasswordField
+                        value={V.authConfirmPassword}
+                        onChange={V.setAuthConfirmPassword}
+                        placeholder="Type it again"
+                        show={V.authShowConfirmPassword}
+                        onToggleShow={V.toggleAuthShowConfirmPassword}
+                      />
+                    </label>
+                  )}
+                  {V.authMode === 'signup' && (
+                    <button
+                      onClick={V.togglePromoOptIn}
                       style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 18,
-                        height: 18,
-                        marginTop: 1,
-                        border: `1px solid ${V.promoOptIn ? '#171717' : '#C8C8C2'}`,
-                        borderRadius: 5,
-                        background: V.promoOptIn ? '#171717' : 'transparent',
-                        color: '#FFFFFF',
-                        fontSize: 11,
-                        fontWeight: 800,
-                        flexShrink: 0,
+                        marginTop: 16,
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 10,
+                        border: 0,
+                        background: 'transparent',
+                        padding: 0,
+                        cursor: 'pointer',
+                        textAlign: 'left',
                       }}
                     >
-                      {V.promoOptIn ? '✓' : ''}
-                    </span>
-                    <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>
-                      Send me promos and offers from vendors
-                    </span>
-                  </button>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 18,
+                          height: 18,
+                          marginTop: 1,
+                          border: `1px solid ${V.promoOptIn ? '#171717' : '#C8C8C2'}`,
+                          borderRadius: 5,
+                          background: V.promoOptIn ? '#171717' : 'transparent',
+                          color: '#FFFFFF',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {V.promoOptIn ? '✓' : ''}
+                      </span>
+                      <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>
+                        Send me promos and offers from vendors
+                      </span>
+                    </button>
+                  )}
                   <button
-                    onClick={V.signIn}
-                    disabled={V.signInDisabled}
+                    onClick={V.authSubmit}
+                    disabled={V.authSubmitDisabled}
                     style={{
                       marginTop: 18,
                       border: 0,
@@ -6898,14 +6973,26 @@ export default function App() {
                       cursor: 'pointer',
                       fontSize: 15,
                       fontWeight: 700,
-                      opacity: V.signInDisabled ? 0.4 : 1,
+                      opacity: V.authSubmitDisabled ? 0.4 : 1,
                     }}
                   >
-                    {V.authSending ? 'Sending link…' : 'Continue with email'}
+                    {V.authSending
+                      ? V.authMode === 'signup'
+                        ? 'Creating profile…'
+                        : 'Signing in…'
+                      : V.authMode === 'signup'
+                        ? 'Create profile →'
+                        : 'Sign in →'}
                   </button>
                   {V.authError && (
                     <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.authError}</div>
                   )}
+                  <button
+                    onClick={V.toggleAuthMode}
+                    style={{ marginTop: 14, display: 'block', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#5B5B5B', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+                  >
+                    {V.authMode === 'signup' ? 'Already have a profile? Sign in' : 'New here? Create a profile'}
+                  </button>
                 </>
               )}
             </div>
@@ -7866,19 +7953,6 @@ export default function App() {
                     Sign out and use a different account
                   </button>
                 </>
-              ) : V.authSent ? (
-                <>
-                  <div style={{ fontSize: 18, fontWeight: 700 }}>Check your email</div>
-                  <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-                    We sent a sign-in link to {V.email}. Click it to come back here signed in.
-                  </p>
-                  <button
-                    onClick={V.useDifferentEmail}
-                    style={{ marginTop: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#5B5B5B', textDecoration: 'underline', textUnderlineOffset: '3px' }}
-                  >
-                    Use a different email
-                  </button>
-                </>
               ) : (
                 <>
                   <div style={{ fontSize: 18, fontWeight: 700 }}>Admin sign-in</div>
@@ -7894,12 +7968,24 @@ export default function App() {
                       style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
                     />
                   </label>
+                  <label style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                      Password
+                    </span>
+                    <PasswordField
+                      value={V.authPassword}
+                      onChange={V.setAuthPassword}
+                      placeholder="Your password"
+                      show={V.authShowPassword}
+                      onToggleShow={V.toggleAuthShowPassword}
+                    />
+                  </label>
                   <button
-                    onClick={V.signIn}
-                    disabled={V.signInDisabled}
-                    style={{ marginTop: 14, border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: V.signInDisabled ? 0.4 : 1 }}
+                    onClick={V.adminSignIn}
+                    disabled={V.adminSignInDisabled}
+                    style={{ marginTop: 14, border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: V.adminSignInDisabled ? 0.4 : 1 }}
                   >
-                    {V.authSending ? 'Sending link…' : 'Continue with email'}
+                    {V.authSending ? 'Signing in…' : 'Sign in'}
                   </button>
                   {V.authError && <div style={{ marginTop: 10, fontSize: 13, color: '#B3261E' }}>{V.authError}</div>}
                 </>
@@ -8975,7 +9061,7 @@ export default function App() {
                 <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
                   {V.signedIn
                     ? 'Last step — save this plan to your account so you can pick up where you left off.'
-                    : "Last step — sign in to save your plan. We'll email you a link, no password needed."}
+                    : 'Last step — create a profile or sign in to save your plan.'}
                 </p>
 
                 {V.signedIn ? (
@@ -9015,7 +9101,7 @@ export default function App() {
                       <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.planSubmitError}</div>
                     )}
                   </>
-                ) : V.planAuthSent ? (
+                ) : V.authConfirmPending ? (
                   <div
                     style={{
                       marginTop: 18,
@@ -9028,7 +9114,8 @@ export default function App() {
                       color: '#166534',
                     }}
                   >
-                    Check your email — tap the link we sent to {V.planAuthEmail} and your plan will be saved automatically.
+                    Check your email — tap the confirmation link we sent to {V.accountEmail} and your plan will be
+                    saved automatically.
                   </div>
                 ) : (
                   <>
@@ -9038,8 +9125,8 @@ export default function App() {
                       </div>
                       <input
                         type="email"
-                        value={V.planAuthEmail}
-                        onChange={V.setPlanAuthEmail}
+                        value={V.accountEmail}
+                        onChange={V.setAccountEmail}
                         placeholder="you@example.com"
                         style={{
                           marginTop: 8,
@@ -9054,9 +9141,39 @@ export default function App() {
                         }}
                       />
                     </div>
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                        Password
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <PasswordField
+                          value={V.authPassword}
+                          onChange={V.setAuthPassword}
+                          placeholder={V.authMode === 'signup' ? 'Create a password' : 'Your password'}
+                          show={V.authShowPassword}
+                          onToggleShow={V.toggleAuthShowPassword}
+                        />
+                      </div>
+                    </div>
+                    {V.authMode === 'signup' && (
+                      <div style={{ marginTop: 14 }}>
+                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                          Confirm password
+                        </div>
+                        <div style={{ marginTop: 8 }}>
+                          <PasswordField
+                            value={V.authConfirmPassword}
+                            onChange={V.setAuthConfirmPassword}
+                            placeholder="Type it again"
+                            show={V.authShowConfirmPassword}
+                            onToggleShow={V.toggleAuthShowConfirmPassword}
+                          />
+                        </div>
+                      </div>
+                    )}
                     <button
-                      onClick={V.planSendMagicLink}
-                      disabled={V.planAuthSending}
+                      onClick={V.authSubmit}
+                      disabled={V.authSubmitDisabled}
                       style={{
                         marginTop: 22,
                         width: '100%',
@@ -9065,17 +9182,29 @@ export default function App() {
                         background: ACCENT,
                         color: '#FFFFFF',
                         padding: '15px 26px',
-                        cursor: V.planAuthSending ? 'not-allowed' : 'pointer',
-                        opacity: V.planAuthSending ? 0.5 : 1,
+                        cursor: V.authSubmitDisabled ? 'not-allowed' : 'pointer',
+                        opacity: V.authSubmitDisabled ? 0.5 : 1,
                         fontSize: 15,
                         fontWeight: 700,
                       }}
                     >
-                      {V.planAuthSending ? 'Sending…' : 'Email me a magic link →'}
+                      {V.authSending
+                        ? V.authMode === 'signup'
+                          ? 'Creating profile…'
+                          : 'Signing in…'
+                        : V.authMode === 'signup'
+                          ? 'Create profile & save my plan →'
+                          : 'Sign in & save my plan →'}
                     </button>
-                    {V.planAuthError && (
-                      <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.planAuthError}</div>
+                    {V.authError && (
+                      <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.authError}</div>
                     )}
+                    <button
+                      onClick={V.toggleAuthMode}
+                      style={{ marginTop: 14, display: 'block', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#5B5B5B', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+                    >
+                      {V.authMode === 'signup' ? 'Already have a profile? Sign in' : 'New here? Create a profile'}
+                    </button>
                   </>
                 )}
               </>

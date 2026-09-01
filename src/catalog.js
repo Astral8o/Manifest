@@ -285,16 +285,26 @@ export async function submitVendorReview({ vendorId, author, stars, body, compan
 // true, so this also signs up a new account on first use — one flow for
 // both. The session lands via Supabase's own redirect handling once the
 // link is clicked (see the onAuthStateChange listener in App.jsx).
-export async function sendMagicLink(email) {
+export async function signUpBuyer(email, password) {
   if (!supabaseConfigured) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
-  const { error } = await supabase.auth.signInWithOtp({
+  const { data, error } = await supabase.auth.signUp({
     email,
-    options: { emailRedirectTo: window.location.origin + window.location.pathname },
+    password,
+    options: { data: { role: 'buyer' }, emailRedirectTo: window.location.origin + window.location.pathname },
   });
-
   if (error) throw error;
+  return data;
+}
+
+export async function signInBuyer(email, password) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data.user;
 }
 
 export async function joinWaitlist(email) {
