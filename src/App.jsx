@@ -373,6 +373,60 @@ function whatsappDigits(phone) {
   return digits;
 }
 
+// Password field with a show/hide toggle, styled to match the pill inputs
+// used across the vendor sign-in / account-creation screens.
+function PasswordField({ value, onChange, placeholder, show, onToggleShow }) {
+  return (
+    <div style={{ position: 'relative' }}>
+      <input
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        style={{
+          width: '100%',
+          boxSizing: 'border-box',
+          border: '1px solid #E4E4DF',
+          borderRadius: 999,
+          background: '#F7F7F5',
+          padding: '13px 46px 13px 20px',
+          fontFamily: SANS,
+          fontSize: 15,
+        }}
+      />
+      <button
+        type="button"
+        onClick={onToggleShow}
+        aria-label={show ? 'Hide password' : 'Show password'}
+        style={{
+          position: 'absolute',
+          right: 14,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          border: 0,
+          background: 'transparent',
+          cursor: 'pointer',
+          padding: 4,
+          display: 'flex',
+          color: '#8A8A8A',
+        }}
+      >
+        {show ? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.6 18.6 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.6 18.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+            <line x1="1" y1="1" x2="23" y2="23" />
+          </svg>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        )}
+      </button>
+    </div>
+  );
+}
+
 // Minimal RFC4180-ish CSV parser: quoted fields, embedded commas, escaped
 // ("") quotes, and \n/\r\n/\r line endings — enough for a spreadsheet
 // export without pulling in a library for four columns.
@@ -1989,6 +2043,8 @@ export default function App() {
     setVsiEmail: (e) => patch({ vsiEmail: e.target.value, vsiError: null }),
     vsiPassword: st.vsiPassword || '',
     setVsiPassword: (e) => patch({ vsiPassword: e.target.value, vsiError: null }),
+    vsiShowPassword: !!st.vsiShowPassword,
+    toggleVsiShowPassword: () => patch((s) => ({ vsiShowPassword: !s.vsiShowPassword })),
     vsiSubmitting: !!st.vsiSubmitting,
     vsiError: st.vsiError || '',
     vsiDisabled: !(st.vsiEmail && st.vsiEmail.indexOf('@') > 0 && (st.vsiPassword || '').length > 0) || !!st.vsiSubmitting,
@@ -2024,6 +2080,10 @@ export default function App() {
     setNewPassword: (e) => patch({ newPassword: e.target.value }),
     newPasswordConfirm: st.newPasswordConfirm || '',
     setNewPasswordConfirm: (e) => patch({ newPasswordConfirm: e.target.value }),
+    newShowPassword: !!st.newShowPassword,
+    toggleNewShowPassword: () => patch((s) => ({ newShowPassword: !s.newShowPassword })),
+    newShowPasswordConfirm: !!st.newShowPasswordConfirm,
+    toggleNewShowPasswordConfirm: () => patch((s) => ({ newShowPasswordConfirm: !s.newShowPasswordConfirm })),
     newPasswordSubmitting: !!st.newPasswordSubmitting,
     newPasswordError: st.newPasswordError || '',
     newPasswordDisabled:
@@ -2845,8 +2905,7 @@ export default function App() {
         voPhone: '',
         voPassword: '',
         voConfirmPassword: '',
-        voAgreeTerms: false,
-        voAgreePrivacy: false,
+        voAgree: false,
         voStep1Error: null,
         navMenuOpen: false,
       }),
@@ -2896,10 +2955,12 @@ export default function App() {
     setVoPassword: (e) => patch({ voPassword: e.target.value }),
     voConfirmPassword: st.voConfirmPassword || '',
     setVoConfirmPassword: (e) => patch({ voConfirmPassword: e.target.value }),
-    voAgreeTerms: !!st.voAgreeTerms,
-    toggleVoAgreeTerms: () => patch((s) => ({ voAgreeTerms: !s.voAgreeTerms })),
-    voAgreePrivacy: !!st.voAgreePrivacy,
-    toggleVoAgreePrivacy: () => patch((s) => ({ voAgreePrivacy: !s.voAgreePrivacy })),
+    voShowPassword: !!st.voShowPassword,
+    toggleVoShowPassword: () => patch((s) => ({ voShowPassword: !s.voShowPassword })),
+    voShowConfirmPassword: !!st.voShowConfirmPassword,
+    toggleVoShowConfirmPassword: () => patch((s) => ({ voShowConfirmPassword: !s.voShowConfirmPassword })),
+    voAgree: !!st.voAgree,
+    toggleVoAgree: () => patch((s) => ({ voAgree: !s.voAgree })),
     voStep1Submitting: !!st.voStep1Submitting,
     voStep1Error: st.voStep1Error || '',
     voAccountStepDisabled: !(
@@ -2908,8 +2969,7 @@ export default function App() {
       (st.voPhone || '').trim() &&
       (st.voPassword || '').length >= 6 &&
       st.voPassword === st.voConfirmPassword &&
-      st.voAgreeTerms &&
-      st.voAgreePrivacy
+      st.voAgree
     ),
     goVoBusinessStep: () => {
       const disabled = !(
@@ -2918,8 +2978,7 @@ export default function App() {
         (st.voPhone || '').trim() &&
         (st.voPassword || '').length >= 6 &&
         st.voPassword === st.voConfirmPassword &&
-        st.voAgreeTerms &&
-        st.voAgreePrivacy
+        st.voAgree
       );
       if (disabled) return;
       patch({ voStep: 2 });
@@ -2934,7 +2993,7 @@ export default function App() {
       (st.voEmail || '').trim() &&
       (st.voPhone || '').trim() &&
       (st.signedIn ||
-        ((st.voPassword || '').length >= 6 && st.voPassword === st.voConfirmPassword && st.voAgreeTerms && st.voAgreePrivacy))
+        ((st.voPassword || '').length >= 6 && st.voPassword === st.voConfirmPassword && st.voAgree))
     ),
     voStep1Next: async () => {
       const name = (st.voBusinessName || '').trim();
@@ -2955,7 +3014,7 @@ export default function App() {
         !email ||
         !phone ||
         (!st.signedIn &&
-          ((st.voPassword || '').length < 6 || st.voPassword !== st.voConfirmPassword || !st.voAgreeTerms || !st.voAgreePrivacy)) ||
+          ((st.voPassword || '').length < 6 || st.voPassword !== st.voConfirmPassword || !st.voAgree)) ||
         st.voStep1Submitting
       ) {
         return;
@@ -6030,7 +6089,7 @@ export default function App() {
                       value={V.vsiEmail}
                       onChange={V.setVsiEmail}
                       placeholder="your@email.com"
-                      style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }}
+                      style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#F7F7F5', padding: '13px 20px', fontFamily: SANS, fontSize: 15 }}
                     />
                   </label>
                   <button
@@ -6059,18 +6118,20 @@ export default function App() {
                   value={V.vsiEmail}
                   onChange={V.setVsiEmail}
                   placeholder="your@email.com"
-                  style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }}
+                  style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#F7F7F5', padding: '13px 20px', fontFamily: SANS, fontSize: 15 }}
                 />
               </label>
               <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Password</span>
-                <input
-                  type="password"
-                  value={V.vsiPassword}
-                  onChange={V.setVsiPassword}
-                  placeholder="Your password"
-                  style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }}
-                />
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Password</span>
+                  <button
+                    onClick={V.openVsiForgot}
+                    style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: ACCENT }}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <PasswordField value={V.vsiPassword} onChange={V.setVsiPassword} placeholder="Your password" show={V.vsiShowPassword} onToggleShow={V.toggleVsiShowPassword} />
               </label>
               <button
                 onClick={V.vsiSignIn}
@@ -6080,12 +6141,6 @@ export default function App() {
                 {V.vsiSubmitting ? 'Signing in…' : 'Sign in'}
               </button>
               {V.vsiError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.vsiError}</div>}
-              <button
-                onClick={V.openVsiForgot}
-                style={{ alignSelf: 'flex-start', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#5B5B5B', textDecoration: 'underline', textUnderlineOffset: '3px' }}
-              >
-                Forgot password?
-              </button>
             </div>
           )}
         </div>
@@ -6103,22 +6158,22 @@ export default function App() {
           <div style={{ marginTop: 22, border: '1px solid #ECECEC', borderRadius: 24, padding: 26, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>New password (min. 6 characters)</span>
-              <input
-                type="password"
+              <PasswordField
                 value={V.newPassword}
                 onChange={V.setNewPassword}
                 placeholder="Create a password"
-                style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }}
+                show={V.newShowPassword}
+                onToggleShow={V.toggleNewShowPassword}
               />
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Confirm password</span>
-              <input
-                type="password"
+              <PasswordField
                 value={V.newPasswordConfirm}
                 onChange={V.setNewPasswordConfirm}
                 placeholder="Re-enter your password"
-                style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }}
+                show={V.newShowPasswordConfirm}
+                onToggleShow={V.toggleNewShowPasswordConfirm}
               />
             </label>
             <button
@@ -7499,50 +7554,41 @@ export default function App() {
                 <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Email address *</span>
-                    <input type="email" value={V.voEmail} onChange={V.setVoEmail} placeholder="your@email.com" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                    <input type="email" value={V.voEmail} onChange={V.setVoEmail} placeholder="your@email.com" style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#F7F7F5', padding: '13px 20px', fontFamily: SANS, fontSize: 15 }} />
                   </label>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Phone number *</span>
-                    <input type="tel" value={V.voPhone} onChange={V.setVoPhone} placeholder="868 123 4567" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                    <input type="tel" value={V.voPhone} onChange={V.setVoPhone} placeholder="868 123 4567" style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#F7F7F5', padding: '13px 20px', fontFamily: SANS, fontSize: 15 }} />
                   </label>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Password * (min. 6 characters)</span>
-                    <input type="password" value={V.voPassword} onChange={V.setVoPassword} placeholder="Create a strong password" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                    <PasswordField value={V.voPassword} onChange={V.setVoPassword} placeholder="Create a strong password" show={V.voShowPassword} onToggleShow={V.toggleVoShowPassword} />
                   </label>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Confirm password *</span>
-                    <input type="password" value={V.voConfirmPassword} onChange={V.setVoConfirmPassword} placeholder="Re-enter your password" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                    <PasswordField value={V.voConfirmPassword} onChange={V.setVoConfirmPassword} placeholder="Re-enter your password" show={V.voShowConfirmPassword} onToggleShow={V.toggleVoShowConfirmPassword} />
                   </label>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div onClick={V.toggleVoAgreeTerms} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, border: `1px solid ${V.voAgreeTerms ? '#171717' : '#C8C8C2'}`, borderRadius: 5, background: V.voAgreeTerms ? '#171717' : 'transparent', color: '#FFFFFF', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
-                        {V.voAgreeTerms ? '✓' : ''}
-                      </span>
-                      <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>
-                        I agree to the{' '}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); V.goTerms(); }}
-                          style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', font: 'inherit', color: '#171717', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: '2px' }}
-                        >
-                          Terms of Service
-                        </button>
-                      </span>
-                    </div>
-                    <div onClick={V.toggleVoAgreePrivacy} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, border: `1px solid ${V.voAgreePrivacy ? '#171717' : '#C8C8C2'}`, borderRadius: 5, background: V.voAgreePrivacy ? '#171717' : 'transparent', color: '#FFFFFF', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
-                        {V.voAgreePrivacy ? '✓' : ''}
-                      </span>
-                      <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>
-                        I agree to the{' '}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); V.goPrivacy(); }}
-                          style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', font: 'inherit', color: '#171717', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: '2px' }}
-                        >
-                          Privacy Policy
-                        </button>
-                      </span>
-                    </div>
+                  <div onClick={V.toggleVoAgree} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, border: `1px solid ${V.voAgree ? '#171717' : '#C8C8C2'}`, borderRadius: 5, background: V.voAgree ? '#171717' : 'transparent', color: '#FFFFFF', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                      {V.voAgree ? '✓' : ''}
+                    </span>
+                    <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>
+                      I agree to the{' '}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); V.goTerms(); }}
+                        style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', font: 'inherit', color: '#171717', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                      >
+                        Terms of Service
+                      </button>{' '}
+                      and{' '}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); V.goPrivacy(); }}
+                        style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', font: 'inherit', color: '#171717', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                      >
+                        Privacy Policy
+                      </button>
+                    </span>
                   </div>
 
                   <button
