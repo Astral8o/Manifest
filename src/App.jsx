@@ -1443,6 +1443,41 @@ export default function App() {
     };
   };
 
+  // Shared by the homepage's full "Claim Your Business" list and the
+  // Discover Vendors page's filtered one.
+  const claimTile = (b) => ({
+    key: b.id,
+    name: b.name,
+    categoryCode: b.categoryCode,
+    categoryName: catName(b.categoryCode),
+    city: b.city,
+    sourceUrl: b.sourceUrl,
+    photo: heroPhoto,
+    claim: () =>
+      patch({
+        screen: 'vendor-onboarding',
+        voStep: st.signedIn ? 2 : 0,
+        voDone: false,
+        voVendorId: null,
+        voSectors: [b.categoryCode],
+        voSectorOtherText: '',
+        voSubcategory: '',
+        voBusinessName: b.name,
+        voContactPerson: '',
+        voCountry: null,
+        voCity: null,
+        voCityOther: '',
+        voStartingPrice: '',
+        voEmail: st.signedIn ? st.email || '' : '',
+        voPhone: '',
+        voPassword: '',
+        voConfirmPassword: '',
+        voAgree: false,
+        voStep1Error: null,
+        navMenuOpen: false,
+      }),
+  });
+
   const dirQueryLower = (st.dirQuery || '').trim().toLowerCase();
   const dirFiltered = SUPPLIERS.filter((s) => {
     if (st.dirCat !== 'ALL' && !(s.codes || [s.code]).includes(st.dirCat)) return false;
@@ -1844,38 +1879,19 @@ export default function App() {
     // "Claim Your Business" — real businesses found via web search, not yet
     // listed on Eventory. Claiming just routes into the normal vendor
     // onboarding flow, pre-filled with what we already found.
-    claimBusinessTiles: unclaimedBusinesses.map((b) => ({
-      key: b.id,
-      name: b.name,
-      categoryCode: b.categoryCode,
-      categoryName: catName(b.categoryCode),
-      city: b.city,
-      sourceUrl: b.sourceUrl,
-      photo: heroPhoto,
-      claim: () =>
-        patch({
-          screen: 'vendor-onboarding',
-          voStep: st.signedIn ? 2 : 0,
-          voDone: false,
-          voVendorId: null,
-          voSectors: [b.categoryCode],
-          voSectorOtherText: '',
-          voSubcategory: '',
-          voBusinessName: b.name,
-          voContactPerson: '',
-          voCountry: null,
-          voCity: null,
-          voCityOther: '',
-          voStartingPrice: '',
-          voEmail: st.signedIn ? st.email || '' : '',
-          voPhone: '',
-          voPassword: '',
-          voConfirmPassword: '',
-          voAgree: false,
-          voStep1Error: null,
-          navMenuOpen: false,
-        }),
-    })),
+    claimBusinessTiles: unclaimedBusinesses.map(claimTile),
+    // Same list, but respecting whatever category/location/search filters
+    // are active on the Discover Vendors page, so it doesn't show
+    // businesses that don't match what the buyer is currently looking for.
+    dirClaimBusinessTiles: unclaimedBusinesses
+      .filter((b) => {
+        if (st.dirCat !== 'ALL' && b.categoryCode !== st.dirCat) return false;
+        if ((st.dirCats || []).length && !st.dirCats.includes(b.categoryCode)) return false;
+        if (st.dirLoc !== 0 && b.city !== LOCATIONS[st.dirLoc]) return false;
+        if (dirQueryLower && b.name.toLowerCase().indexOf(dirQueryLower) < 0 && catName(b.categoryCode).toLowerCase().indexOf(dirQueryLower) < 0) return false;
+        return true;
+      })
+      .map(claimTile),
 
     topSuppliers: SUPPLIERS.slice()
       .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating))
@@ -3960,7 +3976,7 @@ export default function App() {
               <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
                 <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Claim Your Business</h2>
                 <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
-                  We found these businesses publicly on Google. If one's yours, set up a free listing in minutes.
+                  We found these businesses through search and public information on the internet. If one's yours, set up a free listing in minutes.
                 </p>
               </div>
               <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
@@ -4635,16 +4651,16 @@ export default function App() {
             </button>
           </div>
 
-          {V.claimBusinessTiles.length > 0 && (
+          {V.dirClaimBusinessTiles.length > 0 && (
             <div style={{ marginTop: 48 }}>
               <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
                 <h2 style={{ margin: 0, fontSize: isMobile ? 24 : 32, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Claim Your Business</h2>
                 <p style={{ margin: 0, maxWidth: 420, fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
-                  We found these businesses publicly on Google. If one's yours, set up a free listing in minutes.
+                  We found these businesses through search and public information on the internet. If one's yours, set up a free listing in minutes.
                 </p>
               </div>
               <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
-                {V.claimBusinessTiles.map((b) => (
+                {V.dirClaimBusinessTiles.map((b) => (
                   <div key={b.key} style={{ display: 'flex', flexDirection: 'column', border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden' }}>
                     <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
                       <img src={b.photo} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
