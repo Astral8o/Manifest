@@ -47,7 +47,7 @@ import {
 } from './catalog';
 import { supabase } from './supabaseClient';
 import heroPhoto from './assets/hero-photo.jpg';
-import toastCelebrationPhoto from './assets/toast celebration.jpg';
+import wineGlassesEventPhoto from './assets/wine glasses event.jpg';
 import heroSidePhoto from './assets/Photo for under hero.jpg';
 import photographerPhoto from './assets/photographer.jpg';
 import videographersPhoto from './assets/videographers.jpg';
@@ -1453,7 +1453,7 @@ export default function App() {
     categoryName: catName(b.categoryCode),
     city: b.city,
     sourceUrl: b.sourceUrl,
-    photo: toastCelebrationPhoto,
+    photo: wineGlassesEventPhoto,
     claim: () =>
       patch({
         screen: 'vendor-onboarding',
