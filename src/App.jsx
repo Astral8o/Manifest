@@ -1159,7 +1159,13 @@ export default function App() {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
-        patch({ screen: 'vendor-set-password', signedIn: true, email: (session && session.user.email) || '', accountRole: 'vendor' });
+        const recoveryEmail = (session && session.user.email) || '';
+        patch({
+          screen: 'vendor-set-password',
+          signedIn: true,
+          email: recoveryEmail,
+          accountRole: recoveryEmail === ADMIN_EMAIL ? '' : 'vendor',
+        });
         return;
       }
       if (session) {
@@ -2473,6 +2479,18 @@ export default function App() {
         patch({ authSending: false, authError: err.message || 'Something went wrong. Please try again.' });
       }
     },
+    adminForgotPasswordSent: !!st.adminForgotPasswordSent,
+    adminForgotPassword: async () => {
+      const email = (st.email || '').trim();
+      if (!email || email.indexOf('@') < 1 || st.authSending) return;
+      patch({ authSending: true, authError: null });
+      try {
+        await sendVendorAccountSetupEmail(email);
+        patch({ authSending: false, adminForgotPasswordSent: true });
+      } catch (err) {
+        patch({ authSending: false, authError: err.message || 'Could not send a reset link. Please try again.' });
+      }
+    },
     signOut: async () => {
       if (supabase) await supabase.auth.signOut();
       patch({ signedIn: false, authConfirmPending: false, authError: null, authPassword: '', authConfirmPassword: '' });
@@ -2590,7 +2608,7 @@ export default function App() {
           newPasswordSubmitting: false,
           newPassword: '',
           newPasswordConfirm: '',
-          screen: 'vendor-dashboard',
+          screen: st.email === ADMIN_EMAIL ? 'admin' : 'vendor-dashboard',
         });
       } catch (err) {
         patch({ newPasswordSubmitting: false, newPasswordError: err.message || 'Could not set your password. Please try again.' });
@@ -7210,7 +7228,9 @@ export default function App() {
             Set your password
           </h1>
           <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-            Choose a password for your Eventory vendor account. You'll use this to sign back in and manage your listing.
+            {V.email === ADMIN_EMAIL
+              ? "Choose a new password for your Eventory admin account."
+              : "Choose a password for your Eventory vendor account. You'll use this to sign back in and manage your listing."}
           </p>
 
           <div style={{ marginTop: 22, border: '1px solid #ECECEC', borderRadius: 24, padding: 26, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -8026,6 +8046,31 @@ export default function App() {
                     {V.authSending ? 'Signing in…' : 'Sign in'}
                   </button>
                   {V.authError && <div style={{ marginTop: 10, fontSize: 13, color: '#B3261E' }}>{V.authError}</div>}
+                  {V.adminForgotPasswordSent ? (
+                    <div style={{ marginTop: 12, fontSize: 12.5, lineHeight: 1.5, color: '#16A34A' }}>
+                      Reset link sent to {V.email || 'your email'} — check your inbox.
+                    </div>
+                  ) : (
+                    <button
+                      onClick={V.adminForgotPassword}
+                      disabled={!(V.email && V.email.indexOf('@') > 0) || V.authSending}
+                      style={{
+                        marginTop: 12,
+                        display: 'block',
+                        border: 0,
+                        background: 'transparent',
+                        padding: 0,
+                        cursor: 'pointer',
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        color: '#5B5B5B',
+                        textDecoration: 'underline',
+                        textUnderlineOffset: '3px',
+                      }}
+                    >
+                      Forgot password?
+                    </button>
+                  )}
                 </>
               )}
             </div>
