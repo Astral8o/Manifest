@@ -46,9 +46,7 @@ import {
   submitSourcingRequest,
 } from './catalog';
 import { supabase } from './supabaseClient';
-import heroPhoto from './assets/hero-photo.jpg';
 import wineGlassesEventPhoto from './assets/wine glasses event.jpg';
-import heroSidePhoto from './assets/Photo for under hero.jpg';
 import photographerPhoto from './assets/photographer.jpg';
 import videographersPhoto from './assets/videographers.jpg';
 import weddingVenuePhoto from './assets/wedding venue.jpg';
@@ -3621,15 +3619,9 @@ export default function App() {
               marginTop: 18,
               borderRadius: 28,
               overflow: 'hidden',
-              background: '#141414',
+              background: ACCENT,
             }}
           >
-            <img
-              src={heroPhoto}
-              alt="Friends cheering and dancing together under a festival tent"
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 42%' }}
-            />
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.32)' }} />
             <div style={{ position: 'relative', mixBlendMode: 'lighten', display: 'flex', flexDirection: 'column' }}>
               <div style={{ background: '#FFFFFF', padding: isMobile ? '18px 16px 20px' : '26px 28px 30px' }}>
                 <div
@@ -3647,7 +3639,7 @@ export default function App() {
                   Eventory
                 </div>
               </div>
-              <div style={{ height: isMobile ? 190 : 300 }} />
+              <div style={{ height: isMobile ? 28 : 40 }} />
             </div>
           </div>
 
@@ -3730,8 +3722,8 @@ export default function App() {
             }}
           >
             <img
-              src={heroSidePhoto}
-              alt="A newly married couple and their wedding party dancing together at the reception"
+              src={wineGlassesEventPhoto}
+              alt="Wine glasses and fruit on a table at an evening reception, guests mingling under string lights"
               style={{ flex: isMobile ? 'none' : '1 1 46%', width: isMobile ? '100%' : 'auto', height: isMobile ? 240 : 440, objectFit: 'cover', display: 'block' }}
             />
             <div
