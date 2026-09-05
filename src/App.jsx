@@ -2284,6 +2284,56 @@ export default function App() {
         go: () => patch({ supplierTab: t.key }),
       })),
 
+    // Other vendors in the same category (any shared category, for
+    // multi-category vendors), same-city ones first, then by rating —
+    // gives buyers somewhere to go if this vendor isn't quite the fit.
+    similarSuppliers: (() => {
+      const supCodes = sup.codes || [sup.code];
+      return SUPPLIERS.filter((s) => s.id !== sup.id && (s.codes || [s.code]).some((c) => supCodes.includes(c)))
+        .sort((a, b) => {
+          const aSameCity = a.city === sup.city ? 0 : 1;
+          const bSameCity = b.city === sup.city ? 0 : 1;
+          if (aSameCity !== bSameCity) return aSameCity - bSameCity;
+          return parseFloat(b.rating || 0) - parseFloat(a.rating || 0);
+        })
+        .slice(0, 4)
+        .map((s, i) => ({
+          key: s.id,
+          cover: s.coverUrl || fallbackPhotoFor(s.code, i),
+          name: s.name,
+          location: s.city,
+          rating: s.rating,
+          startPriceLabel: s.priceOnRequest ? 'Price on request' : startPrice(s) === null ? '' : 'From ' + money(startPrice(s)),
+          isSaved: (st.savedVendors || []).indexOf(s.id) >= 0,
+          toggleSaved: () => toggleSaveVendor(s.id),
+          share: () => shareVendor(s.id),
+          justCopied: st.copiedVendorId === s.id,
+          open: () =>
+            patch({
+              screen: 'supplier',
+              supId: s.id,
+              supplierTab: 'services',
+              svcQuery: '',
+              svcGroup: 'All',
+              svcVisible: 8,
+              reviewFormOpen: false,
+              reviewSent: false,
+              supCarouselIndex: 0,
+              inqName: '',
+              inqEmail: '',
+              inqPhone: '',
+              inqEventType: '',
+              inqEventTypeOther: '',
+              inqEventDate: '',
+              inqGuests: '',
+              inqMessage: '',
+              inqService: null,
+              inqSubmitError: null,
+              inqSent: false,
+            }),
+        }));
+    })(),
+
     reviewFormOpen: !!st.reviewFormOpen,
     reviewSent: !!st.reviewSent,
     reviewSending: !!st.reviewSending,
@@ -5818,6 +5868,140 @@ export default function App() {
               )}
             </div>
           </div>
+
+          {V.similarSuppliers.length > 0 && (
+            <div style={{ marginTop: isMobile ? 40 : 56 }}>
+              <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Similar Vendors</h2>
+              <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
+                {V.similarSuppliers.map((s) => (
+                  <div
+                    key={s.key}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      border: '1px solid #ECECEC',
+                      borderRadius: 20,
+                      background: '#FFFFFF',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <button
+                      onClick={s.open}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: 'pointer' }}
+                    >
+                      <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
+                        <img src={s.cover} alt={s.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        {s.rating && (
+                          <span
+                            style={{
+                              position: 'absolute',
+                              top: 10,
+                              right: 10,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              border: 0,
+                              borderRadius: 999,
+                              background: 'rgba(23,23,23,0.72)',
+                              color: '#FFFFFF',
+                              padding: '4px 10px',
+                              fontFamily: MONO,
+                              fontSize: 11,
+                              fontWeight: 600,
+                            }}
+                          >
+                            ★ {s.rating}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ padding: isMobile ? '14px 14px 0' : '16px 18px 0' }}>
+                        <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 700, letterSpacing: '-0.01em' }}>{s.name}</div>
+                        {s.startPriceLabel && (
+                          <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.startPriceLabel}</div>
+                        )}
+                      </div>
+                    </button>
+                    <div
+                      style={{
+                        marginTop: 12,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                        borderTop: '1px solid #F2F2F0',
+                        padding: isMobile ? '10px 14px 14px' : '10px 18px 16px',
+                      }}
+                    >
+                      <button
+                        onClick={s.open}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        {s.location}
+                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <button
+                          onClick={s.toggleSaved}
+                          aria-label={s.isSaved ? 'Unsave vendor' : 'Save vendor'}
+                          title={s.isSaved ? 'Unsave vendor' : 'Save vendor'}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 30,
+                            height: 30,
+                            border: '1px solid #E4E4DF',
+                            borderRadius: 999,
+                            background: s.isSaved ? '#171717' : '#FFFFFF',
+                            color: s.isSaved ? '#FFFFFF' : '#171717',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill={s.isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={s.share}
+                          aria-label="Share vendor"
+                          title={s.justCopied ? 'Link copied' : 'Share vendor'}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 30,
+                            height: 30,
+                            border: '1px solid #E4E4DF',
+                            borderRadius: 999,
+                            background: '#FFFFFF',
+                            color: '#171717',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {s.justCopied ? (
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          ) : (
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="18" cy="5" r="3" />
+                              <circle cx="6" cy="12" r="3" />
+                              <circle cx="18" cy="19" r="3" />
+                              <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+                              <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
