@@ -337,6 +337,24 @@ export async function adminSetPublished(vendorId, published) {
   if (error) throw error;
 }
 
+// Packages, gallery, FAQs, policies, promos and reviews all cascade-delete
+// with the vendor row. Inquiries referencing this vendor don't — deleting a
+// vendor with real buyer inquiries against it fails with a foreign-key
+// error rather than silently wiping those out; the admin should unpublish
+// instead if that happens.
+export async function adminDeleteVendor(vendorId) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('vendors').delete().eq('id', vendorId);
+  if (error) {
+    if (error.message && /foreign key/i.test(error.message)) {
+      throw new Error('This vendor has inquiries on file and can’t be deleted. Unpublish it instead if you want it hidden.');
+    }
+    throw error;
+  }
+}
+
 // Vendor-facing: marks a listing as ready for admin review. Doesn't lock
 // anything — the vendor can keep editing before or after calling this.
 export async function submitVendorForReview(vendorId) {

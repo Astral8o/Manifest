@@ -17,6 +17,7 @@ import {
   fetchMyQuoteRequests,
   adminListVendors,
   adminSetPublished,
+  adminDeleteVendor,
   submitVendorForReview,
   adminCreateVendor,
   adminFetchVendorForEdit,
@@ -3101,6 +3102,31 @@ export default function App() {
         }));
       } catch (err) {
         patch({ adminVendorsError: err.message || 'Could not update that vendor.' });
+      }
+    },
+    // Deletion needs an explicit confirm step first — only one row confirms
+    // at a time, tracked by id rather than a per-row boolean so opening a
+    // new row's confirm implicitly closes any other.
+    adminConfirmDeleteId: st.adminConfirmDeleteId || null,
+    askDeleteAdminVendor: (vendorId) => patch({ adminConfirmDeleteId: vendorId, adminVendorsError: null }),
+    cancelDeleteAdminVendor: () => patch({ adminConfirmDeleteId: null }),
+    deleteAdminVendor: async (vendorId) => {
+      patch((s) => ({
+        adminVendors: (s.adminVendors || []).map((v) => (v.id === vendorId ? { ...v, deleteBusy: true } : v)),
+      }));
+      try {
+        await adminDeleteVendor(vendorId);
+        patch((s) => ({
+          adminVendors: (s.adminVendors || []).filter((v) => v.id !== vendorId),
+          adminConfirmDeleteId: null,
+        }));
+        loadCatalog();
+      } catch (err) {
+        patch((s) => ({
+          adminVendors: (s.adminVendors || []).map((v) => (v.id === vendorId ? { ...v, deleteBusy: false } : v)),
+          adminConfirmDeleteId: null,
+          adminVendorsError: err.message || 'Could not delete that vendor.',
+        }));
       }
     },
     setAdminLoginEmailDraft: (vendorId) => (e) =>
@@ -8429,8 +8455,55 @@ export default function App() {
                           >
                             {v.published ? 'Published' : 'Draft — publish'}
                           </button>
+                          <button
+                            onClick={() => V.askDeleteAdminVendor(v.id)}
+                            style={{
+                              border: '1px solid #F3D2CE',
+                              borderRadius: 999,
+                              background: 'transparent',
+                              color: '#B3261E',
+                              padding: '9px 16px',
+                              cursor: 'pointer',
+                              fontSize: 13,
+                              fontWeight: 700,
+                            }}
+                          >
+                            Delete
+                          </button>
                         </div>
                       </div>
+                      {V.adminConfirmDeleteId === v.id && (
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            flexWrap: 'wrap',
+                            border: '1px solid #F3D2CE',
+                            borderRadius: 12,
+                            background: '#FEF2F2',
+                            padding: '10px 12px',
+                          }}
+                        >
+                          <span style={{ fontSize: 13, color: '#7A1F1F' }}>
+                            Delete <strong>{v.name}</strong> permanently? This can't be undone.
+                          </span>
+                          <button
+                            onClick={() => V.deleteAdminVendor(v.id)}
+                            disabled={!!v.deleteBusy}
+                            style={{ border: 0, borderRadius: 999, background: '#B3261E', color: '#FFFFFF', padding: '7px 16px', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, opacity: v.deleteBusy ? 0.6 : 1 }}
+                          >
+                            {v.deleteBusy ? 'Deleting…' : 'Yes, delete'}
+                          </button>
+                          <button
+                            onClick={V.cancelDeleteAdminVendor}
+                            disabled={!!v.deleteBusy}
+                            style={{ border: 0, background: 'transparent', padding: '7px 4px', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: '#5B5B5B' }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         {v.owner_user_id ? (
                           <>
