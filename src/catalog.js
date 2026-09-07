@@ -477,6 +477,146 @@ export async function adminCreateVendor(v) {
   return vendorId;
 }
 
+// Loads an existing vendor (any published state — admin RLS allows reading
+// any row) in the same shape adminCreateVendor's `v` argument expects, so
+// the admin wizard can be pre-filled and re-saved through adminUpdateVendor.
+export async function adminFetchVendorForEdit(vendorId) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase
+    .from('vendors')
+    .select('*, products(*), vendor_gallery(*), vendor_faqs(*), vendor_policies(*)')
+    .eq('id', vendorId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  const policyBody = (title) => {
+    const row = (data.vendor_policies || []).find((p) => p.title === title);
+    return row ? row.body : '';
+  };
+
+  return {
+    categoryCode: data.category_code,
+    name: data.name || '',
+    city: data.city || '',
+    region: data.region || '',
+    bio: data.bio || '',
+    description: data.description || '',
+    phone: data.phone || '',
+    email: data.email || '',
+    coverUrl: data.cover_photo_url || '',
+    logoUrl: data.logo_url || '',
+    published: !!data.published,
+    gallery: (data.vendor_gallery || [])
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((g) => ({ eventType: g.event_type, photoUrl: g.photo_url })),
+    packages: (data.products || [])
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((p) => ({
+        name: p.name,
+        description: p.description || '',
+        priceMin: Number(p.price_min),
+        priceMax: Number(p.price_max),
+        unit: p.unit || 'event',
+        photoUrl: p.photo_url || '',
+        inclusions: p.inclusions || [],
+      })),
+    faqs: (data.vendor_faqs || []).map((f) => ({ q: f.question, a: f.answer })),
+    paymentTerms: policyBody('Payment'),
+    depositTerms: policyBody('Deposit'),
+    reschedulePolicy: policyBody('Rescheduling'),
+    cancellationPolicy: policyBody('Cancellation & refunds'),
+  };
+}
+
+// Saves the admin wizard's edits back onto an existing vendor. Packages,
+// gallery photos, FAQs and policies are replaced wholesale (delete then
+// reinsert) rather than diffed — the wizard doesn't track which row is
+// which after loading, and for a single-admin tool that's a fine trade for
+// not having to reconcile ids. Doesn't touch menu_items or vendor_promos:
+// the wizard has no UI for either, so leaving them alone avoids silently
+// wiping data a vendor set up herself from her own dashboard.
+export async function adminUpdateVendor(vendorId, v) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error: vendorError } = await supabase
+    .from('vendors')
+    .update({
+      category_code: v.categoryCode,
+      name: v.name,
+      city: v.city,
+      region: v.region,
+      bio: v.bio,
+      description: v.description,
+      phone: v.phone,
+      email: v.email || null,
+      logo_url: v.logoUrl || null,
+      cover_photo_url: v.coverUrl || null,
+      published: !!v.published,
+    })
+    .eq('id', vendorId);
+  if (vendorError) throw vendorError;
+
+  const { error: delProductsError } = await supabase.from('products').delete().eq('vendor_id', vendorId);
+  if (delProductsError) throw delProductsError;
+  if (v.packages && v.packages.length) {
+    const { error } = await supabase.from('products').insert(
+      v.packages.map((p, i) => ({
+        vendor_id: vendorId,
+        name: p.name,
+        description: p.description,
+        price_min: p.priceMin,
+        price_max: p.priceMax,
+        unit: p.unit || 'event',
+        min_qty: 1,
+        lead_time_days: 0,
+        photo_url: p.photoUrl || null,
+        inclusions: p.inclusions || [],
+        sort_order: i,
+      }))
+    );
+    if (error) throw error;
+  }
+
+  const { error: delGalleryError } = await supabase.from('vendor_gallery').delete().eq('vendor_id', vendorId);
+  if (delGalleryError) throw delGalleryError;
+  if (v.gallery && v.gallery.length) {
+    const { error } = await supabase.from('vendor_gallery').insert(
+      v.gallery.map((g, i) => ({ vendor_id: vendorId, event_type: g.eventType, photo_url: g.photoUrl, sort_order: i }))
+    );
+    if (error) throw error;
+  }
+
+  const { error: delFaqsError } = await supabase.from('vendor_faqs').delete().eq('vendor_id', vendorId);
+  if (delFaqsError) throw delFaqsError;
+  if (v.faqs && v.faqs.length) {
+    const { error } = await supabase.from('vendor_faqs').insert(
+      v.faqs.map((f) => ({ vendor_id: vendorId, question: f.q, answer: f.a }))
+    );
+    if (error) throw error;
+  }
+
+  const { error: delPoliciesError } = await supabase.from('vendor_policies').delete().eq('vendor_id', vendorId);
+  if (delPoliciesError) throw delPoliciesError;
+  const policyFields = [
+    ['Payment', v.paymentTerms],
+    ['Deposit', v.depositTerms],
+    ['Rescheduling', v.reschedulePolicy],
+    ['Cancellation & refunds', v.cancellationPolicy],
+  ].filter(([, body]) => body && body.trim());
+  if (policyFields.length) {
+    const { error } = await supabase.from('vendor_policies').insert(
+      policyFields.map(([title, body], i) => ({ vendor_id: vendorId, title, body, sort_order: i }))
+    );
+    if (error) throw error;
+  }
+}
+
 // Bulk-creates vendors (basics only — no packages/gallery/faqs, unlike
 // adminCreateVendor) from a validated CSV import. One INSERT statement for
 // the whole batch, so it's all-or-nothing rather than left half-done if a

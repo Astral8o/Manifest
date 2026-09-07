@@ -19,6 +19,8 @@ import {
   adminSetPublished,
   submitVendorForReview,
   adminCreateVendor,
+  adminFetchVendorForEdit,
+  adminUpdateVendor,
   adminBulkCreateVendors,
   adminCreateVendorLogin,
   sendVendorAccountSetupEmail,
@@ -3181,11 +3183,13 @@ export default function App() {
         }));
       }
     },
-    goAdminDashboard: () => patch({ adminSubScreen: 'dashboard' }),
+    goAdminDashboard: () => patch({ adminSubScreen: 'dashboard', adminEditVendorId: null }),
     goAdminNewVendor: () =>
       patch({
         adminSubScreen: 'wizard',
         adminStep: 1,
+        adminEditVendorId: null,
+        adminEditLoading: false,
         adminSaveError: null,
         adminName: '',
         adminCategoryCode: null,
@@ -3216,6 +3220,68 @@ export default function App() {
         adminReschedulePolicy: '',
         adminCancellationPolicy: '',
       }),
+
+    // Loads an already-saved vendor into the same wizard fields, so the
+    // admin can pick up editing without switching accounts. adminSaveVendor
+    // branches on adminEditVendorId to update this row instead of inserting
+    // a new one.
+    adminEditVendorId: st.adminEditVendorId || null,
+    adminIsEditing: !!st.adminEditVendorId,
+    adminEditLoading: !!st.adminEditLoading,
+    goAdminEditVendor: async (vendorId) => {
+      patch({
+        adminSubScreen: 'wizard',
+        adminStep: 1,
+        adminEditVendorId: vendorId,
+        adminEditLoading: true,
+        adminSaveError: null,
+      });
+      try {
+        const v = await adminFetchVendorForEdit(vendorId);
+        if (!v) {
+          patch({ adminEditLoading: false, adminSubScreen: 'dashboard', adminEditVendorId: null, adminVendorsError: 'Could not find that vendor.' });
+          return;
+        }
+        patch({
+          adminEditLoading: false,
+          adminName: v.name,
+          adminCategoryCode: v.categoryCode,
+          adminRegion: v.region,
+          adminCity: v.city,
+          adminWhatsapp: v.phone,
+          adminEmail: v.email,
+          adminBio: v.bio,
+          adminDescription: v.description,
+          adminCoverUrl: v.coverUrl,
+          adminLogoUrl: v.logoUrl,
+          adminUploadingCover: false,
+          adminUploadingLogo: false,
+          adminGallery: v.gallery,
+          adminGalleryEventType: '',
+          adminUploadingGalleryPhoto: false,
+          adminPackages: v.packages,
+          adminPkgName: '',
+          adminPkgPhotoUrl: '',
+          adminUploadingPkgPhoto: false,
+          adminPkgDescription: '',
+          adminPkgInclusionsText: '',
+          adminPkgPriceMin: '',
+          adminPkgPriceMax: '',
+          adminFaqs: v.faqs.length ? v.faqs : DEFAULT_FAQ_TEMPLATES.map((f) => ({ ...f })),
+          adminPaymentTerms: v.paymentTerms,
+          adminDepositTerms: v.depositTerms,
+          adminReschedulePolicy: v.reschedulePolicy,
+          adminCancellationPolicy: v.cancellationPolicy,
+        });
+      } catch (err) {
+        patch({
+          adminEditLoading: false,
+          adminSubScreen: 'dashboard',
+          adminEditVendorId: null,
+          adminVendorsError: err.message || 'Could not load that vendor.',
+        });
+      }
+    },
 
     goAdminBulkImport: () =>
       patch({
@@ -3452,28 +3518,33 @@ export default function App() {
     adminSaveVendor: async (published) => {
       if (st.adminSaving) return;
       patch({ adminSaving: true, adminSaveError: null });
+      const payload = {
+        categoryCode: st.adminCategoryCode,
+        name: (st.adminName || '').trim(),
+        city: (st.adminCity || '').trim(),
+        region: st.adminRegion,
+        bio: (st.adminBio || '').trim(),
+        description: (st.adminDescription || '').trim(),
+        phone: (st.adminWhatsapp || '').trim(),
+        email: (st.adminEmail || '').trim(),
+        coverUrl: (st.adminCoverUrl || '').trim(),
+        logoUrl: (st.adminLogoUrl || '').trim(),
+        gallery: st.adminGallery || [],
+        packages: st.adminPackages || [],
+        faqs: (st.adminFaqs || []).filter((f) => f.q.trim() && f.a.trim()),
+        paymentTerms: (st.adminPaymentTerms || '').trim(),
+        depositTerms: (st.adminDepositTerms || '').trim(),
+        reschedulePolicy: (st.adminReschedulePolicy || '').trim(),
+        cancellationPolicy: (st.adminCancellationPolicy || '').trim(),
+        published,
+      };
       try {
-        await adminCreateVendor({
-          categoryCode: st.adminCategoryCode,
-          name: (st.adminName || '').trim(),
-          city: (st.adminCity || '').trim(),
-          region: st.adminRegion,
-          bio: (st.adminBio || '').trim(),
-          description: (st.adminDescription || '').trim(),
-          phone: (st.adminWhatsapp || '').trim(),
-          email: (st.adminEmail || '').trim(),
-          coverUrl: (st.adminCoverUrl || '').trim(),
-          logoUrl: (st.adminLogoUrl || '').trim(),
-          gallery: st.adminGallery || [],
-          packages: st.adminPackages || [],
-          faqs: (st.adminFaqs || []).filter((f) => f.q.trim() && f.a.trim()),
-          paymentTerms: (st.adminPaymentTerms || '').trim(),
-          depositTerms: (st.adminDepositTerms || '').trim(),
-          reschedulePolicy: (st.adminReschedulePolicy || '').trim(),
-          cancellationPolicy: (st.adminCancellationPolicy || '').trim(),
-          published,
-        });
-        patch({ adminSaving: false, adminSubScreen: 'dashboard' });
+        if (st.adminEditVendorId) {
+          await adminUpdateVendor(st.adminEditVendorId, payload);
+        } else {
+          await adminCreateVendor(payload);
+        }
+        patch({ adminSaving: false, adminSubScreen: 'dashboard', adminEditVendorId: null });
         loadCatalog();
       } catch (err) {
         patch({ adminSaving: false, adminSaveError: err.message || 'Could not save this vendor.' });
@@ -8327,21 +8398,38 @@ export default function App() {
                           </div>
                           <div style={{ marginTop: 2, fontFamily: MONO, fontSize: 12, color: '#9A9A9A' }}>{v.city}</div>
                         </div>
-                        <button
-                          onClick={() => V.togglePublish(v.id, !v.published)}
-                          style={{
-                            border: '1px solid #D7D7D2',
-                            borderRadius: 999,
-                            background: v.published ? '#171717' : 'transparent',
-                            color: v.published ? '#FFFFFF' : '#171717',
-                            padding: '9px 16px',
-                            cursor: 'pointer',
-                            fontSize: 13,
-                            fontWeight: 700,
-                          }}
-                        >
-                          {v.published ? 'Published' : 'Draft — publish'}
-                        </button>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button
+                            onClick={() => V.goAdminEditVendor(v.id)}
+                            style={{
+                              border: '1px solid #D7D7D2',
+                              borderRadius: 999,
+                              background: 'transparent',
+                              color: '#171717',
+                              padding: '9px 16px',
+                              cursor: 'pointer',
+                              fontSize: 13,
+                              fontWeight: 700,
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => V.togglePublish(v.id, !v.published)}
+                            style={{
+                              border: '1px solid #D7D7D2',
+                              borderRadius: 999,
+                              background: v.published ? '#171717' : 'transparent',
+                              color: v.published ? '#FFFFFF' : '#171717',
+                              padding: '9px 16px',
+                              cursor: 'pointer',
+                              fontSize: 13,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {v.published ? 'Published' : 'Draft — publish'}
+                          </button>
+                        </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         {v.owner_user_id ? (
@@ -8533,11 +8621,33 @@ export default function App() {
                   <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < V.adminStep ? '#171717' : '#ECECEC' }} />
                 ))}
               </div>
-              <div style={{ marginTop: 10, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                Step {V.adminStep} of {V.adminTotalSteps}
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                  Step {V.adminStep} of {V.adminTotalSteps}
+                </div>
+                {V.adminIsEditing && (
+                  <span
+                    style={{
+                      fontFamily: MONO,
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      color: '#5B5B5B',
+                      border: '1px solid #D7D7D2',
+                      borderRadius: 999,
+                      padding: '2px 9px',
+                    }}
+                  >
+                    Editing existing vendor
+                  </span>
+                )}
               </div>
+              {V.adminEditLoading && (
+                <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading vendor…</div>
+              )}
 
-              {V.adminStep === 1 && (
+              {!V.adminEditLoading && V.adminStep === 1 && (
                 <>
                   <h2 style={{ margin: '6px 0 0', fontSize: 24, letterSpacing: '-0.02em', fontWeight: 800 }}>Business basics</h2>
                   <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 16 }}>
