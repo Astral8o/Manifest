@@ -346,6 +346,7 @@ const DISPLAY = 'Archivo, Helvetica, sans-serif';
 const DISPLAY_BLACK = "'Archivo Black', Archivo, sans-serif";
 const ACCOUNT_KEY = 'eventoryAccount';
 const ADMIN_EMAIL = 'astral.ochoa@hotmail.com';
+const ADMIN_GALLERY_MAX = 5;
 // Fallback so pages that assume "there's always at least one vendor" don't
 // crash on a fresh catalog with zero vendors published yet (e.g. the admin
 // tool has to be usable before any vendor exists).
@@ -3200,7 +3201,6 @@ export default function App() {
         adminUploadingLogo: false,
         adminGallery: [],
         adminGalleryEventType: '',
-        adminGalleryPhotoUrl: '',
         adminUploadingGalleryPhoto: false,
         adminPackages: [],
         adminPkgName: '',
@@ -3327,30 +3327,36 @@ export default function App() {
     adminStep2Next: () => patch({ adminStep: 3 }),
 
     adminGallery: st.adminGallery || [],
+    adminGalleryMax: ADMIN_GALLERY_MAX,
+    adminGalleryFull: (st.adminGallery || []).length >= ADMIN_GALLERY_MAX,
     adminGalleryEventType: st.adminGalleryEventType || '',
     setAdminGalleryEventType: (e) => patch({ adminGalleryEventType: e.target.value }),
-    adminGalleryPhotoUrl: st.adminGalleryPhotoUrl || '',
     adminUploadingGalleryPhoto: !!st.adminUploadingGalleryPhoto,
-    uploadAdminGalleryPhoto: async (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
+    // Uploads and adds every selected file in one go (up to whatever's left
+    // of the 5-photo cap), all tagged with the currently-typed event type —
+    // no more one-photo-at-a-time round trip.
+    uploadAdminGalleryPhotos: async (e) => {
+      const files = Array.from(e.target.files || []);
+      e.target.value = '';
+      if (!files.length) return;
+      const eventType = (st.adminGalleryEventType || '').trim();
+      if (!eventType) {
+        patch({ adminSaveError: 'Enter an event type before adding photos.' });
+        return;
+      }
+      const remaining = ADMIN_GALLERY_MAX - (st.adminGallery || []).length;
+      if (remaining <= 0) return;
+      const toUpload = files.slice(0, remaining);
       patch({ adminUploadingGalleryPhoto: true, adminSaveError: null });
       try {
-        const url = await uploadVendorMedia(file);
-        patch({ adminUploadingGalleryPhoto: false, adminGalleryPhotoUrl: url });
+        const urls = await Promise.all(toUpload.map((f) => uploadVendorMedia(f)));
+        patch((s) => ({
+          adminUploadingGalleryPhoto: false,
+          adminGallery: (s.adminGallery || []).concat(urls.map((photoUrl) => ({ eventType, photoUrl }))),
+        }));
       } catch (err) {
-        patch({ adminUploadingGalleryPhoto: false, adminSaveError: err.message || 'Could not upload photo.' });
+        patch({ adminUploadingGalleryPhoto: false, adminSaveError: err.message || 'Could not upload photos.' });
       }
-    },
-    adminAddGalleryPhotoDisabled: !((st.adminGalleryEventType || '').trim() && (st.adminGalleryPhotoUrl || '').trim()),
-    adminAddGalleryPhoto: () => {
-      const eventType = (st.adminGalleryEventType || '').trim();
-      const photoUrl = (st.adminGalleryPhotoUrl || '').trim();
-      if (!eventType || !photoUrl) return;
-      patch((s) => ({
-        adminGallery: (s.adminGallery || []).concat([{ eventType, photoUrl }]),
-        adminGalleryPhotoUrl: '',
-      }));
     },
     adminRemoveGalleryPhoto: (i) =>
       patch((s) => ({ adminGallery: (s.adminGallery || []).filter((_, idx) => idx !== i) })),
@@ -8634,21 +8640,23 @@ export default function App() {
               {V.adminStep === 3 && (
                 <>
                   <h2 style={{ margin: '6px 0 0', fontSize: 24, letterSpacing: '-0.02em', fontWeight: 800 }}>Gallery</h2>
-                  <p style={{ margin: '8px 0 0', fontSize: 14, color: '#5B5B5B' }}>Add photos grouped by event type (e.g. Weddings, Birthdays).</p>
-                  <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <input type="text" value={V.adminGalleryEventType} onChange={V.setAdminGalleryEventType} placeholder="Event type, e.g. Weddings" style={{ flex: '1 1 180px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                    {V.adminGalleryPhotoUrl && (
-                      <img src={V.adminGalleryPhotoUrl} alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
-                    )}
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Photo</span>
-                      <input type="file" accept="image/*" onChange={V.uploadAdminGalleryPhoto} style={{ fontSize: 12 }} />
-                    </label>
-                    {V.adminUploadingGalleryPhoto && <span style={{ fontSize: 12, color: '#8A8A8A' }}>Uploading…</span>}
-                    <button onClick={V.adminAddGalleryPhoto} disabled={V.adminAddGalleryPhotoDisabled} style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.adminAddGalleryPhotoDisabled ? 0.4 : 1 }}>
-                      Add photo
-                    </button>
-                  </div>
+                  <p style={{ margin: '8px 0 0', fontSize: 14, color: '#5B5B5B' }}>
+                    Add up to {V.adminGalleryMax} photos, grouped by event type (e.g. Weddings, Birthdays) — {V.adminGallery.length} of {V.adminGalleryMax} added.
+                  </p>
+                  {V.adminGalleryFull ? (
+                    <div style={{ marginTop: 16, fontSize: 13, color: '#9A9A9A' }}>Gallery is full ({V.adminGalleryMax}/{V.adminGalleryMax}). Remove a photo below to add another.</div>
+                  ) : (
+                    <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <input type="text" value={V.adminGalleryEventType} onChange={V.setAdminGalleryEventType} placeholder="Event type, e.g. Weddings" style={{ flex: '1 1 180px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                          Photos (up to {V.adminGalleryMax - V.adminGallery.length} more)
+                        </span>
+                        <input type="file" accept="image/*" multiple onChange={V.uploadAdminGalleryPhotos} style={{ fontSize: 12 }} />
+                      </label>
+                      {V.adminUploadingGalleryPhoto && <span style={{ fontSize: 12, color: '#8A8A8A' }}>Uploading…</span>}
+                    </div>
+                  )}
                   {V.adminSaveError && <div style={{ marginTop: 8, fontSize: 12, color: '#B3261E' }}>{V.adminSaveError}</div>}
                   {V.adminGallery.length > 0 && (
                     <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 1 }}>
