@@ -3382,14 +3382,16 @@ export default function App() {
     setAdminPkgPriceMax: (e) => patch({ adminPkgPriceMax: e.target.value }),
     adminAddPackageDisabled: !(
       (st.adminPkgName || '').trim() &&
-      Number(st.adminPkgPriceMin) > 0 &&
+      st.adminPkgPriceMin !== '' &&
+      st.adminPkgPriceMax !== '' &&
+      Number(st.adminPkgPriceMin) >= 0 &&
       Number(st.adminPkgPriceMax) >= Number(st.adminPkgPriceMin)
     ),
     adminAddPackage: () => {
       const name = (st.adminPkgName || '').trim();
       const priceMin = Number(st.adminPkgPriceMin);
       const priceMax = Number(st.adminPkgPriceMax);
-      if (!name || !(priceMin > 0) || !(priceMax >= priceMin)) return;
+      if (!name || st.adminPkgPriceMin === '' || st.adminPkgPriceMax === '' || priceMin < 0 || priceMax < priceMin) return;
       patch((s) => ({
         adminPackages: (s.adminPackages || []).concat([
           {
@@ -8687,6 +8689,9 @@ export default function App() {
                     <div style={{ display: 'flex', gap: 10 }}>
                       <input type="number" value={V.adminPkgPriceMin} onChange={V.setAdminPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                       <input type="number" value={V.adminPkgPriceMax} onChange={V.setAdminPkgPriceMax} placeholder="Price max (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    </div>
+                    <div style={{ fontSize: 12, color: '#9A9A9A' }}>
+                      For a flat price, enter the same amount in both fields. Needs a name, min, and max (max ≥ min) before you can add it.
                     </div>
                     <button onClick={V.adminAddPackage} disabled={V.adminAddPackageDisabled} style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.adminAddPackageDisabled ? 0.4 : 1 }}>
                       Add package
