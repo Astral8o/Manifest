@@ -1415,6 +1415,7 @@ export default function App() {
       group: p[7] || 'General',
       photoUrl: p[8] || '',
       inclusions: p[9] || [],
+      type: p[10] || 'package',
       priceOnRequest: !!s.priceOnRequest,
     }));
   // Resolves a single product id ("<vendorId>-<index>") against whichever
@@ -1585,6 +1586,18 @@ export default function App() {
   const sup = { ...EMPTY_SUPPLIER, ...supLean, ...(st.vendorDetail[supLean.id] || {}) };
   const supDetailLoading = !!st.vendorDetailLoading[sup.id] && !st.vendorDetail[sup.id];
   const supProducts = productsOf(sup);
+  // Packages are curated bundles (one price, browsed/picked one at a time).
+  // Rental items are individual inventory (chairs, tables, tents — priced
+  // per unit with a minimum order quantity) that a buyer requests several
+  // of at once, so they get their own tab with a quantity cart instead of
+  // the single-pick pattern packages use.
+  const packageProducts = supProducts.filter((p) => p.type !== 'rental_item');
+  const rentalProducts = supProducts.filter((p) => p.type === 'rental_item');
+  const rentalQty = (id) => Number((st.rentalQty || {})[id]) || 0;
+  const rentalCartItems = rentalProducts
+    .map((p) => ({ id: p.id, name: p.name, unit: p.unit, priceMin: p.min, qty: rentalQty(p.id) }))
+    .filter((r) => r.qty > 0);
+  const rentalCartSummary = rentalCartItems.map((r) => r.qty + '× ' + r.name).join(', ');
   const socialUrl = (platform, handle) => {
     if (!handle) return null;
     const h = handle
@@ -1619,10 +1632,10 @@ export default function App() {
     return photos.length ? photos : [supCoverFallback];
   })();
 
-  const svcGroups = Array.from(new Set(supProducts.map((p) => p.group)));
+  const svcGroups = Array.from(new Set(packageProducts.map((p) => p.group)));
   const svcGroupFilter = st.svcGroup || 'All';
   const svcQueryLower = (st.svcQuery || '').trim().toLowerCase();
-  const svcFiltered = supProducts.filter(
+  const svcFiltered = packageProducts.filter(
     (p) =>
       (svcGroupFilter === 'All' || p.group === svcGroupFilter) &&
       (!svcQueryLower ||
@@ -2102,7 +2115,7 @@ export default function App() {
     setWaVenue: (e) => patch({ waVenue: e.target.value }),
     waAttendees: st.waAttendees || '',
     setWaAttendees: (e) => patch({ waAttendees: e.target.value.replace(/[^0-9]/g, '') }),
-    waServiceTiles: supProducts.map((p) => ({
+    waServiceTiles: packageProducts.map((p) => ({
       key: p.name,
       label: p.name,
       on: st.waService === p.name,
@@ -2122,7 +2135,7 @@ export default function App() {
             eventDate: st.waEventDate,
             venue: st.waVenue,
             attendees: st.waAttendees,
-            service: st.waService,
+            service: rentalCartItems.length ? rentalCartSummary : st.waService,
           })
         )
       : null,
@@ -2208,12 +2221,14 @@ export default function App() {
           eventTypeOther: st.quoteEventType === 'other' ? st.quoteEventTypeOther : null,
           eventDate: st.quoteEventDate,
           venue: st.quoteVenue,
-          categoryAnswers: st.quoteAnswers || {},
+          categoryAnswers: rentalCartItems.length
+            ? { ...(st.quoteAnswers || {}), Rentals: rentalCartSummary }
+            : st.quoteAnswers || {},
           contactName: st.quoteContactName,
           contactEmail: st.quoteContactEmail,
           contactPhone: st.quoteContactPhone,
         });
-        patch({ quoteSubmitting: false, quoteSent: true });
+        patch({ quoteSubmitting: false, quoteSent: true, rentalQty: {} });
       } catch (err) {
         patch({ quoteSubmitting: false, quoteSubmitError: err.message || 'Could not send your request. Please try again.' });
       }
@@ -2238,7 +2253,7 @@ export default function App() {
     setInqGuests: (e) => patch({ inqGuests: e.target.value.replace(/[^0-9]/g, '') }),
     inqMessage: st.inqMessage || '',
     setInqMessage: (e) => patch({ inqMessage: e.target.value }),
-    inqServiceTiles: supProducts.map((p) => ({
+    inqServiceTiles: packageProducts.map((p) => ({
       key: p.name,
       label: p.name,
       on: st.inqService === p.name,
@@ -2260,20 +2275,25 @@ export default function App() {
                 : ((EVENT_TYPES.find((t) => t.key === st.inqEventType) || {}).label || '').toLowerCase(),
             eventDate: st.inqEventDate,
             attendees: st.inqGuests,
-            service: st.inqService,
+            service: rentalCartItems.length ? rentalCartSummary : st.inqService,
             buyerName: (st.inqName || '').trim() || null,
             message: (st.inqMessage || '').trim() || null,
           })
         )
       : null,
-    inqServiceRequired: supProducts.length > 0,
-    inqServiceMissing: supProducts.length > 0 && !st.inqService,
-    inqWaDisabled: supProducts.length > 0 && !st.inqService,
+    // A buyer must pick something — a package, or at least one rental item
+    // with a quantity — before an inquiry can go out, but only when the
+    // vendor actually has one or the other to pick from.
+    inqSelectionRequired: packageProducts.length > 0 || rentalProducts.length > 0,
+    inqServiceRequired: packageProducts.length > 0,
+    inqServiceMissing: (packageProducts.length > 0 || rentalProducts.length > 0) && !st.inqService && rentalCartItems.length === 0,
+    inqServiceMissingLabel: packageProducts.length > 0 ? 'Pick a service above to continue.' : 'Add a quantity on the Rentals tab to continue.',
+    inqWaDisabled: (packageProducts.length > 0 || rentalProducts.length > 0) && !st.inqService && rentalCartItems.length === 0,
     inqSubmitting: !!st.inqSubmitting,
     inqSubmitError: st.inqSubmitError || '',
     inqSent: !!st.inqSent,
     inqSubmitDisabled:
-      (supProducts.length > 0 && !st.inqService) ||
+      ((packageProducts.length > 0 || rentalProducts.length > 0) && !st.inqService && rentalCartItems.length === 0) ||
       (st.signedIn && (!(st.inqName || '').trim() || !(st.inqEmail || '').trim() || !!st.inqSubmitting)),
     submitInlineInquiry: async () => {
       if (!st.signedIn) {
@@ -2294,6 +2314,7 @@ export default function App() {
       try {
         const answers = {};
         if (st.inqService) answers.Service = st.inqService;
+        if (rentalCartItems.length) answers.Rentals = rentalCartSummary;
         if ((st.inqGuests || '').trim()) answers.Guests = st.inqGuests.trim();
         if ((st.inqMessage || '').trim()) answers.Message = st.inqMessage.trim();
         await submitQuoteRequest({
@@ -2307,7 +2328,7 @@ export default function App() {
           contactEmail: email,
           contactPhone: st.inqPhone,
         });
-        patch({ inqSubmitting: false, inqSent: true });
+        patch({ inqSubmitting: false, inqSent: true, rentalQty: {} });
       } catch (err) {
         patch({ inqSubmitting: false, inqSubmitError: err.message || 'Could not send your inquiry. Please try again.' });
       }
@@ -2315,11 +2336,19 @@ export default function App() {
 
     openFaqKey: st.openFaqKey || null,
     toggleFaq: (key) => patch((s) => ({ openFaqKey: s.openFaqKey === key ? null : key })),
-    supplierTab: st.supplierTab || 'services',
+    // Every "open vendor" call site defaults supplierTab to 'services'
+    // (Packages) without knowing yet whether this vendor has any packages —
+    // detail hasn't loaded at click time. Fall back to Rentals here instead
+    // of showing an empty Packages tab for a rental-only vendor.
+    supplierTab:
+      (st.supplierTab || 'services') === 'services' && packageProducts.length === 0 && rentalProducts.length > 0
+        ? 'rentals'
+        : st.supplierTab || 'services',
     supplierTabs: [
       { key: 'inquire', label: 'Inquire', highlight: true },
       { key: 'about', label: 'About' },
-      { key: 'services', label: 'Packages (' + supProducts.length + ')' },
+      packageProducts.length > 0 && { key: 'services', label: 'Packages (' + packageProducts.length + ')' },
+      rentalProducts.length > 0 && { key: 'rentals', label: 'Rentals (' + rentalProducts.length + ')' },
       { key: 'gallery', label: 'Gallery' },
       hasMenu && { key: 'menu', label: 'Menu' },
       { key: 'reviews', label: 'Reviews (' + (sup.reviews || []).length + ')' },
@@ -2329,7 +2358,10 @@ export default function App() {
       .filter(Boolean)
       .map((t) => ({
         ...t,
-        active: (st.supplierTab || 'services') === t.key,
+        active:
+          ((st.supplierTab || 'services') === 'services' && packageProducts.length === 0 && rentalProducts.length > 0
+            ? 'rentals'
+            : st.supplierTab || 'services') === t.key,
         go: () => patch({ supplierTab: t.key }),
       })),
 
@@ -2446,7 +2478,7 @@ export default function App() {
     svcResultLabel:
       svcFiltered.length +
       (svcFiltered.length === 1 ? ' service' : ' services') +
-      (svcFiltered.length !== supProducts.length ? ' of ' + supProducts.length : ''),
+      (svcFiltered.length !== packageProducts.length ? ' of ' + packageProducts.length : ''),
     svcShowMore: svcFiltered.length > svcVisible.length,
     svcRemainingLabel: 'Show ' + Math.min(8, svcFiltered.length - svcVisible.length) + ' more',
     loadMoreSvc: () => patch((s) => ({ svcVisible: (s.svcVisible || 8) + 8 })),
@@ -2491,6 +2523,40 @@ export default function App() {
       };
     })(),
     closePackageDetails: () => patch({ openPackageId: null }),
+
+    // Rentals tab — individual inventory items (chairs, tables, tents…)
+    // priced per unit with a minimum order quantity, as opposed to Packages'
+    // one-price bundles. A buyer sets a quantity on as many items as they
+    // like; setQty snaps anything above 0 up to the item's own minimum, and
+    // stepping below that minimum clears it back to 0 rather than landing on
+    // some in-between number the vendor never agreed to.
+    rentalTiles: rentalProducts.map((p, i) => {
+      const minQty = p.minQty > 1 ? p.minQty : 1;
+      const clamp = (n) => {
+        const q = Math.max(0, Math.floor(Number(n) || 0));
+        if (q > 0 && q < minQty) return minQty;
+        return q;
+      };
+      const setQty = (n) => patch((s) => ({ rentalQty: { ...(s.rentalQty || {}), [p.id]: clamp(n) } }));
+      return {
+        key: p.id,
+        photo: p.photoUrl || fallbackPhotoFor(sup.code, i),
+        name: p.name,
+        priceLabel: priceLabel(p),
+        minQtyLabel: minQty > 1 ? 'Min order ' + minQty : '',
+        qty: rentalQty(p.id),
+        setQty: (e) => setQty(e.target.value),
+        increment: () => setQty(rentalQty(p.id) === 0 ? minQty : rentalQty(p.id) + 1),
+        decrement: () => setQty(rentalQty(p.id) - 1 < minQty ? 0 : rentalQty(p.id) - 1),
+      };
+    }),
+    rentalCartItems: rentalCartItems.map((r) => ({ key: r.id, label: r.qty + '× ' + r.name })),
+    rentalCartCount: rentalCartItems.reduce((sum, r) => sum + r.qty, 0),
+    rentalCartSummary,
+    rentalCartHasItems: rentalCartItems.length > 0,
+    clearRentalCart: () => patch({ rentalQty: {} }),
+    goRequestRentals: () => patch({ supplierTab: 'inquire' }),
+
     email: st.email || '',
     setEmail: (e) => patch({ email: e.target.value, authConfirmPending: false, authError: null }),
     signedIn: !!st.signedIn,
@@ -2906,10 +2972,16 @@ export default function App() {
       }
     },
 
+    vdPkgType: st.vdPkgType || 'package',
+    setVdPkgType: (type) => patch({ vdPkgType: type }),
     vdPkgName: st.vdPkgName || '',
     setVdPkgName: (e) => patch({ vdPkgName: e.target.value }),
     vdPkgDescription: st.vdPkgDescription || '',
     setVdPkgDescription: (e) => patch({ vdPkgDescription: e.target.value }),
+    vdPkgUnit: st.vdPkgUnit || '',
+    setVdPkgUnit: (e) => patch({ vdPkgUnit: e.target.value }),
+    vdPkgMinQty: st.vdPkgMinQty || '',
+    setVdPkgMinQty: (e) => patch({ vdPkgMinQty: e.target.value.replace(/[^0-9]/g, '') }),
     vdPkgPriceMin: st.vdPkgPriceMin || '',
     setVdPkgPriceMin: (e) => patch({ vdPkgPriceMin: e.target.value }),
     vdPkgPriceMax: st.vdPkgPriceMax || '',
@@ -2929,31 +3001,43 @@ export default function App() {
       }
     },
     vdAddingPkg: !!st.vdAddingPkg,
-    vdAddPkgDisabled: !((st.vdPkgName || '').trim() && st.vdPkgPriceMin && st.vdPkgPriceMax) || !!st.vdAddingPkg,
+    vdAddPkgDisabled:
+      !((st.vdPkgName || '').trim() && st.vdPkgPriceMin && st.vdPkgPriceMax) ||
+      ((st.vdPkgType || 'package') === 'rental_item' && !(st.vdPkgUnit || '').trim()) ||
+      !!st.vdAddingPkg,
     addVdPackage: async () => {
       const name = (st.vdPkgName || '').trim();
+      const type = st.vdPkgType || 'package';
+      const unit = (st.vdPkgUnit || '').trim();
       if (!name || !st.vdPkgPriceMin || !st.vdPkgPriceMax || st.vdAddingPkg || !st.vdVendor) return;
+      if (type === 'rental_item' && !unit) return;
       patch({ vdAddingPkg: true, vdSaveError: null });
       try {
         const row = await addVendorPackage(st.vdVendor.id, {
           name,
+          type,
           description: (st.vdPkgDescription || '').trim(),
           priceMin: Number(st.vdPkgPriceMin),
           priceMax: Number(st.vdPkgPriceMax),
+          unit: type === 'rental_item' ? unit : undefined,
+          minQty: type === 'rental_item' ? Number(st.vdPkgMinQty) || 1 : 1,
           photoUrl: st.vdPkgPhotoUrl || null,
           sortOrder: st.vdVendor.packages.length,
         });
         patch((s) => ({
           vdAddingPkg: false,
+          vdPkgType: 'package',
           vdPkgName: '',
           vdPkgDescription: '',
+          vdPkgUnit: '',
+          vdPkgMinQty: '',
           vdPkgPriceMin: '',
           vdPkgPriceMax: '',
           vdPkgPhotoUrl: '',
           vdVendor: {
             ...s.vdVendor,
             packages: s.vdVendor.packages.concat([
-              { id: row.id, name: row.name, description: row.description || '', priceMin: Number(row.price_min), priceMax: Number(row.price_max), unit: row.unit, photoUrl: row.photo_url || '', inclusions: row.inclusions || [] },
+              { id: row.id, name: row.name, type: row.type || 'package', description: row.description || '', priceMin: Number(row.price_min), priceMax: Number(row.price_max), unit: row.unit, minQty: Number(row.min_qty) || 1, photoUrl: row.photo_url || '', inclusions: row.inclusions || [] },
             ]),
           },
         }));
@@ -3305,6 +3389,7 @@ export default function App() {
         adminGalleryEventType: '',
         adminUploadingGalleryPhoto: false,
         adminPackages: [],
+        adminPkgType: 'package',
         adminPkgName: '',
         adminPkgPhotoUrl: '',
         adminUploadingPkgPhoto: false,
@@ -3312,6 +3397,8 @@ export default function App() {
         adminPkgInclusionsText: '',
         adminPkgPriceMin: '',
         adminPkgPriceMax: '',
+        adminPkgUnit: '',
+        adminPkgMinQty: '',
         adminFaqs: DEFAULT_FAQ_TEMPLATES.map((f) => ({ ...f })),
         adminPaymentTerms: '',
         adminDepositTerms: '',
@@ -3358,6 +3445,7 @@ export default function App() {
           adminGalleryEventType: '',
           adminUploadingGalleryPhoto: false,
           adminPackages: v.packages,
+          adminPkgType: 'package',
           adminPkgName: '',
           adminPkgPhotoUrl: '',
           adminUploadingPkgPhoto: false,
@@ -3365,6 +3453,8 @@ export default function App() {
           adminPkgInclusionsText: '',
           adminPkgPriceMin: '',
           adminPkgPriceMax: '',
+          adminPkgUnit: '',
+          adminPkgMinQty: '',
           adminFaqs: v.faqs.length ? v.faqs : DEFAULT_FAQ_TEMPLATES.map((f) => ({ ...f })),
           adminPaymentTerms: v.paymentTerms,
           adminDepositTerms: v.depositTerms,
@@ -3527,8 +3617,14 @@ export default function App() {
     adminStep3Next: () => patch({ adminStep: 4 }),
 
     adminPackages: st.adminPackages || [],
+    adminPkgType: st.adminPkgType || 'package',
+    setAdminPkgType: (type) => patch({ adminPkgType: type }),
     adminPkgName: st.adminPkgName || '',
     setAdminPkgName: (e) => patch({ adminPkgName: e.target.value }),
+    adminPkgUnit: st.adminPkgUnit || '',
+    setAdminPkgUnit: (e) => patch({ adminPkgUnit: e.target.value }),
+    adminPkgMinQty: st.adminPkgMinQty || '',
+    setAdminPkgMinQty: (e) => patch({ adminPkgMinQty: e.target.value.replace(/[^0-9]/g, '') }),
     adminPkgPhotoUrl: st.adminPkgPhotoUrl || '',
     adminUploadingPkgPhoto: !!st.adminUploadingPkgPhoto,
     uploadAdminPkgPhoto: async (e) => {
@@ -3555,17 +3651,22 @@ export default function App() {
       st.adminPkgPriceMin !== '' &&
       st.adminPkgPriceMax !== '' &&
       Number(st.adminPkgPriceMin) >= 0 &&
-      Number(st.adminPkgPriceMax) >= Number(st.adminPkgPriceMin)
+      Number(st.adminPkgPriceMax) >= Number(st.adminPkgPriceMin) &&
+      ((st.adminPkgType || 'package') !== 'rental_item' || (st.adminPkgUnit || '').trim())
     ),
     adminAddPackage: () => {
       const name = (st.adminPkgName || '').trim();
       const priceMin = Number(st.adminPkgPriceMin);
       const priceMax = Number(st.adminPkgPriceMax);
+      const type = st.adminPkgType || 'package';
+      const unit = (st.adminPkgUnit || '').trim();
       if (!name || st.adminPkgPriceMin === '' || st.adminPkgPriceMax === '' || priceMin < 0 || priceMax < priceMin) return;
+      if (type === 'rental_item' && !unit) return;
       patch((s) => ({
         adminPackages: (s.adminPackages || []).concat([
           {
             name,
+            type,
             photoUrl: (s.adminPkgPhotoUrl || '').trim(),
             description: (s.adminPkgDescription || '').trim(),
             inclusions: (s.adminPkgInclusionsText || '')
@@ -3574,15 +3675,19 @@ export default function App() {
               .filter(Boolean),
             priceMin,
             priceMax,
-            unit: 'event',
+            unit: type === 'rental_item' ? unit : 'event',
+            minQty: type === 'rental_item' ? Number(s.adminPkgMinQty) || 1 : 1,
           },
         ]),
+        adminPkgType: 'package',
         adminPkgName: '',
         adminPkgPhotoUrl: '',
         adminPkgDescription: '',
         adminPkgInclusionsText: '',
         adminPkgPriceMin: '',
         adminPkgPriceMax: '',
+        adminPkgUnit: '',
+        adminPkgMinQty: '',
       }));
     },
     adminRemovePackage: (i) => patch((s) => ({ adminPackages: (s.adminPackages || []).filter((_, idx) => idx !== i) })),
@@ -5647,6 +5752,89 @@ export default function App() {
                 </div>
               )}
 
+              {V.supplierTab === 'rentals' && (
+                <div style={{ marginTop: 24 }}>
+                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Rentals</h2>
+                  <p style={{ margin: '6px 0 0', fontSize: 14, color: '#5B5B5B' }}>Set a quantity on anything you need, then request them all in one go.</p>
+                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
+                  <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+                    {V.rentalTiles.map((r) => (
+                      <div
+                        key={r.key}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          border: '1px solid #ECECEC',
+                          borderRadius: 18,
+                          padding: 12,
+                          background: r.qty > 0 ? '#FFF7F3' : '#FFFFFF',
+                        }}
+                      >
+                        <img src={r.photo} alt={r.name} loading="lazy" style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', color: '#171717', lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{r.name}</div>
+                          <div style={{ marginTop: 2, fontFamily: MONO, fontSize: 13, color: '#5B5B5B' }}>{r.priceLabel}</div>
+                          {r.minQtyLabel && <div style={{ marginTop: 2, fontSize: 11.5, color: '#9A9A9A' }}>{r.minQtyLabel}</div>}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                          <button
+                            onClick={r.decrement}
+                            disabled={r.qty === 0}
+                            aria-label={'Fewer ' + r.name}
+                            style={{ width: 30, height: 30, border: '1px solid #D7D7D2', borderRadius: 999, background: '#FFFFFF', cursor: r.qty === 0 ? 'default' : 'pointer', fontSize: 16, fontWeight: 700, color: r.qty === 0 ? '#D7D7D2' : '#171717', lineHeight: 1 }}
+                          >
+                            −
+                          </button>
+                          <input
+                            type="number"
+                            min={0}
+                            value={r.qty}
+                            onChange={r.setQty}
+                            style={{ width: 44, textAlign: 'center', border: '1px solid #E4E4DF', borderRadius: 10, padding: '6px 4px', fontFamily: MONO, fontSize: 14, fontWeight: 700 }}
+                          />
+                          <button
+                            onClick={r.increment}
+                            aria-label={'More ' + r.name}
+                            style={{ width: 30, height: 30, border: '1px solid #D7D7D2', borderRadius: 999, background: '#FFFFFF', cursor: 'pointer', fontSize: 16, fontWeight: 700, color: '#171717', lineHeight: 1 }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {V.rentalCartHasItems && (
+                    <div style={{ marginTop: 20, border: '1px solid #ECECEC', borderRadius: 20, padding: 18, background: '#F7F7F5', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                        {V.rentalCartCount} {V.rentalCartCount === 1 ? 'unit' : 'units'} selected
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {V.rentalCartItems.map((it) => (
+                          <span key={it.key} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#FFFFFF', padding: '6px 12px', fontSize: 13, fontWeight: 600, color: '#171717' }}>
+                            {it.label}
+                          </span>
+                        ))}
+                      </div>
+                      <div style={{ marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        <button
+                          onClick={V.goRequestRentals}
+                          style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '13px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
+                        >
+                          Request these rentals →
+                        </button>
+                        <button
+                          onClick={V.clearRentalCart}
+                          style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '13px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {V.supplierTab === 'gallery' && (
                 <div style={{ marginTop: 24 }}>
                   <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Gallery</h2>
@@ -5945,6 +6133,28 @@ export default function App() {
                     </div>
                   ) : (
                     <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      {V.rentalCartHasItems && (
+                        <div style={{ border: '1px solid #ECECEC', borderRadius: 16, background: '#F7F7F5', padding: 14 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                            <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                              Your rental request
+                            </span>
+                            <button
+                              onClick={() => patch({ supplierTab: 'rentals' })}
+                              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                            >
+                              Edit
+                            </button>
+                          </div>
+                          <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {V.rentalCartItems.map((it) => (
+                              <span key={it.key} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#FFFFFF', padding: '6px 12px', fontSize: 12.5, fontWeight: 600, color: '#171717' }}>
+                                {it.label}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {V.inqServiceTiles.length > 0 && (
                         <div>
                           <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
@@ -6064,7 +6274,7 @@ export default function App() {
                         />
                       </label>
 
-                      {V.inqServiceMissing && <div style={{ fontSize: 12, color: '#9A9A9A' }}>Pick a service above to continue.</div>}
+                      {V.inqServiceMissing && <div style={{ fontSize: 12, color: '#9A9A9A' }}>{V.inqServiceMissingLabel}</div>}
                       {V.inqSubmitError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.inqSubmitError}</div>}
 
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
@@ -8016,7 +8226,10 @@ export default function App() {
                             <img src={p.photoUrl} alt={p.name} loading="lazy" style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
                           )}
                           <div style={{ fontSize: 14 }}>
-                            <strong>{p.name}</strong> — TT${p.priceMin}–TT${p.priceMax}
+                            {p.type === 'rental_item' && (
+                              <span style={{ marginRight: 6, fontFamily: MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>Rental</span>
+                            )}
+                            <strong>{p.name}</strong> — TT${p.priceMin}–TT${p.priceMax}{p.type === 'rental_item' ? ' ' + (p.unit || 'each') + ' · min ' + (p.minQty || 1) : ''}
                           </div>
                         </div>
                         <button onClick={V.removeVdPackage(p.id)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 13, color: '#B3261E', fontWeight: 700 }}>Remove</button>
@@ -8024,16 +8237,48 @@ export default function App() {
                     ))}
                   </div>
                   <div style={{ marginTop: 18, border: '1px dashed #D7D7D2', borderRadius: 16, padding: 16 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700 }}>Add a package</div>
-                    <div style={{ marginTop: 4, fontSize: 12, color: '#8A8A8A' }}>These are just ideas — name and price it however you like.</div>
-                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {V.suggestedVdPackageChips.map((c) => (
-                        <button key={c.name} onClick={c.pick} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#FFFFFF', padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{c.name}</button>
+                    <div style={{ fontSize: 14, fontWeight: 700 }}>Add a package or rental item</div>
+                    <div style={{ marginTop: 4, fontSize: 12, color: '#8A8A8A' }}>A package is a curated bundle at one price. A rental item is individual inventory (a chair, a table…) priced per unit, with a minimum order quantity.</div>
+                    <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                      {[
+                        { key: 'package', label: 'Package' },
+                        { key: 'rental_item', label: 'Rental item' },
+                      ].map((t) => (
+                        <button
+                          key={t.key}
+                          onClick={() => V.setVdPkgType(t.key)}
+                          style={{
+                            border: V.vdPkgType === t.key ? '2px solid #171717' : '1px solid #E4E4DF',
+                            borderRadius: 999,
+                            background: V.vdPkgType === t.key ? '#171717' : '#FFFFFF',
+                            color: V.vdPkgType === t.key ? '#FFFFFF' : '#171717',
+                            padding: '7px 14px',
+                            cursor: 'pointer',
+                            fontSize: 12.5,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {t.label}
+                        </button>
                       ))}
                     </div>
+                    {V.vdPkgType === 'package' && (
+                      <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {V.suggestedVdPackageChips.map((c) => (
+                          <button key={c.name} onClick={c.pick} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#FFFFFF', padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{c.name}</button>
+                        ))}
+                      </div>
+                    )}
                     <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <input type="text" value={V.vdPkgName} onChange={V.setVdPkgName} placeholder="Package name" style={{ border: '2px solid #171717', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14, fontWeight: 600 }} />
-                      <input type="text" value={V.vdPkgDescription} onChange={V.setVdPkgDescription} placeholder="Description (optional)" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <input type="text" value={V.vdPkgName} onChange={V.setVdPkgName} placeholder={V.vdPkgType === 'rental_item' ? 'Item name, e.g. Folding chair, white' : 'Package name'} style={{ border: '2px solid #171717', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14, fontWeight: 600 }} />
+                      {V.vdPkgType === 'rental_item' ? (
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <input type="text" value={V.vdPkgUnit} onChange={V.setVdPkgUnit} placeholder="Unit, e.g. each, per set" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                          <input type="number" min={1} value={V.vdPkgMinQty} onChange={V.setVdPkgMinQty} placeholder="Min order qty" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                        </div>
+                      ) : (
+                        <input type="text" value={V.vdPkgDescription} onChange={V.setVdPkgDescription} placeholder="Description (optional)" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      )}
                       <div style={{ display: 'flex', gap: 8 }}>
                         <input type="number" value={V.vdPkgPriceMin} onChange={V.setVdPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                         <input type="number" value={V.vdPkgPriceMax} onChange={V.setVdPkgPriceMax} placeholder="Price max (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
@@ -8049,7 +8294,7 @@ export default function App() {
                         {V.vdUploadingPkgPhoto && <span style={{ fontSize: 12, color: '#8A8A8A' }}>Uploading…</span>}
                       </div>
                       <button onClick={V.addVdPackage} disabled={V.vdAddPkgDisabled} style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '10px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.vdAddPkgDisabled ? 0.5 : 1 }}>
-                        {V.vdAddingPkg ? 'Adding…' : 'Add package'}
+                        {V.vdAddingPkg ? 'Adding…' : V.vdPkgType === 'rental_item' ? 'Add rental item' : 'Add package'}
                       </button>
                       {V.vdSaveError && <div style={{ fontSize: 12, color: '#B3261E' }}>{V.vdSaveError}</div>}
                     </div>
@@ -9029,9 +9274,32 @@ export default function App() {
 
               {V.adminStep === 4 && (
                 <>
-                  <h2 style={{ margin: '6px 0 0', fontSize: 24, letterSpacing: '-0.02em', fontWeight: 800 }}>Packages</h2>
+                  <h2 style={{ margin: '6px 0 0', fontSize: 24, letterSpacing: '-0.02em', fontWeight: 800 }}>Packages &amp; rentals</h2>
                   <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <input type="text" value={V.adminPkgName} onChange={V.setAdminPkgName} placeholder="Package name" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {[
+                        { key: 'package', label: 'Package' },
+                        { key: 'rental_item', label: 'Rental item' },
+                      ].map((t) => (
+                        <button
+                          key={t.key}
+                          onClick={() => V.setAdminPkgType(t.key)}
+                          style={{
+                            border: V.adminPkgType === t.key ? '2px solid #171717' : '1px solid #E4E4DF',
+                            borderRadius: 999,
+                            background: V.adminPkgType === t.key ? '#171717' : '#FFFFFF',
+                            color: V.adminPkgType === t.key ? '#FFFFFF' : '#171717',
+                            padding: '9px 16px',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                    <input type="text" value={V.adminPkgName} onChange={V.setAdminPkgName} placeholder={V.adminPkgType === 'rental_item' ? 'Item name, e.g. Folding chair, white' : 'Package name'} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       {V.adminPkgPhotoUrl && (
                         <img src={V.adminPkgPhotoUrl} alt="Package" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
@@ -9042,17 +9310,28 @@ export default function App() {
                       </label>
                       {V.adminUploadingPkgPhoto && <span style={{ fontSize: 12, color: '#8A8A8A' }}>Uploading…</span>}
                     </div>
-                    <textarea value={V.adminPkgDescription} onChange={V.setAdminPkgDescription} placeholder="Description" rows={2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
-                    <input type="text" value={V.adminPkgInclusionsText} onChange={V.setAdminPkgInclusionsText} placeholder="Inclusions, comma separated" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    {V.adminPkgType === 'rental_item' ? (
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        <input type="text" value={V.adminPkgUnit} onChange={V.setAdminPkgUnit} placeholder="Unit, e.g. each, per set, per table" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                        <input type="number" min={1} value={V.adminPkgMinQty} onChange={V.setAdminPkgMinQty} placeholder="Min order qty" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      </div>
+                    ) : (
+                      <>
+                        <textarea value={V.adminPkgDescription} onChange={V.setAdminPkgDescription} placeholder="Description" rows={2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
+                        <input type="text" value={V.adminPkgInclusionsText} onChange={V.setAdminPkgInclusionsText} placeholder="Inclusions, comma separated" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      </>
+                    )}
                     <div style={{ display: 'flex', gap: 10 }}>
                       <input type="number" value={V.adminPkgPriceMin} onChange={V.setAdminPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                       <input type="number" value={V.adminPkgPriceMax} onChange={V.setAdminPkgPriceMax} placeholder="Price max (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                     </div>
                     <div style={{ fontSize: 12, color: '#9A9A9A' }}>
-                      For a flat price, enter the same amount in both fields. Needs a name, min, and max (max ≥ min) before you can add it.
+                      {V.adminPkgType === 'rental_item'
+                        ? 'For a flat price, enter the same amount in both fields. Needs a name, unit, min, and max (max ≥ min) before you can add it.'
+                        : 'For a flat price, enter the same amount in both fields. Needs a name, min, and max (max ≥ min) before you can add it.'}
                     </div>
                     <button onClick={V.adminAddPackage} disabled={V.adminAddPackageDisabled} style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.adminAddPackageDisabled ? 0.4 : 1 }}>
-                      Add package
+                      {V.adminPkgType === 'rental_item' ? 'Add rental item' : 'Add package'}
                     </button>
                   </div>
                   {V.adminSaveError && <div style={{ marginTop: 8, fontSize: 12, color: '#B3261E' }}>{V.adminSaveError}</div>}
@@ -9061,7 +9340,10 @@ export default function App() {
                       {V.adminPackages.map((p, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #ECECEC', padding: '10px 2px' }}>
                           <div style={{ fontSize: 13, color: '#4A4A4A' }}>
-                            <strong>{p.name}</strong> — TT${p.priceMin}–TT${p.priceMax}
+                            {p.type === 'rental_item' && (
+                              <span style={{ marginRight: 6, fontFamily: MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>Rental</span>
+                            )}
+                            <strong>{p.name}</strong> — TT${p.priceMin}–TT${p.priceMax}{p.type === 'rental_item' ? ' ' + (p.unit || 'each') + ' · min ' + (p.minQty || 1) : ''}
                           </div>
                           <button onClick={() => V.adminRemovePackage(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 13, color: '#B3261E', fontWeight: 700 }}>Remove</button>
                         </div>
