@@ -50,8 +50,8 @@ import {
   submitSourcingRequest,
 } from './catalog';
 import { supabase } from './supabaseClient';
-import heroCollagePhoto from './assets/hero collage.jpg';
-import receptionVenuePhoto from './assets/reception venue.jpg';
+import toastCupsPhoto from './assets/toast cups.jpg';
+import babyShowerPastelPhoto from './assets/baby shower pastel.jpg';
 import photographerPhoto from './assets/photographer.jpg';
 import videographersPhoto from './assets/videographers.jpg';
 import weddingVenuePhoto from './assets/wedding venue.jpg';
@@ -3977,9 +3977,9 @@ export default function App() {
             }}
           >
             <img
-              src={heroCollagePhoto}
-              alt="A collage of moments from real events: guests toasting, a balloon garland arch, a tiered cake, and friends celebrating together"
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%' }}
+              src={toastCupsPhoto}
+              alt="A row of hands raising branded Eventory paper cups in a toast over a table of flowers"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 72%' }}
             />
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.32)' }} />
             <div style={{ position: 'relative', mixBlendMode: 'lighten', display: 'flex', flexDirection: 'column' }}>
@@ -4082,8 +4082,8 @@ export default function App() {
             }}
           >
             <img
-              src={receptionVenuePhoto}
-              alt="An elegant reception venue with draped ceiling fabric, string lights, and crystal chandeliers over candlelit tables"
+              src={babyShowerPastelPhoto}
+              alt="A pastel balloon garland baby shower dessert display with a 'Hello Baby' neon sign and a tiered cake"
               style={{ flex: isMobile ? 'none' : '1 1 46%', width: isMobile ? '100%' : 'auto', height: isMobile ? 240 : 440, objectFit: 'cover', display: 'block' }}
             />
             <div
