@@ -2464,7 +2464,6 @@ export default function App() {
       descriptionLong: (p.description || '').length > 220,
       openDetails: () => patch({ openPackageId: p.id }),
       inclusions: p.inclusions || [],
-      termsLabel: 'Min ' + p.minQty + ' ' + (p.unit === 'flat' ? 'booking' : 'units'),
       priceLabel: priceLabel(p),
       saved: (st.saved || []).indexOf(p.id) >= 0,
       saveLabel: (st.saved || []).indexOf(p.id) >= 0 ? '★ Saved' : '☆ Save',
@@ -2485,7 +2484,6 @@ export default function App() {
         name: p.name,
         description: p.description,
         inclusions: p.inclusions || [],
-        termsLabel: 'Min ' + p.minQty + ' ' + (p.unit === 'flat' ? 'booking' : 'units'),
         priceLabel: priceLabel(p),
         saved: (st.saved || []).indexOf(p.id) >= 0,
         saveLabel: (st.saved || []).indexOf(p.id) >= 0 ? '★ Saved' : '☆ Save',
@@ -5575,7 +5573,6 @@ export default function App() {
                               ))}
                             </ul>
                           )}
-                          <div style={{ marginTop: 12, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{p.termsLabel}</div>
                           <div style={{ marginTop: 14, fontFamily: MONO, fontSize: 17, fontWeight: 700 }}>{p.priceLabel}</div>
                           <div style={{ marginTop: 'auto', paddingTop: 16, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             <button
@@ -10154,7 +10151,6 @@ export default function App() {
                 {V.openPackage.name}
               </h2>
               <div style={{ marginTop: 10, fontFamily: MONO, fontSize: 18, fontWeight: 700 }}>{V.openPackage.priceLabel}</div>
-              <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{V.openPackage.termsLabel}</div>
               <p style={{ margin: '16px 0 0', fontSize: 14.5, lineHeight: 1.6, color: '#4A4A4A', whiteSpace: 'pre-line' }}>
                 {V.openPackage.description}
               </p>
