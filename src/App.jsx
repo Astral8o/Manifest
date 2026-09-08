@@ -5512,7 +5512,7 @@ export default function App() {
                           src={p.photo}
                           alt={p.name}
                           loading="lazy"
-                          style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }}
+                          style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }}
                         />
                         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', flex: 1 }}>
                           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>{p.name}</div>
@@ -5644,7 +5644,7 @@ export default function App() {
                               src={photo}
                               alt={g.eventType + ' photo'}
                               loading="lazy"
-                              style={{ width: '100%', height: 160, borderRadius: 14, objectFit: 'cover', display: 'block' }}
+                              style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: 14, objectFit: 'cover', display: 'block' }}
                             />
                           ))}
                         </div>
