@@ -50,8 +50,8 @@ import {
   submitSourcingRequest,
 } from './catalog';
 import { supabase } from './supabaseClient';
-import cocktailToastPhoto from './assets/cocktail toast.jpg';
-import babyShowerBalloonsPhoto from './assets/baby shower balloons.jpg';
+import heroCollagePhoto from './assets/hero collage.jpg';
+import receptionVenuePhoto from './assets/reception venue.jpg';
 import photographerPhoto from './assets/photographer.jpg';
 import videographersPhoto from './assets/videographers.jpg';
 import weddingVenuePhoto from './assets/wedding venue.jpg';
@@ -3977,8 +3977,8 @@ export default function App() {
             }}
           >
             <img
-              src={cocktailToastPhoto}
-              alt="A group of friends raising colorful cocktails in a toast at an outdoor event"
+              src={heroCollagePhoto}
+              alt="A collage of moments from real events: guests toasting, a balloon garland arch, a tiered cake, and friends celebrating together"
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%' }}
             />
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.32)' }} />
@@ -4082,8 +4082,8 @@ export default function App() {
             }}
           >
             <img
-              src={babyShowerBalloonsPhoto}
-              alt="A terracotta balloon garland arch reading 'Baby in Bloom' with a floral arrangement beside it"
+              src={receptionVenuePhoto}
+              alt="An elegant reception venue with draped ceiling fabric, string lights, and crystal chandeliers over candlelit tables"
               style={{ flex: isMobile ? 'none' : '1 1 46%', width: isMobile ? '100%' : 'auto', height: isMobile ? 240 : 440, objectFit: 'cover', display: 'block' }}
             />
             <div
