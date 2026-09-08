@@ -1501,10 +1501,19 @@ export default function App() {
     patch({ screen: 'suppliers', dirCat: code, dirCats: [], dirPlanLabel: '', dirLoc: 0, dirVisible: 6, navMenuOpen: false });
   const catTile = (c) => {
     const n = SUPPLIERS.filter((s) => (s.codes || [s.code]).includes(c[0])).length;
+    const claimable = unclaimedBusinesses.filter((b) => b.categoryCode === c[0]).length;
+    // Several categories have no published vendor yet but do have real
+    // businesses waiting to be claimed — surface that instead of a flat
+    // "Coming soon" so the category doesn't read as empty when it isn't.
+    const supplierLabel = n
+      ? n + (n === 1 ? ' vendor' : ' vendors')
+      : claimable
+      ? claimable + (claimable === 1 ? ' to claim' : ' to claim')
+      : 'Coming soon';
     return {
       code: c[0],
       name: c[1],
-      supplierLabel: n ? n + (n === 1 ? ' vendor' : ' vendors') : 'Coming soon',
+      supplierLabel,
       open: openCat(c[0]),
     };
   };
@@ -1908,7 +1917,12 @@ export default function App() {
     },
 
     topCategoryTiles: (() => {
-      const all = CATS.map((c) => ({ c, n: SUPPLIERS.filter((s) => (s.codes || [s.code]).includes(c[0])).length }))
+      const all = CATS.map((c) => ({
+        c,
+        n:
+          SUPPLIERS.filter((s) => (s.codes || [s.code]).includes(c[0])).length +
+          unclaimedBusinesses.filter((b) => b.categoryCode === c[0]).length,
+      }))
         .sort((a, b) => b.n - a.n)
         .map((x) => catTile(x.c));
       return st.catExpanded ? all : all.slice(0, 8);
@@ -1919,8 +1933,16 @@ export default function App() {
 
     // "Claim Your Business" — real businesses found via web search, not yet
     // listed on Eventory. Claiming just routes into the normal vendor
-    // onboarding flow, pre-filled with what we already found.
-    claimBusinessTiles: unclaimedBusinesses.map(claimTile),
+    // onboarding flow, pre-filled with what we already found. Capped to 12
+    // on first paint (there can be 100+) with a "See more" expand, same
+    // pattern as the category tiles above.
+    claimBusinessTiles: (() => {
+      const all = unclaimedBusinesses.map(claimTile);
+      return st.claimExpanded ? all : all.slice(0, 12);
+    })(),
+    claimHasMore: unclaimedBusinesses.length > 12,
+    claimExpanded: !!st.claimExpanded,
+    toggleClaimExpanded: () => patch((s) => ({ claimExpanded: !s.claimExpanded })),
     // Same list, but respecting whatever category/location/search filters
     // are active on the Discover Vendors page, so it doesn't show
     // businesses that don't match what the buyer is currently looking for.
@@ -2017,6 +2039,7 @@ export default function App() {
       verified: !!sup.verified,
       ratingLabel: sup.rating,
       startPriceLabel: sup.priceOnRequest ? 'Price on request' : startPrice(sup) === null ? '' : 'From ' + money(startPrice(sup)),
+      responseLabel: sup.response || '',
       facts: [
         { label: 'Based in', value: sup.city },
         sup.addressLine1
@@ -2057,6 +2080,9 @@ export default function App() {
       policies: (sup.policies || []).map((p) => ({ key: p.title, label: p.title, text: p.body })),
       menuItems: sup.menuItems || [],
     },
+    aboutLong: (sup.desc || '').length > 320,
+    aboutExpanded: !!st.aboutExpanded,
+    toggleAboutExpanded: () => patch((s) => ({ aboutExpanded: !s.aboutExpanded })),
 
     openWaModal: () =>
       patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null }),
@@ -2429,6 +2455,18 @@ export default function App() {
       photo: p.photoUrl || fallbackPhotoFor(sup.code, i),
       name: p.name,
       description: p.description,
+      // Vendors sometimes paste an entire caption (contact info, add-ons,
+      // repeated boilerplate) into a package description — clamped by
+      // default so one long-winded package doesn't blow out the whole
+      // grid's row height; "Read more" reveals it in full on request.
+      descriptionLong: (p.description || '').length > 220,
+      descriptionExpanded: (st.expandedPackageIds || []).includes(p.id),
+      toggleDescription: () =>
+        patch((s) => ({
+          expandedPackageIds: (s.expandedPackageIds || []).includes(p.id)
+            ? (s.expandedPackageIds || []).filter((id) => id !== p.id)
+            : (s.expandedPackageIds || []).concat(p.id),
+        })),
       inclusions: p.inclusions || [],
       termsLabel: 'Min ' + p.minQty + ' ' + (p.unit === 'flat' ? 'booking' : 'units'),
       priceLabel: priceLabel(p),
@@ -4344,6 +4382,24 @@ export default function App() {
                   </div>
                 ))}
               </div>
+              {V.claimHasMore && (
+                <button
+                  onClick={V.toggleClaimExpanded}
+                  style={{
+                    marginTop: 16,
+                    border: `1px solid ${ACCENT}55`,
+                    borderRadius: 999,
+                    background: 'transparent',
+                    padding: '11px 20px',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: ACCENT,
+                  }}
+                >
+                  {V.claimExpanded ? 'Show less ↑' : 'See more ↓'}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -5259,6 +5315,24 @@ export default function App() {
                       {V.sup.startPriceLabel}
                     </span>
                   )}
+                  {V.sup.responseLabel && (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        border: '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: '#F7F7F5',
+                        padding: '6px 14px',
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: '#1E7A32',
+                      }}
+                    >
+                      ⚡ {V.sup.responseLabel}
+                    </span>
+                  )}
                 </div>
                 <p style={{ margin: '14px 0 0', maxWidth: 620, fontSize: 16, lineHeight: 1.55, color: '#4A4A4A' }}>{V.sup.description}</p>
                 <div style={{ marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
@@ -5355,7 +5429,23 @@ export default function App() {
                     <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
                       About {V.sup.name}
                     </div>
-                    <p style={{ margin: '8px 0 0', maxWidth: 620, fontSize: 15, lineHeight: 1.6, color: '#4A4A4A' }}>{V.sup.about}</p>
+                    <p
+                      style={
+                        V.aboutExpanded || !V.aboutLong
+                          ? { margin: '8px 0 0', maxWidth: 620, fontSize: 15, lineHeight: 1.6, color: '#4A4A4A', whiteSpace: 'pre-line' }
+                          : { margin: '8px 0 0', maxWidth: 620, fontSize: 15, lineHeight: 1.6, color: '#4A4A4A', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }
+                      }
+                    >
+                      {V.sup.about}
+                    </p>
+                    {V.aboutLong && (
+                      <button
+                        onClick={V.toggleAboutExpanded}
+                        style={{ marginTop: 6, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13.5, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                      >
+                        {V.aboutExpanded ? 'Show less' : 'Read more'}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -5426,7 +5516,32 @@ export default function App() {
                         />
                         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', flex: 1 }}>
                           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>{p.name}</div>
-                          <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>{p.description}</div>
+                          <div
+                            style={
+                              p.descriptionExpanded
+                                ? { marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#5B5B5B', whiteSpace: 'pre-line' }
+                                : {
+                                    marginTop: 6,
+                                    fontSize: 14,
+                                    lineHeight: 1.5,
+                                    color: '#5B5B5B',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 3,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden',
+                                  }
+                            }
+                          >
+                            {p.description}
+                          </div>
+                          {p.descriptionLong && (
+                            <button
+                              onClick={p.toggleDescription}
+                              style={{ alignSelf: 'flex-start', marginTop: 4, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                            >
+                              {p.descriptionExpanded ? 'Show less' : 'Read more'}
+                            </button>
+                          )}
                           {p.inclusions.length > 0 && (
                             <ul style={{ margin: '12px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {p.inclusions.map((inc) => (
