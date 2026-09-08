@@ -59,6 +59,7 @@ import weddingVenue2Photo from './assets/wedding venue 2.jpg';
 import cateringPhoto1 from './assets/catering 1.jpg';
 import cateringSpreadPhoto from './assets/catering spread.jpg';
 import soundSystemPhoto from './assets/sound system.jpg';
+import claimBusinessPhoto from './assets/claim your business.webp';
 
 // Real event photography, used as the fallback whenever a vendor or product
 // has no photo of its own yet (Featured Vendors / Featured Offerings on the
@@ -1500,7 +1501,7 @@ export default function App() {
     city: b.city,
     phone: b.phone,
     sourceUrl: b.sourceUrl,
-    photo: weddingVenue2Photo,
+    photo: claimBusinessPhoto,
     open: () => patch({ screen: 'unclaimed-vendor', claimId: b.id }),
     claim: () =>
       patch({
