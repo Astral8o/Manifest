@@ -3613,8 +3613,20 @@ export default function App() {
 
     adminSaving: !!st.adminSaving,
     adminSaveError: st.adminSaveError || '',
+    // True while a cover/logo/gallery/package photo is mid-upload — those
+    // uploads only land in local wizard state once they resolve, and the
+    // final Save does a wholesale save of whatever's in that state. Saving
+    // mid-upload used to silently drop the photo still in flight (it made
+    // it to storage but never into the saved gallery/packages), so the
+    // Save/Publish buttons block on this instead of just disabling on
+    // adminSaving.
+    adminAnyUploading: !!(st.adminUploadingCover || st.adminUploadingLogo || st.adminUploadingGalleryPhoto || st.adminUploadingPkgPhoto),
     adminSaveVendor: async (published) => {
       if (st.adminSaving) return;
+      if (st.adminUploadingCover || st.adminUploadingLogo || st.adminUploadingGalleryPhoto || st.adminUploadingPkgPhoto) {
+        patch({ adminSaveError: 'A photo is still uploading — wait for it to finish before saving.' });
+        return;
+      }
       patch({ adminSaving: true, adminSaveError: null });
       const payload = {
         categoryCode: st.adminCategoryCode,
@@ -9122,20 +9134,23 @@ export default function App() {
                     <div><strong>{V.adminName || '(no name)'}</strong> · {catName(st.adminCategoryCode)} · {st.adminRegion}, {V.adminCity}</div>
                     <div style={{ color: '#5B5B5B' }}>{V.adminGallery.length} gallery photos · {V.adminPackages.length} packages · {(st.adminFaqs || []).filter((f) => f.q.trim() && f.a.trim()).length} FAQ entries</div>
                   </div>
+                  {V.adminAnyUploading && (
+                    <div style={{ marginTop: 12, fontSize: 13, color: '#9A6B00' }}>A photo is still uploading — wait for it to finish before saving, or it won't be included.</div>
+                  )}
                   {V.adminSaveError && <div style={{ marginTop: 12, fontSize: 13, color: '#B3261E' }}>{V.adminSaveError}</div>}
                   <div style={{ marginTop: 22, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <button onClick={V.adminStepBack} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '13px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Back</button>
                     <button
                       onClick={() => V.adminSaveVendor(false)}
-                      disabled={V.adminSaving}
-                      style={{ border: '1px solid #171717', borderRadius: 999, background: 'transparent', color: '#171717', padding: '13px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: V.adminSaving ? 0.5 : 1 }}
+                      disabled={V.adminSaving || V.adminAnyUploading}
+                      style={{ border: '1px solid #171717', borderRadius: 999, background: 'transparent', color: '#171717', padding: '13px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: V.adminSaving || V.adminAnyUploading ? 0.5 : 1 }}
                     >
                       Save as draft
                     </button>
                     <button
                       onClick={() => V.adminSaveVendor(true)}
-                      disabled={V.adminSaving}
-                      style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '13px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: V.adminSaving ? 0.5 : 1 }}
+                      disabled={V.adminSaving || V.adminAnyUploading}
+                      style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '13px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: V.adminSaving || V.adminAnyUploading ? 0.5 : 1 }}
                     >
                       {V.adminSaving ? 'Publishing…' : 'Publish'}
                     </button>
