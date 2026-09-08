@@ -87,6 +87,24 @@ const fallbackPhotoFor = (categoryCode, seed) => {
   return pool[seed % pool.length];
 };
 
+// The Eventory mark ("the list E") — three pill bars where the top bar is
+// always the accent orange and the middle bar is 70% width, left-aligned.
+// Reads as an E at a glance and as three line items on inspection, which is
+// what the product does: collecting vendors into one list. Pixel-accurate
+// per the brand handoff — pass explicit width/barHeight/gap per placement
+// rather than deriving them from a ratio, so each usage matches its spec'd
+// reference size exactly.
+function LogoMark({ width = 46, barHeight = 10, gap = 7, topColor = '#E0512B', otherColor = '#171717' }) {
+  const bar = { height: barHeight, borderRadius: 999, background: otherColor };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap, width, flexShrink: 0 }}>
+      <div style={{ ...bar, background: topColor }} />
+      <div style={{ ...bar, width: '70%' }} />
+      <div style={bar} />
+    </div>
+  );
+}
+
 // Small line-icon set for the "Browse by category" tiles — one shape per
 // category code, same stroke style as the icons used elsewhere in the app
 // (24x24 viewBox, currentColor-able stroke). Kept as simple geometric marks
@@ -3776,16 +3794,17 @@ export default function App() {
             <button
               onClick={V.goHome}
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 11,
                 border: 0,
                 background: 'transparent',
                 padding: 0,
                 cursor: 'pointer',
-                fontSize: 19,
-                fontWeight: 800,
-                letterSpacing: '-0.02em',
               }}
             >
-              Eventory
+              <LogoMark width={26} barHeight={6} gap={4} />
+              <span style={{ fontFamily: DISPLAY_BLACK, fontSize: 22, letterSpacing: '-0.045em', lineHeight: 1, color: '#171717' }}>Eventory</span>
             </button>
             {isMobile ? (
               <button
@@ -10553,7 +10572,10 @@ export default function App() {
       <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '40px 16px 28px' : '56px 28px 32px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr 1fr', gap: isMobile ? 32 : 40 }}>
           <div>
-            <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.02em' }}>Eventory</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <LogoMark width={22} barHeight={5} gap={3.5} otherColor="#FFFFFF" />
+              <span style={{ fontFamily: DISPLAY_BLACK, fontSize: 19, letterSpacing: '-0.045em', lineHeight: 1, color: '#FFFFFF' }}>Eventory</span>
+            </div>
             <p style={{ margin: '10px 0 0', maxWidth: 320, fontSize: 14, lineHeight: 1.55, color: '#A8A8A8' }}>
               Discovery and sourcing for events in Trinidad &amp; Tobago. Browse vendors, compare what they offer,
               and message them directly.
