@@ -1434,7 +1434,7 @@ export default function App() {
     return c ? c[1] : '';
   };
   const priceLabel = (p) =>
-    p.priceOnRequest ? 'Inquire for pricing' : money(p.min) + '–' + money(p.max) + (p.unit === 'flat' ? '' : ' ' + p.unit);
+    p.priceOnRequest ? 'Inquire for pricing' : 'From ' + money(p.min) + (p.unit === 'flat' ? '' : ' ' + p.unit);
   // s.minProductPrice comes pre-aggregated from vendor_list_view (min
   // products.price_min, computed server-side) so this never needs a
   // vendor's full .products array — safe to call on every list-view row.
