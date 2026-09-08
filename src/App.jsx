@@ -4347,7 +4347,7 @@ export default function App() {
                     <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
                       <img src={b.photo} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     </div>
-                    <div style={{ padding: 18 }}>
+                    <div style={{ padding: 18, display: 'flex', flexDirection: 'column', flex: 1 }}>
                       <div style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                         {b.categoryName}
                       </div>
@@ -4371,7 +4371,7 @@ export default function App() {
                           </div>
                         )}
                       </div>
-                      <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #F2E5DA' }}>
+                      <div style={{ marginTop: 'auto', paddingTop: 14, borderTop: '1px solid #F2E5DA' }}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -5063,7 +5063,7 @@ export default function App() {
                     <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
                       <img src={b.photo} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     </div>
-                    <div style={{ padding: 18 }}>
+                    <div style={{ padding: 18, display: 'flex', flexDirection: 'column', flex: 1 }}>
                       <div style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
                         {b.categoryName}
                       </div>
@@ -5087,7 +5087,7 @@ export default function App() {
                           </div>
                         )}
                       </div>
-                      <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #F2E5DA' }}>
+                      <div style={{ marginTop: 'auto', paddingTop: 14, borderTop: '1px solid #F2E5DA' }}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
