@@ -1434,7 +1434,7 @@ export default function App() {
     return c ? c[1] : '';
   };
   const priceLabel = (p) =>
-    p.priceOnRequest ? 'Inquire for pricing' : 'From ' + money(p.min) + (p.unit === 'flat' ? '' : ' ' + p.unit);
+    p.priceOnRequest ? 'Inquire for pricing' : 'From ' + money(p.min) + (p.unit === 'flat' || p.unit === 'event' ? '' : ' ' + p.unit);
   // s.minProductPrice comes pre-aggregated from vendor_list_view (min
   // products.price_min, computed server-side) so this never needs a
   // vendor's full .products array — safe to call on every list-view row.
@@ -2456,17 +2456,13 @@ export default function App() {
       name: p.name,
       description: p.description,
       // Vendors sometimes paste an entire caption (contact info, add-ons,
-      // repeated boilerplate) into a package description — clamped by
-      // default so one long-winded package doesn't blow out the whole
-      // grid's row height; "Read more" reveals it in full on request.
+      // repeated boilerplate) into a package description — clamped in the
+      // card so one long-winded package doesn't blow out the grid's row
+      // height. Rather than expanding in place (which un-levels the whole
+      // row), "View full details" opens the one package in a modal, same
+      // as the WhatsApp inquiry modal elsewhere on this page.
       descriptionLong: (p.description || '').length > 220,
-      descriptionExpanded: (st.expandedPackageIds || []).includes(p.id),
-      toggleDescription: () =>
-        patch((s) => ({
-          expandedPackageIds: (s.expandedPackageIds || []).includes(p.id)
-            ? (s.expandedPackageIds || []).filter((id) => id !== p.id)
-            : (s.expandedPackageIds || []).concat(p.id),
-        })),
+      openDetails: () => patch({ openPackageId: p.id }),
       inclusions: p.inclusions || [],
       termsLabel: 'Min ' + p.minQty + ' ' + (p.unit === 'flat' ? 'booking' : 'units'),
       priceLabel: priceLabel(p),
@@ -2476,6 +2472,27 @@ export default function App() {
       shareLabel: st.copiedPid === p.id ? 'Copied!' : 'Share',
       share: () => shareProduct(p.id),
     })),
+    // The single package shown in the details modal, looked up from the
+    // full product list (not the paginated/search-filtered display list)
+    // so it still resolves correctly regardless of what's currently visible.
+    openPackage: (() => {
+      if (!st.openPackageId) return null;
+      const p = product(st.openPackageId);
+      if (!p) return null;
+      const idx = productsOf(sup).findIndex((x) => x.id === p.id);
+      return {
+        photo: p.photoUrl || fallbackPhotoFor(sup.code, Math.max(idx, 0)),
+        name: p.name,
+        description: p.description,
+        inclusions: p.inclusions || [],
+        termsLabel: 'Min ' + p.minQty + ' ' + (p.unit === 'flat' ? 'booking' : 'units'),
+        priceLabel: priceLabel(p),
+        saved: (st.saved || []).indexOf(p.id) >= 0,
+        saveLabel: (st.saved || []).indexOf(p.id) >= 0 ? '★ Saved' : '☆ Save',
+        toggleSave: () => toggleSave(p.id),
+      };
+    })(),
+    closePackageDetails: () => patch({ openPackageId: null }),
     email: st.email || '',
     setEmail: (e) => patch({ email: e.target.value, authConfirmPending: false, authError: null }),
     signedIn: !!st.signedIn,
@@ -5508,38 +5525,44 @@ export default function App() {
                           background: '#FFFFFF',
                         }}
                       >
-                        <img
-                          src={p.photo}
-                          alt={p.name}
-                          loading="lazy"
-                          style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }}
-                        />
+                        <button
+                          onClick={p.openDetails}
+                          style={{ border: 0, padding: 0, margin: 0, cursor: 'pointer', display: 'block', width: '100%' }}
+                        >
+                          <img
+                            src={p.photo}
+                            alt={p.name}
+                            loading="lazy"
+                            style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }}
+                          />
+                        </button>
                         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', flex: 1 }}>
-                          <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>{p.name}</div>
+                          <button
+                            onClick={p.openDetails}
+                            style={{ alignSelf: 'flex-start', border: 0, background: 'transparent', padding: 0, margin: 0, cursor: 'pointer', textAlign: 'left', fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', color: '#171717' }}
+                          >
+                            {p.name}
+                          </button>
                           <div
-                            style={
-                              p.descriptionExpanded
-                                ? { marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#5B5B5B', whiteSpace: 'pre-line' }
-                                : {
-                                    marginTop: 6,
-                                    fontSize: 14,
-                                    lineHeight: 1.5,
-                                    color: '#5B5B5B',
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 3,
-                                    WebkitBoxOrient: 'vertical',
-                                    overflow: 'hidden',
-                                  }
-                            }
+                            style={{
+                              marginTop: 6,
+                              fontSize: 14,
+                              lineHeight: 1.5,
+                              color: '#5B5B5B',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                            }}
                           >
                             {p.description}
                           </div>
                           {p.descriptionLong && (
                             <button
-                              onClick={p.toggleDescription}
+                              onClick={p.openDetails}
                               style={{ alignSelf: 'flex-start', marginTop: 4, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '2px' }}
                             >
-                              {p.descriptionExpanded ? 'Show less' : 'Read more'}
+                              View full details →
                             </button>
                           )}
                           {p.inclusions.length > 0 && (
@@ -10067,6 +10090,126 @@ export default function App() {
             >
               Skip — just message directly
             </a>
+          </div>
+        </div>
+      )}
+
+      {V.openPackage && (
+        <div
+          onClick={V.closePackageDetails}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 50,
+            background: 'rgba(23,23,23,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: isMobile ? 12 : 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 520,
+              maxHeight: '88vh',
+              overflowY: 'auto',
+              background: '#FFFFFF',
+              borderRadius: 28,
+            }}
+          >
+            <div style={{ position: 'relative' }}>
+              <img
+                src={V.openPackage.photo}
+                alt={V.openPackage.name}
+                style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block', borderRadius: '28px 28px 0 0' }}
+              />
+              <button
+                onClick={V.closePackageDetails}
+                aria-label="Close"
+                style={{
+                  position: 'absolute',
+                  top: 14,
+                  right: 14,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 34,
+                  height: 34,
+                  border: 0,
+                  borderRadius: 999,
+                  background: 'rgba(23,23,23,0.65)',
+                  color: '#FFFFFF',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: isMobile ? 20 : 28 }}>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 20 : 24, lineHeight: 1.2, letterSpacing: '-0.02em', fontWeight: 800 }}>
+                {V.openPackage.name}
+              </h2>
+              <div style={{ marginTop: 10, fontFamily: MONO, fontSize: 18, fontWeight: 700 }}>{V.openPackage.priceLabel}</div>
+              <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 11, color: '#9A9A9A' }}>{V.openPackage.termsLabel}</div>
+              <p style={{ margin: '16px 0 0', fontSize: 14.5, lineHeight: 1.6, color: '#4A4A4A', whiteSpace: 'pre-line' }}>
+                {V.openPackage.description}
+              </p>
+              {V.openPackage.inclusions.length > 0 && (
+                <ul style={{ margin: '16px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {V.openPackage.inclusions.map((inc) => (
+                    <li key={inc} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>
+                      <span style={{ flexShrink: 0, color: '#16A34A', fontWeight: 800 }}>✓</span>
+                      {inc}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div style={{ marginTop: 22, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {V.sup.whatsappUrl && (
+                  <button
+                    onClick={() => {
+                      V.closePackageDetails();
+                      V.openWaModal();
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      border: 0,
+                      borderRadius: 999,
+                      background: '#25D366',
+                      color: '#FFFFFF',
+                      padding: '12px 20px',
+                      cursor: 'pointer',
+                      fontFamily: DISPLAY,
+                      fontSize: 14,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Message on WhatsApp →
+                  </button>
+                )}
+                <button
+                  onClick={V.openPackage.toggleSave}
+                  style={{
+                    border: '1px solid #D7D7D2',
+                    borderRadius: 999,
+                    background: V.openPackage.saved ? '#171717' : 'transparent',
+                    color: V.openPackage.saved ? '#FFFFFF' : '#171717',
+                    padding: '12px 18px',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 700,
+                  }}
+                >
+                  {V.openPackage.saveLabel}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
