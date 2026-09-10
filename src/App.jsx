@@ -7759,7 +7759,7 @@ export default function App() {
                         {V.promoOptIn ? '✓' : ''}
                       </span>
                       <span style={{ fontSize: 13, lineHeight: 1.4, color: '#5B5B5B' }}>
-                        Send me promos and offers from vendors
+                        Email me about promotions and deals from vendors. No spam, unsubscribe anytime.
                       </span>
                     </button>
                   )}
