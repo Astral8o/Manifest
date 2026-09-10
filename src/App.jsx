@@ -1223,6 +1223,9 @@ export default function App() {
                       quoteSent: false,
                     }
                   : {}),
+                ...(parsed.openWa
+                  ? { waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null }
+                  : {}),
               };
             }
           }
@@ -1441,13 +1444,41 @@ export default function App() {
   // vendor's full .products array — safe to call on every list-view row.
   const startPrice = (s) => (s.priceOnRequest || s.minProductPrice === null || s.minProductPrice === undefined ? null : s.minProductPrice);
 
+  // Saving, sharing, and messaging a vendor are all buyer-identifying
+  // actions, so each requires an account — same "redirect to sign in, land
+  // back where you were" pattern already used for quote requests. Captures
+  // whatever screen/tab is live when the gate fires, not just the vendor
+  // profile, since save/share are also reachable from vendor grids on the
+  // homepage and Discover Vendors.
+  const requireBuyerAuth = () => {
+    try {
+      localStorage.setItem(
+        POST_AUTH_RETURN_KEY,
+        JSON.stringify({
+          screen: st.screen,
+          ...(st.screen === 'supplier' ? { supId: st.supId, supplierTab: st.supplierTab } : {}),
+        })
+      );
+    } catch {
+      // ignore storage failures — worst case they land on their account page after signing in
+    }
+    patch({ screen: 'account', navMenuOpen: false });
+  };
   const toggleSave = (pid) => {
+    if (!st.signedIn) {
+      requireBuyerAuth();
+      return;
+    }
     patch((s) => {
       const saved = s.saved || [];
       return { saved: saved.indexOf(pid) >= 0 ? saved.filter((x) => x !== pid) : saved.concat([pid]) };
     });
   };
   const shareProduct = (pid) => {
+    if (!st.signedIn) {
+      requireBuyerAuth();
+      return;
+    }
     const p = product(pid);
     if (!p) return;
     const s = supplier(p.supId);
@@ -1469,6 +1500,10 @@ export default function App() {
   };
 
   const toggleSaveVendor = (supId) => {
+    if (!st.signedIn) {
+      requireBuyerAuth();
+      return;
+    }
     patch((s) => {
       const savedVendors = s.savedVendors || [];
       return {
@@ -1477,6 +1512,10 @@ export default function App() {
     });
   };
   const shareVendor = (supId) => {
+    if (!st.signedIn) {
+      requireBuyerAuth();
+      return;
+    }
     const s = supplier(supId);
     if (!s) return;
     const url = window.location.origin + window.location.pathname + '?supplier=' + encodeURIComponent(supId);
@@ -2097,8 +2136,18 @@ export default function App() {
     aboutExpanded: !!st.aboutExpanded,
     toggleAboutExpanded: () => patch((s) => ({ aboutExpanded: !s.aboutExpanded })),
 
-    openWaModal: () =>
-      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null }),
+    openWaModal: () => {
+      if (!st.signedIn) {
+        try {
+          localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: 'supplier', supId: sup.id, openWa: true }));
+        } catch {
+          // ignore storage failures — worst case the user has to click again after signing in
+        }
+        patch({ screen: 'account', navMenuOpen: false });
+        return;
+      }
+      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null });
+    },
     closeWaModal: () => patch({ waModalOpen: false }),
     waModalOpen: !!st.waModalOpen,
     waEventTypeTiles: EVENT_TYPES.map((t) => ({
@@ -2289,6 +2338,15 @@ export default function App() {
     inqServiceMissing: (packageProducts.length > 0 || rentalProducts.length > 0) && !st.inqService && rentalCartItems.length === 0,
     inqServiceMissingLabel: packageProducts.length > 0 ? 'Pick a service above to continue.' : 'Add a quantity on the Rentals tab to continue.',
     inqWaDisabled: (packageProducts.length > 0 || rentalProducts.length > 0) && !st.inqService && rentalCartItems.length === 0,
+    inqNeedsAuth: !st.signedIn,
+    signInToSendWa: () => {
+      try {
+        localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: 'supplier', supId: sup.id, supplierTab: 'inquire' }));
+      } catch {
+        // ignore storage failures — worst case the user has to click again after signing in
+      }
+      patch({ screen: 'account', navMenuOpen: false });
+    },
     inqSubmitting: !!st.inqSubmitting,
     inqSubmitError: st.inqSubmitError || '',
     inqSent: !!st.inqSent,
@@ -2632,6 +2690,7 @@ export default function App() {
               ...(existing.supId ? { supId: existing.supId } : {}),
               ...(existing.supplierTab ? { supplierTab: existing.supplierTab } : {}),
               ...(existing.openQuote ? { openQuote: true } : {}),
+              ...(existing.openWa ? { openWa: true } : {}),
             })
           );
         }
@@ -4122,7 +4181,7 @@ export default function App() {
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, paddingTop: 30 }}>
             <button
-              onClick={V.startPlanning}
+              onClick={V.goSuppliers}
               style={{
                 width: isMobile ? '100%' : 'auto',
                 border: 0,
@@ -4137,7 +4196,7 @@ export default function App() {
                 boxShadow: '0 18px 36px -14px rgba(224,81,43,0.6)',
               }}
             >
-              Plan My Event →
+              Discover Vendors →
             </button>
             <button
               onClick={V.goVendorOnboarding}
@@ -6278,7 +6337,29 @@ export default function App() {
                       {V.inqSubmitError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.inqSubmitError}</div>}
 
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                        {V.inqWaUrl && (V.inqWaDisabled ? (
+                        {V.inqWaUrl && (V.inqNeedsAuth ? (
+                          <button
+                            onClick={V.signInToSendWa}
+                            style={{
+                              flex: '1 1 200px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              textAlign: 'center',
+                              border: 0,
+                              borderRadius: 999,
+                              background: '#25D366',
+                              color: '#FFFFFF',
+                              padding: '14px 20px',
+                              cursor: 'pointer',
+                              fontFamily: DISPLAY,
+                              fontSize: 14.5,
+                              fontWeight: 700,
+                            }}
+                          >
+                            Sign in to send via WhatsApp →
+                          </button>
+                        ) : V.inqWaDisabled ? (
                           <div
                             style={{
                               flex: '1 1 200px',
