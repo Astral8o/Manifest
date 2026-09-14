@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   LOCATIONS,
-  FIELDS,
-  FIELDS_DEFAULT,
   money,
 } from './data';
 import {
@@ -13,8 +11,6 @@ import {
   signUpBuyer,
   signInBuyer,
   submitPlanningRequest,
-  submitQuoteRequest,
-  fetchMyQuoteRequests,
   adminListVendors,
   adminSetPublished,
   adminDeleteVendor,
@@ -44,7 +40,6 @@ import {
   removeVendorPolicy,
   addVendorPromo,
   removeVendorPromo,
-  fetchVendorQuoteRequests,
   submitSpotlightInterest,
   submitContactMessage,
   submitSourcingRequest,
@@ -926,22 +921,6 @@ const initialState = {
   waVenue: '',
   waAttendees: '',
   waService: '',
-  quoteModalOpen: false,
-  quoteStep: 1,
-  quoteEventType: null,
-  quoteEventTypeOther: '',
-  quoteEventDate: '',
-  quoteVenue: '',
-  quoteAnswers: {},
-  quoteContactName: '',
-  quoteContactEmail: '',
-  quoteContactPhone: '',
-  quoteSubmitting: false,
-  quoteSubmitError: null,
-  quoteSent: false,
-  dashboardQuotes: [],
-  dashboardQuotesLoading: false,
-  dashboardQuotesError: null,
 
   vsiEmail: '',
   vsiPassword: '',
@@ -1003,9 +982,6 @@ const initialState = {
   vdPromoDescription: '',
   vdPromoExpiresAt: '',
   vdAddingPromo: false,
-  vdQuotes: [],
-  vdQuotesLoading: false,
-  vdQuotesError: null,
 };
 
 export default function App() {
@@ -1109,17 +1085,6 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [st.screen, st.adminSubScreen, st.signedIn, st.email]);
 
-  // Load the signed-in planner's own quote requests whenever they land on
-  // their dashboard (the account screen).
-  useEffect(() => {
-    if (st.screen !== 'account' || !st.signedIn) return;
-    patch({ dashboardQuotesLoading: true, dashboardQuotesError: null });
-    fetchMyQuoteRequests()
-      .then((rows) => patch({ dashboardQuotesLoading: false, dashboardQuotes: rows }))
-      .catch((err) => patch({ dashboardQuotesLoading: false, dashboardQuotesError: err.message || 'Could not load your inquiries.' }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [st.screen, st.signedIn]);
-
   // Load the signed-in vendor's own listing whenever they land on their
   // dashboard, and seed the edit-form fields from what comes back.
   useEffect(() => {
@@ -1155,15 +1120,6 @@ export default function App() {
       .catch((err) => patch({ vdLoading: false, vdError: err.message || 'Could not load your listing.' }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [st.screen, st.signedIn]);
-
-  useEffect(() => {
-    if (st.screen !== 'vendor-dashboard' || !st.vdVendor) return;
-    patch({ vdQuotesLoading: true, vdQuotesError: null });
-    fetchVendorQuoteRequests(st.vdVendor.id)
-      .then((rows) => patch({ vdQuotesLoading: false, vdQuotes: rows }))
-      .catch((err) => patch({ vdQuotesLoading: false, vdQuotesError: err.message || 'Could not load your inquiries.' }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [st.screen, st.vdVendor && st.vdVendor.id]);
 
   // Real auth: restore any existing Supabase session on load, then stay in
   // sync as the user signs in (via magic link) or out. A magic link click
@@ -1205,24 +1161,6 @@ export default function App() {
                 screen: parsed.screen,
                 ...(parsed.supId ? { supId: parsed.supId } : {}),
                 ...(parsed.supplierTab ? { supplierTab: parsed.supplierTab } : {}),
-                ...(parsed.supplierTab === 'inquire' ? { inqEmail: session.user.email || '' } : {}),
-                ...(parsed.openQuote
-                  ? {
-                      quoteModalOpen: true,
-                      quoteStep: 1,
-                      quoteEventType: null,
-                      quoteEventTypeOther: '',
-                      quoteEventDate: '',
-                      quoteVenue: '',
-                      quoteAnswers: {},
-                      quoteContactName: '',
-                      quoteContactEmail: session.user.email || '',
-                      quoteContactPhone: '',
-                      quoteSubmitting: false,
-                      quoteSubmitError: null,
-                      quoteSent: false,
-                    }
-                  : {}),
                 ...(parsed.openWa
                   ? { waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null }
                   : {}),
@@ -1444,41 +1382,17 @@ export default function App() {
   // vendor's full .products array — safe to call on every list-view row.
   const startPrice = (s) => (s.priceOnRequest || s.minProductPrice === null || s.minProductPrice === undefined ? null : s.minProductPrice);
 
-  // Saving, sharing, and messaging a vendor are all buyer-identifying
-  // actions, so each requires an account — same "redirect to sign in, land
-  // back where you were" pattern already used for quote requests. Captures
-  // whatever screen/tab is live when the gate fires, not just the vendor
-  // profile, since save/share are also reachable from vendor grids on the
-  // homepage and Discover Vendors.
-  const requireBuyerAuth = () => {
-    try {
-      localStorage.setItem(
-        POST_AUTH_RETURN_KEY,
-        JSON.stringify({
-          screen: st.screen,
-          ...(st.screen === 'supplier' ? { supId: st.supId, supplierTab: st.supplierTab } : {}),
-        })
-      );
-    } catch {
-      // ignore storage failures — worst case they land on their account page after signing in
-    }
-    patch({ screen: 'account', navMenuOpen: false });
-  };
+  // Saving and sharing don't need an account — they're low-stakes browser
+  // conveniences (already stored in localStorage, see the ACCOUNT_KEY
+  // effect), not the platform's lead-capture moment. Sending an inquiry is
+  // what requires sign-in.
   const toggleSave = (pid) => {
-    if (!st.signedIn) {
-      requireBuyerAuth();
-      return;
-    }
     patch((s) => {
       const saved = s.saved || [];
       return { saved: saved.indexOf(pid) >= 0 ? saved.filter((x) => x !== pid) : saved.concat([pid]) };
     });
   };
   const shareProduct = (pid) => {
-    if (!st.signedIn) {
-      requireBuyerAuth();
-      return;
-    }
     const p = product(pid);
     if (!p) return;
     const s = supplier(p.supId);
@@ -1500,10 +1414,6 @@ export default function App() {
   };
 
   const toggleSaveVendor = (supId) => {
-    if (!st.signedIn) {
-      requireBuyerAuth();
-      return;
-    }
     patch((s) => {
       const savedVendors = s.savedVendors || [];
       return {
@@ -1512,10 +1422,6 @@ export default function App() {
     });
   };
   const shareVendor = (supId) => {
-    if (!st.signedIn) {
-      requireBuyerAuth();
-      return;
-    }
     const s = supplier(supId);
     if (!s) return;
     const url = window.location.origin + window.location.pathname + '?supplier=' + encodeURIComponent(supId);
@@ -2023,7 +1929,7 @@ export default function App() {
         toggleSaved: () => toggleSaveVendor(s.id),
         share: () => shareVendor(s.id),
         justCopied: st.copiedVendorId === s.id,
-        open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
+        open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
       })),
 
     dirActiveCat: st.dirCat === 'ALL' ? null : CATS.find((c) => c[0] === st.dirCat) || null,
@@ -2067,7 +1973,7 @@ export default function App() {
       toggleSaved: () => toggleSaveVendor(s.id),
       share: () => shareVendor(s.id),
       justCopied: st.copiedVendorId === s.id,
-      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
+      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
     })),
     dirShowSeeAll: dirFiltered.length > (st.dirVisible || 6),
     dirSeeAllLabel: 'See all ' + dirFiltered.length + ' vendors',
@@ -2193,209 +2099,6 @@ export default function App() {
         )
       : null,
 
-    startQuote: () => {
-      if (!st.signedIn) {
-        try {
-          localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: 'supplier', supId: sup.id, openQuote: true }));
-        } catch {
-          // ignore storage failures — worst case the user has to click again after signing in
-        }
-        patch({ screen: 'account', navMenuOpen: false });
-        return;
-      }
-      patch({
-        quoteModalOpen: true,
-        quoteStep: 1,
-        quoteEventType: null,
-        quoteEventTypeOther: '',
-        quoteEventDate: '',
-        quoteVenue: '',
-        quoteAnswers: {},
-        quoteContactName: st.quoteContactName || '',
-        quoteContactEmail: st.quoteContactEmail || st.email || '',
-        quoteContactPhone: st.quoteContactPhone || '',
-        quoteSubmitting: false,
-        quoteSubmitError: null,
-        quoteSent: false,
-      });
-    },
-    quoteModalOpen: !!st.quoteModalOpen,
-    closeQuoteModal: () => patch({ quoteModalOpen: false }),
-    quoteStep: st.quoteStep || 1,
-    quoteTotalSteps: 6,
-    quoteStepBack: () => patch((s) => ({ quoteStep: Math.max(1, (s.quoteStep || 1) - 1) })),
-    quoteEventTypeTiles: EVENT_TYPES.map((t) => ({
-      key: t.key,
-      label: t.label,
-      on: st.quoteEventType === t.key,
-      pick: () => patch({ quoteEventType: t.key }),
-    })),
-    quoteEventTypeOther: st.quoteEventTypeOther || '',
-    setQuoteEventTypeOther: (e) => patch({ quoteEventTypeOther: e.target.value }),
-    quoteStep1Valid: !!st.quoteEventType && (st.quoteEventType !== 'other' || !!(st.quoteEventTypeOther || '').trim()),
-    quoteEventDate: st.quoteEventDate || '',
-    setQuoteEventDate: (e) => patch({ quoteEventDate: e.target.value }),
-    quoteStep2Valid: !!st.quoteEventDate,
-    quoteVenue: st.quoteVenue || '',
-    setQuoteVenue: (e) => patch({ quoteVenue: e.target.value }),
-    quoteStep3Valid: !!(st.quoteVenue || '').trim(),
-    quoteCategoryFields: FIELDS[sup.code] || FIELDS_DEFAULT,
-    quoteAnswer: (k) => (st.quoteAnswers || {})[k] || '',
-    setQuoteAnswer: (k) => (e) => patch((s) => ({ quoteAnswers: { ...(s.quoteAnswers || {}), [k]: e.target.value } })),
-    pickQuoteAnswer: (k, v) => () => patch((s) => ({ quoteAnswers: { ...(s.quoteAnswers || {}), [k]: v } })),
-    quoteContactName: st.quoteContactName || '',
-    setQuoteContactName: (e) => patch({ quoteContactName: e.target.value }),
-    quoteContactEmail: st.quoteContactEmail || '',
-    setQuoteContactEmail: (e) => patch({ quoteContactEmail: e.target.value }),
-    quoteContactPhone: st.quoteContactPhone || '',
-    setQuoteContactPhone: (e) => patch({ quoteContactPhone: e.target.value }),
-    quoteStep5Valid: !!(st.quoteContactName || '').trim() && !!(st.quoteContactEmail || '').trim() && st.quoteContactEmail.indexOf('@') > 0,
-    quoteNextStep: () => patch((s) => ({ quoteStep: Math.min(6, (s.quoteStep || 1) + 1) })),
-    quoteEventLabel:
-      st.quoteEventType === 'other'
-        ? st.quoteEventTypeOther || 'Other'
-        : (EVENT_TYPES.find((t) => t.key === st.quoteEventType) || {}).label || '',
-    quoteReviewAnswers: (FIELDS[sup.code] || FIELDS_DEFAULT)
-      .map((f) => ({ key: f.k, label: f.label, value: (st.quoteAnswers || {})[f.k] }))
-      .filter((r) => r.value),
-    quoteSubmitting: !!st.quoteSubmitting,
-    quoteSubmitError: st.quoteSubmitError || '',
-    quoteSent: !!st.quoteSent,
-    submitQuote: async () => {
-      if (st.quoteSubmitting) return;
-      patch({ quoteSubmitting: true, quoteSubmitError: null });
-      try {
-        await submitQuoteRequest({
-          vendorId: sup.id,
-          eventType:
-            st.quoteEventType === 'other'
-              ? st.quoteEventTypeOther || 'Other'
-              : (EVENT_TYPES.find((t) => t.key === st.quoteEventType) || {}).label || st.quoteEventType,
-          eventTypeOther: st.quoteEventType === 'other' ? st.quoteEventTypeOther : null,
-          eventDate: st.quoteEventDate,
-          venue: st.quoteVenue,
-          categoryAnswers: rentalCartItems.length
-            ? { ...(st.quoteAnswers || {}), Rentals: rentalCartSummary }
-            : st.quoteAnswers || {},
-          contactName: st.quoteContactName,
-          contactEmail: st.quoteContactEmail,
-          contactPhone: st.quoteContactPhone,
-        });
-        patch({ quoteSubmitting: false, quoteSent: true, rentalQty: {} });
-      } catch (err) {
-        patch({ quoteSubmitting: false, quoteSubmitError: err.message || 'Could not send your request. Please try again.' });
-      }
-    },
-
-    // Inline "Inquire" tab on the vendor profile — a single-page version of
-    // the quote/WhatsApp flows above, so a buyer can fill one form and send
-    // it either way without leaving the tab.
-    inqName: st.inqName || '',
-    setInqName: (e) => patch({ inqName: e.target.value }),
-    inqEmail: st.inqEmail || '',
-    setInqEmail: (e) => patch({ inqEmail: e.target.value }),
-    inqPhone: st.inqPhone || '',
-    setInqPhone: (e) => patch({ inqPhone: e.target.value }),
-    inqEventType: st.inqEventType || '',
-    setInqEventType: (e) => patch({ inqEventType: e.target.value }),
-    inqEventTypeOther: st.inqEventTypeOther || '',
-    setInqEventTypeOther: (e) => patch({ inqEventTypeOther: e.target.value }),
-    inqEventDate: st.inqEventDate || '',
-    setInqEventDate: (e) => patch({ inqEventDate: e.target.value }),
-    inqGuests: st.inqGuests || '',
-    setInqGuests: (e) => patch({ inqGuests: e.target.value.replace(/[^0-9]/g, '') }),
-    inqMessage: st.inqMessage || '',
-    setInqMessage: (e) => patch({ inqMessage: e.target.value }),
-    inqServiceTiles: packageProducts.map((p) => ({
-      key: p.name,
-      label: p.name,
-      on: st.inqService === p.name,
-      pick: () => patch({ inqService: st.inqService === p.name ? null : p.name }),
-    })),
-    inqEventTypeLabel:
-      st.inqEventType === 'other'
-        ? (st.inqEventTypeOther || '').trim()
-        : (EVENT_TYPES.find((t) => t.key === st.inqEventType) || {}).label || '',
-    inqWaUrl: sup.phone
-      ? 'https://wa.me/' +
-        whatsappDigits(sup.phone) +
-        '?text=' +
-        encodeURIComponent(
-          buildWaMessage(sup.name, {
-            eventTypeLabel:
-              st.inqEventType === 'other'
-                ? (st.inqEventTypeOther || '').trim()
-                : ((EVENT_TYPES.find((t) => t.key === st.inqEventType) || {}).label || '').toLowerCase(),
-            eventDate: st.inqEventDate,
-            attendees: st.inqGuests,
-            service: rentalCartItems.length ? rentalCartSummary : st.inqService,
-            buyerName: (st.inqName || '').trim() || null,
-            message: (st.inqMessage || '').trim() || null,
-          })
-        )
-      : null,
-    // A buyer must pick something — a package, or at least one rental item
-    // with a quantity — before an inquiry can go out, but only when the
-    // vendor actually has one or the other to pick from.
-    inqSelectionRequired: packageProducts.length > 0 || rentalProducts.length > 0,
-    inqServiceRequired: packageProducts.length > 0,
-    inqServiceMissing: (packageProducts.length > 0 || rentalProducts.length > 0) && !st.inqService && rentalCartItems.length === 0,
-    inqServiceMissingLabel: packageProducts.length > 0 ? 'Pick a service above to continue.' : 'Add a quantity on the Rentals tab to continue.',
-    inqWaDisabled: (packageProducts.length > 0 || rentalProducts.length > 0) && !st.inqService && rentalCartItems.length === 0,
-    inqNeedsAuth: !st.signedIn,
-    signInToSendWa: () => {
-      try {
-        localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: 'supplier', supId: sup.id, supplierTab: 'inquire' }));
-      } catch {
-        // ignore storage failures — worst case the user has to click again after signing in
-      }
-      patch({ screen: 'account', navMenuOpen: false });
-    },
-    inqSubmitting: !!st.inqSubmitting,
-    inqSubmitError: st.inqSubmitError || '',
-    inqSent: !!st.inqSent,
-    inqSubmitDisabled:
-      ((packageProducts.length > 0 || rentalProducts.length > 0) && !st.inqService && rentalCartItems.length === 0) ||
-      (st.signedIn && (!(st.inqName || '').trim() || !(st.inqEmail || '').trim() || !!st.inqSubmitting)),
-    submitInlineInquiry: async () => {
-      if (!st.signedIn) {
-        try {
-          localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: 'supplier', supId: sup.id, supplierTab: 'inquire' }));
-        } catch {
-          // ignore storage failures — worst case the user has to click again after signing in
-        }
-        patch({ screen: 'account', navMenuOpen: false });
-        return;
-      }
-      const name = (st.inqName || '').trim();
-      const email = (st.inqEmail || '').trim();
-      if (!name || !email || st.inqSubmitting) return;
-      const eventTypeLabel =
-        st.inqEventType === 'other' ? (st.inqEventTypeOther || '').trim() || 'Other' : (EVENT_TYPES.find((t) => t.key === st.inqEventType) || {}).label || 'Not specified';
-      patch({ inqSubmitting: true, inqSubmitError: null });
-      try {
-        const answers = {};
-        if (st.inqService) answers.Service = st.inqService;
-        if (rentalCartItems.length) answers.Rentals = rentalCartSummary;
-        if ((st.inqGuests || '').trim()) answers.Guests = st.inqGuests.trim();
-        if ((st.inqMessage || '').trim()) answers.Message = st.inqMessage.trim();
-        await submitQuoteRequest({
-          vendorId: sup.id,
-          eventType: eventTypeLabel,
-          eventTypeOther: st.inqEventType === 'other' ? st.inqEventTypeOther : null,
-          eventDate: st.inqEventDate,
-          venue: '',
-          categoryAnswers: answers,
-          contactName: name,
-          contactEmail: email,
-          contactPhone: st.inqPhone,
-        });
-        patch({ inqSubmitting: false, inqSent: true, rentalQty: {} });
-      } catch (err) {
-        patch({ inqSubmitting: false, inqSubmitError: err.message || 'Could not send your inquiry. Please try again.' });
-      }
-    },
-
     openFaqKey: st.openFaqKey || null,
     toggleFaq: (key) => patch((s) => ({ openFaqKey: s.openFaqKey === key ? null : key })),
     // Every "open vendor" call site defaults supplierTab to 'services'
@@ -2407,7 +2110,6 @@ export default function App() {
         ? 'rentals'
         : st.supplierTab || 'services',
     supplierTabs: [
-      { key: 'inquire', label: 'Inquire', highlight: true },
       { key: 'about', label: 'About' },
       packageProducts.length > 0 && { key: 'services', label: 'Packages (' + packageProducts.length + ')' },
       rentalProducts.length > 0 && { key: 'rentals', label: 'Rentals (' + rentalProducts.length + ')' },
@@ -2462,17 +2164,6 @@ export default function App() {
               reviewFormOpen: false,
               reviewSent: false,
               supCarouselIndex: 0,
-              inqName: '',
-              inqEmail: '',
-              inqPhone: '',
-              inqEventType: '',
-              inqEventTypeOther: '',
-              inqEventDate: '',
-              inqGuests: '',
-              inqMessage: '',
-              inqService: null,
-              inqSubmitError: null,
-              inqSent: false,
             }),
         }));
     })(),
@@ -2617,7 +2308,18 @@ export default function App() {
     rentalCartSummary,
     rentalCartHasItems: rentalCartItems.length > 0,
     clearRentalCart: () => patch({ rentalQty: {} }),
-    goRequestRentals: () => patch({ supplierTab: 'inquire' }),
+    goRequestRentals: () => {
+      if (!st.signedIn) {
+        try {
+          localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: 'supplier', supId: sup.id, openWa: true }));
+        } catch {
+          // ignore storage failures — worst case the user has to click again after signing in
+        }
+        patch({ screen: 'account', navMenuOpen: false });
+        return;
+      }
+      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null });
+    },
 
     email: st.email || '',
     setEmail: (e) => patch({ email: e.target.value, authConfirmPending: false, authError: null }),
@@ -2693,7 +2395,6 @@ export default function App() {
               screen: existing.screen || st.screen,
               ...(existing.supId ? { supId: existing.supId } : {}),
               ...(existing.supplierTab ? { supplierTab: existing.supplierTab } : {}),
-              ...(existing.openQuote ? { openQuote: true } : {}),
               ...(existing.openWa ? { openWa: true } : {}),
             })
           );
@@ -2765,7 +2466,7 @@ export default function App() {
           supplierName: s ? s.name : '',
           priceLabel: priceLabel(p),
           openSupplier: () =>
-            patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
+            patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
           remove: () => toggleSave(pid),
           share: () => shareProduct(pid),
           shareLabel: st.copiedPid === pid ? 'Copied!' : 'Share',
@@ -2784,26 +2485,12 @@ export default function App() {
           name: s.name,
           categoryName: catName(s.code),
           open: () =>
-            patch({ screen: 'supplier', supId: vid, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
+            patch({ screen: 'supplier', supId: vid, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
           unsave: () => toggleSaveVendor(vid),
         };
       })
       .filter(Boolean),
     hasSavedVendors: (st.savedVendors || []).length > 0,
-
-    dashboardQuotesLoading: !!st.dashboardQuotesLoading,
-    dashboardQuotesError: st.dashboardQuotesError || '',
-    dashboardInquiries: (st.dashboardQuotes || []).map((q) => ({
-      key: q.id,
-      vendorName: q.vendorName,
-      eventType: q.eventType,
-      eventDate: q.eventDate,
-      venue: q.venue,
-      statusLabel: q.status === 'new' ? 'Sent' : q.status,
-      open: () =>
-        patch({ screen: 'supplier', supId: q.vendorId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
-    })),
-    hasDashboardInquiries: (st.dashboardQuotes || []).length > 0,
 
     vsiEmail: st.vsiEmail || '',
     setVsiEmail: (e) => patch({ vsiEmail: e.target.value, vsiError: null }),
@@ -2879,8 +2566,6 @@ export default function App() {
     // has opened Inquiries — there's no free-browse edit mode anymore, so
     // the dashboard never dumps a form on them unprompted.
     vdTab: st.vdTab || '',
-    vdInquiriesCount: (st.vdQuotes || []).length,
-    toggleVdInquiries: () => patch({ vdTab: st.vdTab === 'inquiries' ? '' : 'inquiries' }),
     vdSubmittedAt: (st.vdVendor && st.vdVendor.submittedAt) || null,
     vdSubmitting: !!st.vdSubmitting,
     vdSubmitError: st.vdSubmitError || '',
@@ -2920,7 +2605,7 @@ export default function App() {
     },
     goVdPublicProfile: () =>
       st.vdVendor &&
-      patch({ screen: 'supplier', supId: st.vdVendor.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0, inqName: '', inqEmail: '', inqPhone: '', inqEventType: '', inqEventTypeOther: '', inqEventDate: '', inqGuests: '', inqMessage: '', inqService: null, inqSubmitError: null, inqSent: false }),
+      patch({ screen: 'supplier', supId: st.vdVendor.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
     vdSignOut: async () => {
       if (supabase) await supabase.auth.signOut();
       patch({ signedIn: false, screen: 'home', authConfirmPending: false, authError: null, vdVendor: null });
@@ -3274,22 +2959,6 @@ export default function App() {
       }
     },
 
-    vdQuotesLoading: !!st.vdQuotesLoading,
-    vdQuotesError: st.vdQuotesError || '',
-    vdQuoteRows: (st.vdQuotes || []).map((q) => ({
-      key: q.id,
-      eventType: q.eventType,
-      eventDate: q.eventDate,
-      venue: q.venue,
-      contactName: q.contactName,
-      contactEmail: q.contactEmail,
-      contactPhone: q.contactPhone,
-      statusLabel: q.status === 'new' ? 'New' : q.status,
-      answerRows: Object.entries(q.categoryAnswers || {})
-        .filter(([, v]) => v)
-        .map(([k, v]) => ({ key: k, label: k, value: v })),
-    })),
-    hasVdQuotes: (st.vdQuotes || []).length > 0,
 
     isAdmin: st.screen === 'admin',
     adminIsAuthed: st.signedIn && st.email === ADMIN_EMAIL,
@@ -5556,12 +5225,6 @@ export default function App() {
                     {V.sup.isSaved ? '★ Saved' : '☆ Save'}
                   </button>
                 </div>
-                <button
-                  onClick={V.startQuote}
-                  style={{ marginTop: 10, display: 'block', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13.5, fontWeight: 700, color: '#5B5B5B', textDecoration: 'underline', textUnderlineOffset: '2px' }}
-                >
-                  Get a detailed quote instead →
-                </button>
             </div>
           </div>
 
@@ -6146,284 +5809,6 @@ export default function App() {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {V.supplierTab === 'inquire' && (
-                <div style={{ marginTop: 24, maxWidth: 520 }}>
-                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Check availability</h2>
-                  <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
-                    Send an inquiry directly to {V.sup.name}.
-                  </p>
-
-                  {V.inqSent ? (
-                    <div
-                      style={{
-                        marginTop: 20,
-                        border: '1px solid #16A34A',
-                        borderRadius: 18,
-                        background: '#F0FDF4',
-                        padding: '18px 20px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                      }}
-                    >
-                      <span
-                        style={{
-                          flexShrink: 0,
-                          width: 22,
-                          height: 22,
-                          borderRadius: '50%',
-                          background: '#16A34A',
-                          color: '#FFFFFF',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 13,
-                        }}
-                      >
-                        ✓
-                      </span>
-                      <div style={{ fontSize: 14, color: '#166534' }}>Your inquiry is on its way — {V.sup.name} will follow up soon.</div>
-                    </div>
-                  ) : (
-                    <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      {V.rentalCartHasItems && (
-                        <div style={{ border: '1px solid #ECECEC', borderRadius: 16, background: '#F7F7F5', padding: 14 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                            <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                              Your rental request
-                            </span>
-                            <button
-                              onClick={() => patch({ supplierTab: 'rentals' })}
-                              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '2px' }}
-                            >
-                              Edit
-                            </button>
-                          </div>
-                          <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                            {V.rentalCartItems.map((it) => (
-                              <span key={it.key} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#FFFFFF', padding: '6px 12px', fontSize: 12.5, fontWeight: 600, color: '#171717' }}>
-                                {it.label}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {V.inqServiceTiles.length > 0 && (
-                        <div>
-                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                            Which service are you interested in?
-                          </span>
-                          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                            {V.inqServiceTiles.map((t) => (
-                              <button
-                                key={t.key}
-                                onClick={t.pick}
-                                style={{
-                                  border: t.on ? '2px solid #171717' : '1px solid #E4E4DF',
-                                  borderRadius: 999,
-                                  background: t.on ? '#171717' : '#FFFFFF',
-                                  color: t.on ? '#FFFFFF' : '#171717',
-                                  padding: '9px 14px',
-                                  cursor: 'pointer',
-                                  fontSize: 13,
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {t.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                        <label style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Your name</span>
-                          <input
-                            type="text"
-                            value={V.inqName}
-                            onChange={V.setInqName}
-                            placeholder="e.g. Sarah Mitchell"
-                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
-                          />
-                        </label>
-                        <label style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Email address</span>
-                          <input
-                            type="email"
-                            value={V.inqEmail}
-                            onChange={V.setInqEmail}
-                            placeholder="sarah@example.com"
-                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
-                          />
-                        </label>
-                      </div>
-
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Phone (optional)</span>
-                        <input
-                          type="tel"
-                          value={V.inqPhone}
-                          onChange={V.setInqPhone}
-                          placeholder="e.g. 868 123 4567"
-                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
-                        />
-                      </label>
-
-                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                        <label style={{ flex: '1 1 160px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Event date (optional)</span>
-                          <input
-                            type="date"
-                            value={V.inqEventDate}
-                            onChange={V.setInqEventDate}
-                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
-                          />
-                        </label>
-                        <label style={{ flex: '1 1 160px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Guests (optional)</span>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={V.inqGuests}
-                            onChange={V.setInqGuests}
-                            placeholder="e.g. 150"
-                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
-                          />
-                        </label>
-                      </div>
-
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Event type (optional)</span>
-                        <select
-                          value={V.inqEventType}
-                          onChange={V.setInqEventType}
-                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
-                        >
-                          <option value="">Select type…</option>
-                          {EVENT_TYPES.map((t) => (
-                            <option key={t.key} value={t.key}>{t.label}</option>
-                          ))}
-                        </select>
-                        {V.inqEventType === 'other' && (
-                          <input
-                            type="text"
-                            value={V.inqEventTypeOther}
-                            onChange={V.setInqEventTypeOther}
-                            placeholder="Tell us what you're planning"
-                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717' }}
-                          />
-                        )}
-                      </label>
-
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Message (optional)</span>
-                        <textarea
-                          value={V.inqMessage}
-                          onChange={V.setInqMessage}
-                          placeholder="Tell them about your vision…"
-                          rows={4}
-                          style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, color: '#171717', resize: 'vertical' }}
-                        />
-                      </label>
-
-                      {V.inqServiceMissing && <div style={{ fontSize: 12, color: '#9A9A9A' }}>{V.inqServiceMissingLabel}</div>}
-                      {V.inqSubmitError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.inqSubmitError}</div>}
-
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                        {V.inqWaUrl && (V.inqNeedsAuth ? (
-                          <button
-                            onClick={V.signInToSendWa}
-                            style={{
-                              flex: '1 1 200px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              textAlign: 'center',
-                              border: 0,
-                              borderRadius: 999,
-                              background: '#25D366',
-                              color: '#FFFFFF',
-                              padding: '14px 20px',
-                              cursor: 'pointer',
-                              fontFamily: DISPLAY,
-                              fontSize: 14.5,
-                              fontWeight: 700,
-                            }}
-                          >
-                            Sign in to send via WhatsApp →
-                          </button>
-                        ) : V.inqWaDisabled ? (
-                          <div
-                            style={{
-                              flex: '1 1 200px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              textAlign: 'center',
-                              border: 0,
-                              borderRadius: 999,
-                              background: '#25D366',
-                              color: '#FFFFFF',
-                              padding: '14px 20px',
-                              fontFamily: DISPLAY,
-                              fontSize: 14.5,
-                              fontWeight: 700,
-                              opacity: 0.5,
-                            }}
-                          >
-                            Send via WhatsApp →
-                          </div>
-                        ) : (
-                          <a
-                            href={V.inqWaUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              flex: '1 1 200px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              textAlign: 'center',
-                              border: 0,
-                              borderRadius: 999,
-                              background: '#25D366',
-                              color: '#FFFFFF',
-                              padding: '14px 20px',
-                              cursor: 'pointer',
-                              fontFamily: DISPLAY,
-                              fontSize: 14.5,
-                              fontWeight: 700,
-                              textDecoration: 'none',
-                            }}
-                          >
-                            Send via WhatsApp →
-                          </a>
-                        ))}
-                        <button
-                          onClick={V.submitInlineInquiry}
-                          disabled={V.inqSubmitDisabled}
-                          style={{
-                            flex: '1 1 200px',
-                            border: 0,
-                            borderRadius: 999,
-                            background: '#171717',
-                            color: '#FFFFFF',
-                            padding: '14px 20px',
-                            cursor: V.inqSubmitDisabled ? 'not-allowed' : 'pointer',
-                            opacity: V.inqSubmitDisabled ? 0.5 : 1,
-                            fontSize: 14.5,
-                            fontWeight: 700,
-                          }}
-                        >
-                          {V.inqSubmitting ? 'Sending…' : V.signedIn ? 'Send inquiry' : 'Sign in to send inquiry'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -7451,66 +6836,6 @@ export default function App() {
             </div>
           )}
 
-          {V.isSignedIn && (
-            <div style={{ marginTop: 32 }}>
-              <h2 style={{ margin: 0, fontSize: 22, letterSpacing: '-0.02em', fontWeight: 800 }}>Inquiries made</h2>
-              {V.dashboardQuotesLoading && (
-                <div style={{ marginTop: 12, fontSize: 14, color: '#8A8A8A' }}>Loading…</div>
-              )}
-              {V.dashboardQuotesError && (
-                <div style={{ marginTop: 12, fontSize: 13, color: '#B3261E' }}>{V.dashboardQuotesError}</div>
-              )}
-              {!V.dashboardQuotesLoading && !V.hasDashboardInquiries && !V.dashboardQuotesError && (
-                <div style={{ marginTop: 12, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '32px 24px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 15, color: '#5B5B5B' }}>
-                    No quote requests yet. Message a vendor on WhatsApp or use Get a quote on their profile.
-                  </div>
-                </div>
-              )}
-              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {V.dashboardInquiries.map((q) => (
-                  <button
-                    key={q.key}
-                    onClick={q.open}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      textAlign: 'left',
-                      border: '1px solid #ECECEC',
-                      borderRadius: 20,
-                      background: 'transparent',
-                      padding: '16px 18px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                      <div style={{ fontSize: 15, fontWeight: 700 }}>{q.vendorName}</div>
-                      <span
-                        style={{
-                          fontFamily: MONO,
-                          fontSize: 10.5,
-                          letterSpacing: '0.06em',
-                          textTransform: 'uppercase',
-                          color: '#5B5B5B',
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 999,
-                          padding: '3px 10px',
-                        }}
-                      >
-                        {q.statusLabel}
-                      </span>
-                    </div>
-                    <div style={{ marginTop: 6, fontSize: 13, color: '#5B5B5B' }}>
-                      {q.eventType}
-                      {q.eventDate ? ' · ' + q.eventDate : ''}
-                      {q.venue ? ' · ' + q.venue : ''}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div style={{ marginTop: 32 }}>
             <h2 style={{ margin: 0, fontSize: 22, letterSpacing: '-0.02em', fontWeight: 800 }}>Saved</h2>
             {!V.hasSaved && !V.hasSavedVendors && (
@@ -8085,23 +7410,6 @@ export default function App() {
                       View public profile
                     </button>
                   )}
-                  {!V.vdGuidedOpen && (
-                    <button
-                      onClick={V.toggleVdInquiries}
-                      style={{
-                        border: `1px solid ${V.vdTab === 'inquiries' ? '#171717' : '#D7D7D2'}`,
-                        borderRadius: 999,
-                        background: V.vdTab === 'inquiries' ? '#171717' : 'transparent',
-                        color: V.vdTab === 'inquiries' ? '#FFFFFF' : '#5B5B5B',
-                        padding: '11px 18px',
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Inquiries ({V.vdInquiriesCount})
-                    </button>
-                  )}
                   <button
                     onClick={V.vdSignOut}
                     style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', color: '#5B5B5B', padding: '11px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
@@ -8117,11 +7425,7 @@ export default function App() {
                 </p>
               )}
 
-              {V.vdTab === 'inquiries' && !V.vdGuidedOpen && (
-                <h2 style={{ margin: '22px 0 0', fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, letterSpacing: '-0.01em' }}>Inquiries</h2>
-              )}
-
-              {!V.vdGuidedOpen && V.vdTab !== 'inquiries' && (
+              {!V.vdGuidedOpen && (
                 <div
                   style={{
                     marginTop: 18,
@@ -8512,59 +7816,6 @@ export default function App() {
                       {V.vdAddingPromo ? 'Adding…' : 'Add promo'}
                     </button>
                     {V.vdSaveError && <div style={{ marginTop: 8, fontSize: 12, color: '#B3261E' }}>{V.vdSaveError}</div>}
-                  </div>
-                </div>
-              )}
-
-              {V.vdTab === 'inquiries' && (
-                <div style={{ marginTop: 22 }}>
-                  {V.vdQuotesLoading && <div style={{ fontSize: 14, color: '#8A8A8A' }}>Loading…</div>}
-                  {V.vdQuotesError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.vdQuotesError}</div>}
-                  {!V.vdQuotesLoading && !V.hasVdQuotes && !V.vdQuotesError && (
-                    <div style={{ border: '1px dashed #D7D7D2', borderRadius: 24, padding: '32px 24px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 15, color: '#5B5B5B' }}>No quote requests yet. They'll show up here as planners reach out.</div>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {V.vdQuoteRows.map((q) => (
-                      <div key={q.key} style={{ border: '1px solid #ECECEC', borderRadius: 20, padding: '16px 18px' }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                          <div style={{ fontSize: 15, fontWeight: 700 }}>{q.contactName}</div>
-                          <span
-                            style={{
-                              fontFamily: MONO,
-                              fontSize: 10.5,
-                              letterSpacing: '0.06em',
-                              textTransform: 'uppercase',
-                              color: '#5B5B5B',
-                              border: '1px solid #E4E4DF',
-                              borderRadius: 999,
-                              padding: '3px 10px',
-                            }}
-                          >
-                            {q.statusLabel}
-                          </span>
-                        </div>
-                        <div style={{ marginTop: 6, fontSize: 13, color: '#5B5B5B' }}>
-                          {q.eventType}
-                          {q.eventDate ? ' · ' + q.eventDate : ''}
-                          {q.venue ? ' · ' + q.venue : ''}
-                        </div>
-                        <div style={{ marginTop: 6, fontSize: 13, color: '#8A8A8A' }}>
-                          {q.contactEmail}
-                          {q.contactPhone ? ' · ' + q.contactPhone : ''}
-                        </div>
-                        {q.answerRows.length > 0 && (
-                          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F2F2ED', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                            {q.answerRows.map((a) => (
-                              <div key={a.key} style={{ fontSize: 13, lineHeight: 1.5, color: '#4A4A4A' }}>
-                                <span style={{ fontWeight: 700 }}>{a.label}:</span> {a.value}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
                   </div>
                 </div>
               )}
@@ -10581,479 +9832,6 @@ export default function App() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {V.quoteModalOpen && (
-        <div
-          onClick={V.closeQuoteModal}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 50,
-            background: 'rgba(23,23,23,0.55)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: isMobile ? 12 : 24,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '100%',
-              maxWidth: 640,
-              maxHeight: '88vh',
-              overflowY: 'auto',
-              background: '#FFFFFF',
-              borderRadius: 28,
-              padding: isMobile ? 20 : 32,
-            }}
-          >
-            {V.quoteSent ? (
-              <>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-                  <h2 style={{ margin: 0, fontSize: isMobile ? 22 : 28, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
-                    Request sent
-                  </h2>
-                  <button
-                    onClick={V.closeQuoteModal}
-                    aria-label="Close"
-                    style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#6E6E6E', padding: 4, lineHeight: 1, flexShrink: 0 }}
-                  >
-                    ✕
-                  </button>
-                </div>
-                <p style={{ margin: '14px 0 0', fontSize: 15, lineHeight: 1.6, color: '#4A4A4A' }}>
-                  {V.sup.name} received your quote request and will message you back directly at {V.quoteContactEmail}.
-                </p>
-                <button
-                  onClick={V.closeQuoteModal}
-                  style={{
-                    marginTop: 22,
-                    width: '100%',
-                    border: 0,
-                    borderRadius: 999,
-                    background: '#171717',
-                    color: '#FFFFFF',
-                    padding: '15px 26px',
-                    cursor: 'pointer',
-                    fontSize: 15,
-                    fontWeight: 700,
-                  }}
-                >
-                  Done
-                </button>
-              </>
-            ) : (
-              <>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-                  <div>
-                    {V.quoteStep > 1 && (
-                      <button
-                        onClick={V.quoteStepBack}
-                        style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
-                      >
-                        ← Back
-                      </button>
-                    )}
-                    <div style={{ marginTop: V.quoteStep > 1 ? 10 : 0, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                      Step {V.quoteStep} of {V.quoteTotalSteps} · Quote from {V.sup.name}
-                    </div>
-                    <h2 style={{ margin: '6px 0 0', fontSize: isMobile ? 22 : 28, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
-                      {V.quoteStep === 1 && 'What are you planning for?'}
-                      {V.quoteStep === 2 && 'When is your event?'}
-                      {V.quoteStep === 3 && "What's the venue?"}
-                      {V.quoteStep === 4 && 'A few details'}
-                      {V.quoteStep === 5 && 'How should they reach you?'}
-                      {V.quoteStep === 6 && 'Review & submit'}
-                    </h2>
-                  </div>
-                  <button
-                    onClick={V.closeQuoteModal}
-                    aria-label="Close"
-                    style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#6E6E6E', padding: 4, lineHeight: 1, flexShrink: 0 }}
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {V.quoteStep === 1 && (
-                  <>
-                    <div
-                      style={{
-                        marginTop: 22,
-                        display: 'grid',
-                        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
-                        gap: 12,
-                      }}
-                    >
-                      {V.quoteEventTypeTiles.map((t) => (
-                        <button
-                          key={t.key}
-                          onClick={t.pick}
-                          style={{
-                            border: t.on ? '2px solid #171717' : '1px solid #E4E4DF',
-                            borderRadius: 16,
-                            background: t.on ? '#171717' : '#FFFFFF',
-                            color: t.on ? '#FFFFFF' : '#171717',
-                            padding: '18px 16px',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            fontSize: 15,
-                            fontWeight: 700,
-                          }}
-                        >
-                          {t.label}
-                        </button>
-                      ))}
-                    </div>
-                    {st.quoteEventType === 'other' && (
-                      <input
-                        type="text"
-                        value={V.quoteEventTypeOther}
-                        onChange={V.setQuoteEventTypeOther}
-                        placeholder="Tell us what you're planning"
-                        style={{
-                          marginTop: 14,
-                          width: '100%',
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 14,
-                          background: '#F7F7F5',
-                          padding: '11px 14px',
-                          fontFamily: SANS,
-                          fontSize: 14,
-                          color: '#171717',
-                        }}
-                      />
-                    )}
-                    <button
-                      onClick={V.quoteNextStep}
-                      disabled={!V.quoteStep1Valid}
-                      style={{
-                        marginTop: 22,
-                        width: '100%',
-                        border: 0,
-                        borderRadius: 999,
-                        background: '#171717',
-                        color: '#FFFFFF',
-                        padding: '15px 26px',
-                        cursor: V.quoteStep1Valid ? 'pointer' : 'not-allowed',
-                        opacity: V.quoteStep1Valid ? 1 : 0.4,
-                        fontSize: 15,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Continue →
-                    </button>
-                  </>
-                )}
-
-                {V.quoteStep === 2 && (
-                  <>
-                    <div style={{ marginTop: 18 }}>
-                      <input
-                        type="date"
-                        value={V.quoteEventDate}
-                        onChange={V.setQuoteEventDate}
-                        style={{
-                          width: '100%',
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 14,
-                          background: '#F7F7F5',
-                          padding: '11px 14px',
-                          fontFamily: SANS,
-                          fontSize: 14,
-                          color: '#171717',
-                        }}
-                      />
-                    </div>
-                    <button
-                      onClick={V.quoteNextStep}
-                      disabled={!V.quoteStep2Valid}
-                      style={{
-                        marginTop: 22,
-                        width: '100%',
-                        border: 0,
-                        borderRadius: 999,
-                        background: '#171717',
-                        color: '#FFFFFF',
-                        padding: '15px 26px',
-                        cursor: V.quoteStep2Valid ? 'pointer' : 'not-allowed',
-                        opacity: V.quoteStep2Valid ? 1 : 0.4,
-                        fontSize: 15,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Continue →
-                    </button>
-                  </>
-                )}
-
-                {V.quoteStep === 3 && (
-                  <>
-                    <div style={{ marginTop: 18 }}>
-                      <input
-                        type="text"
-                        value={V.quoteVenue}
-                        onChange={V.setQuoteVenue}
-                        placeholder="Venue name or address"
-                        style={{
-                          width: '100%',
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 14,
-                          background: '#F7F7F5',
-                          padding: '11px 14px',
-                          fontFamily: SANS,
-                          fontSize: 14,
-                          color: '#171717',
-                        }}
-                      />
-                    </div>
-                    <button
-                      onClick={V.quoteNextStep}
-                      disabled={!V.quoteStep3Valid}
-                      style={{
-                        marginTop: 22,
-                        width: '100%',
-                        border: 0,
-                        borderRadius: 999,
-                        background: '#171717',
-                        color: '#FFFFFF',
-                        padding: '15px 26px',
-                        cursor: V.quoteStep3Valid ? 'pointer' : 'not-allowed',
-                        opacity: V.quoteStep3Valid ? 1 : 0.4,
-                        fontSize: 15,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Continue →
-                    </button>
-                  </>
-                )}
-
-                {V.quoteStep === 4 && (
-                  <>
-                    <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
-                      Optional — helps {V.sup.name} put together an accurate quote.
-                    </p>
-                    <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      {V.quoteCategoryFields.map((f) => (
-                        <div key={f.k}>
-                          <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                            {f.label}
-                          </div>
-                          {f.type === 'choice' ? (
-                            <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                              {f.options.map((opt) => (
-                                <button
-                                  key={opt}
-                                  onClick={V.pickQuoteAnswer(f.k, opt)}
-                                  style={{
-                                    border: V.quoteAnswer(f.k) === opt ? '2px solid #171717' : '1px solid #E4E4DF',
-                                    borderRadius: 999,
-                                    background: V.quoteAnswer(f.k) === opt ? '#171717' : '#FFFFFF',
-                                    color: V.quoteAnswer(f.k) === opt ? '#FFFFFF' : '#171717',
-                                    padding: '9px 16px',
-                                    cursor: 'pointer',
-                                    fontSize: 13,
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  {opt}
-                                </button>
-                              ))}
-                            </div>
-                          ) : (
-                            <input
-                              type="text"
-                              value={V.quoteAnswer(f.k)}
-                              onChange={V.setQuoteAnswer(f.k)}
-                              placeholder={f.ph || ''}
-                              style={{
-                                marginTop: 8,
-                                width: '100%',
-                                border: '1px solid #E4E4DF',
-                                borderRadius: 14,
-                                background: '#F7F7F5',
-                                padding: '11px 14px',
-                                fontFamily: SANS,
-                                fontSize: 14,
-                                color: '#171717',
-                              }}
-                            />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      onClick={V.quoteNextStep}
-                      style={{
-                        marginTop: 22,
-                        width: '100%',
-                        border: 0,
-                        borderRadius: 999,
-                        background: '#171717',
-                        color: '#FFFFFF',
-                        padding: '15px 26px',
-                        cursor: 'pointer',
-                        fontSize: 15,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Continue →
-                    </button>
-                  </>
-                )}
-
-                {V.quoteStep === 5 && (
-                  <>
-                    <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      <div>
-                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                          Your name
-                        </div>
-                        <input
-                          type="text"
-                          value={V.quoteContactName}
-                          onChange={V.setQuoteContactName}
-                          placeholder="Full name"
-                          style={{
-                            marginTop: 8,
-                            width: '100%',
-                            border: '1px solid #E4E4DF',
-                            borderRadius: 14,
-                            background: '#F7F7F5',
-                            padding: '11px 14px',
-                            fontFamily: SANS,
-                            fontSize: 14,
-                            color: '#171717',
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                          Email
-                        </div>
-                        <input
-                          type="email"
-                          value={V.quoteContactEmail}
-                          onChange={V.setQuoteContactEmail}
-                          placeholder="you@organisation.tt"
-                          style={{
-                            marginTop: 8,
-                            width: '100%',
-                            border: '1px solid #E4E4DF',
-                            borderRadius: 14,
-                            background: '#F7F7F5',
-                            padding: '11px 14px',
-                            fontFamily: SANS,
-                            fontSize: 14,
-                            color: '#171717',
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                          Phone number (optional)
-                        </div>
-                        <input
-                          type="tel"
-                          value={V.quoteContactPhone}
-                          onChange={V.setQuoteContactPhone}
-                          placeholder="e.g. 868 123 4567"
-                          style={{
-                            marginTop: 8,
-                            width: '100%',
-                            border: '1px solid #E4E4DF',
-                            borderRadius: 14,
-                            background: '#F7F7F5',
-                            padding: '11px 14px',
-                            fontFamily: SANS,
-                            fontSize: 14,
-                            color: '#171717',
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <button
-                      onClick={V.quoteNextStep}
-                      disabled={!V.quoteStep5Valid}
-                      style={{
-                        marginTop: 22,
-                        width: '100%',
-                        border: 0,
-                        borderRadius: 999,
-                        background: '#171717',
-                        color: '#FFFFFF',
-                        padding: '15px 26px',
-                        cursor: V.quoteStep5Valid ? 'pointer' : 'not-allowed',
-                        opacity: V.quoteStep5Valid ? 1 : 0.4,
-                        fontSize: 15,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Continue →
-                    </button>
-                  </>
-                )}
-
-                {V.quoteStep === 6 && (
-                  <>
-                    <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      <div style={{ borderRadius: 16, background: '#F7F7F5', padding: '14px 16px' }}>
-                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Event</div>
-                        <div style={{ marginTop: 4, fontSize: 14, fontWeight: 600 }}>{V.quoteEventLabel}</div>
-                      </div>
-                      <div style={{ borderRadius: 16, background: '#F7F7F5', padding: '14px 16px' }}>
-                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Date</div>
-                        <div style={{ marginTop: 4, fontSize: 14, fontWeight: 600 }}>{V.quoteEventDate}</div>
-                      </div>
-                      <div style={{ borderRadius: 16, background: '#F7F7F5', padding: '14px 16px' }}>
-                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Venue</div>
-                        <div style={{ marginTop: 4, fontSize: 14, fontWeight: 600 }}>{V.quoteVenue}</div>
-                      </div>
-                      {V.quoteReviewAnswers.map((r) => (
-                        <div key={r.key} style={{ borderRadius: 16, background: '#F7F7F5', padding: '14px 16px' }}>
-                          <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>{r.label}</div>
-                          <div style={{ marginTop: 4, fontSize: 14, fontWeight: 600 }}>{r.value}</div>
-                        </div>
-                      ))}
-                      <div style={{ borderRadius: 16, background: '#F7F7F5', padding: '14px 16px' }}>
-                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Contact</div>
-                        <div style={{ marginTop: 4, fontSize: 14, fontWeight: 600 }}>
-                          {V.quoteContactName} · {V.quoteContactEmail}
-                          {V.quoteContactPhone ? ' · ' + V.quoteContactPhone : ''}
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={V.submitQuote}
-                      disabled={V.quoteSubmitting}
-                      style={{
-                        marginTop: 22,
-                        width: '100%',
-                        border: 0,
-                        borderRadius: 999,
-                        background: ACCENT,
-                        color: '#FFFFFF',
-                        padding: '15px 26px',
-                        cursor: V.quoteSubmitting ? 'not-allowed' : 'pointer',
-                        opacity: V.quoteSubmitting ? 0.6 : 1,
-                        fontSize: 15,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {V.quoteSubmitting ? 'Sending…' : 'Send request →'}
-                    </button>
-                    {V.quoteSubmitError && (
-                      <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#B3261E' }}>{V.quoteSubmitError}</div>
-                    )}
-                  </>
-                )}
-              </>
-            )}
           </div>
         </div>
       )}
