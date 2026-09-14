@@ -2088,10 +2088,14 @@ export default function App() {
       description: sup.bio,
       about: sup.desc,
       categoryName: catName(sup.code),
+      city: sup.city,
+      region: sup.region && sup.region !== sup.city ? sup.region : '',
+      tags: sup.tags || [],
       verified: !!sup.verified,
       ratingLabel: sup.rating,
       startPriceLabel: sup.priceOnRequest ? 'Price on request' : startPrice(sup) === null ? '' : 'From ' + money(startPrice(sup)),
       responseLabel: sup.response || '',
+      galleryPreview: (sup.gallery || []).slice(0, 3).map((g) => g.photoUrl),
       facts: [
         { label: 'Based in', value: sup.city },
         sup.addressLine1
@@ -5302,72 +5306,50 @@ export default function App() {
           >
             ← {V.sup.categoryName}
           </button>
-          <div style={{ marginTop: 22, position: 'relative', borderRadius: 24, overflow: 'hidden', height: isMobile ? 200 : 320 }}>
-            <div
-              style={{
-                display: 'flex',
-                width: '100%',
-                height: '100%',
-                transform: `translateX(-${V.sup.carouselIndex * 100}%)`,
-                transition: 'transform 0.7s ease',
-              }}
-            >
-              {V.sup.carouselPhotos.map((src, i) => (
-                <img
-                  key={i}
-                  src={src}
-                  alt={V.sup.name + ' photo ' + (i + 1)}
-                  loading={i === 0 ? undefined : 'lazy'}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', flex: '0 0 100%' }}
-                />
-              ))}
-            </div>
-            {V.sup.carouselPhotos.length > 1 && (
-              <div style={{ position: 'absolute', bottom: 14, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 6 }}>
-                {V.sup.carouselPhotos.map((_, i) => (
-                  <span
+          <div style={{ marginTop: 22, border: '1px solid #ECECEC', borderRadius: 24, overflow: 'hidden' }}>
+            <div style={{ position: 'relative', height: isMobile ? 220 : 340 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  width: '100%',
+                  height: '100%',
+                  transform: `translateX(-${V.sup.carouselIndex * 100}%)`,
+                  transition: 'transform 0.7s ease',
+                }}
+              >
+                {V.sup.carouselPhotos.map((src, i) => (
+                  <img
                     key={i}
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: 999,
-                      background: i === V.sup.carouselIndex ? '#FFFFFF' : 'rgba(255,255,255,0.45)',
-                    }}
+                    src={src}
+                    alt={V.sup.name + ' photo ' + (i + 1)}
+                    loading={i === 0 ? undefined : 'lazy'}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', flex: '0 0 100%' }}
                   />
                 ))}
               </div>
-            )}
-          </div>
-          <div style={{ marginTop: 20 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ position: 'relative', border: '1px solid #ECECEC', borderRadius: 24, padding: isMobile ? 20 : 28 }}>
-                <img
-                  src={V.sup.logo}
-                  alt={V.sup.name + ' logo'}
-                  style={{ position: 'absolute', top: -32, left: isMobile ? 20 : 28, width: 64, height: 64, borderRadius: 999, border: '4px solid #FFFFFF', background: '#171717', display: 'block' }}
-                />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <button
-                      onClick={V.sup.toggleSaved}
-                      aria-label={V.sup.isSaved ? 'Unsave vendor' : 'Save vendor'}
-                      title={V.sup.isSaved ? 'Unsave vendor' : 'Save vendor'}
+              {V.sup.carouselPhotos.length > 1 && (
+                <div style={{ position: 'absolute', bottom: 14, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 6 }}>
+                  {V.sup.carouselPhotos.map((_, i) => (
+                    <span
+                      key={i}
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 38,
-                        height: 38,
-                        border: '1px solid #E4E4DF',
+                        width: 6,
+                        height: 6,
                         borderRadius: 999,
-                        background: V.sup.isSaved ? '#171717' : '#FFFFFF',
-                        color: V.sup.isSaved ? '#FFFFFF' : '#171717',
-                        cursor: 'pointer',
+                        background: i === V.sup.carouselIndex ? '#FFFFFF' : 'rgba(255,255,255,0.45)',
                       }}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill={V.sup.isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                      </svg>
-                    </button>
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ position: 'relative', background: '#FFFFFF', padding: isMobile ? '20px 20px 24px' : '28px 28px 32px' }}>
+              <img
+                src={V.sup.logo}
+                alt={V.sup.name + ' logo'}
+                style={{ position: 'absolute', top: -32, left: isMobile ? 20 : 28, width: 64, height: 64, borderRadius: 999, border: '4px solid #FFFFFF', background: '#171717', display: 'block' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <button
                       onClick={V.sup.share}
                       aria-label="Share vendor"
@@ -5440,137 +5422,152 @@ export default function App() {
                       </a>
                     ))}
                   </div>
-                <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                  <h1 style={{ margin: 0, fontSize: isMobile ? 26 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Meet {V.sup.name}</h1>
-                  {V.sup.verified && (
-                    <span
-                      title="Verified vendor"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        border: '1px solid #171717',
-                        borderRadius: 999,
-                        background: '#171717',
-                        color: '#FFFFFF',
-                        padding: '4px 11px',
-                        fontSize: 12,
-                        fontWeight: 700,
-                      }}
-                    >
-                      ✓ Verified
-                    </span>
-                  )}
-                </div>
-                <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                    <h1 style={{ margin: 0, fontSize: isMobile ? 26 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.sup.name}</h1>
+                    {V.sup.verified && (
+                      <span
+                        title="Verified vendor"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          border: '1px solid #171717',
+                          borderRadius: 999,
+                          background: '#171717',
+                          color: '#FFFFFF',
+                          padding: '4px 11px',
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        ✓ Verified
+                      </span>
+                    )}
+                  </div>
                   <span
                     style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 7,
+                      flexShrink: 0,
                       border: '1px solid #E4E4DF',
                       borderRadius: 999,
                       background: '#F7F7F5',
-                      padding: '6px 14px',
-                      fontSize: 12.5,
+                      padding: '7px 14px',
+                      fontFamily: MONO,
+                      fontSize: 11,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
                       fontWeight: 700,
-                      color: '#171717',
+                      color: '#5B5B5B',
                     }}
                   >
-                    {V.sup.categoryName}
+                    <span style={{ width: 7, height: 7, borderRadius: 999, background: '#1E7A32', flexShrink: 0 }} />
+                    Taking bookings
                   </span>
-                  {V.sup.ratingLabel && (
-                    <span
-                      style={{
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 999,
-                        background: '#F7F7F5',
-                        padding: '6px 14px',
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        color: '#171717',
-                      }}
-                    >
-                      ★ {V.sup.ratingLabel}
-                    </span>
-                  )}
-                  {V.sup.startPriceLabel && (
-                    <span
-                      style={{
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 999,
-                        background: '#F7F7F5',
-                        padding: '6px 14px',
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        color: '#171717',
-                      }}
-                    >
-                      {V.sup.startPriceLabel}
-                    </span>
-                  )}
-                  {V.sup.responseLabel && (
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 999,
-                        background: '#F7F7F5',
-                        padding: '6px 14px',
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        color: '#1E7A32',
-                      }}
-                    >
-                      ⚡ {V.sup.responseLabel}
-                    </span>
-                  )}
                 </div>
+                <div style={{ marginTop: 8, fontFamily: MONO, fontSize: 12, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                  {V.sup.city}
+                  {V.sup.region ? ' · ' + V.sup.region : ''}
+                  {V.sup.categoryName ? ' · ' + V.sup.categoryName : ''}
+                </div>
+                {(V.sup.ratingLabel || V.sup.startPriceLabel || V.sup.responseLabel) && (
+                  <div style={{ marginTop: 6, fontSize: 13, color: '#5B5B5B' }}>
+                    {[V.sup.ratingLabel && '★ ' + V.sup.ratingLabel, V.sup.startPriceLabel, V.sup.responseLabel].filter(Boolean).join('  ·  ')}
+                  </div>
+                )}
                 <p style={{ margin: '14px 0 0', maxWidth: 620, fontSize: 16, lineHeight: 1.55, color: '#4A4A4A' }}>{V.sup.description}</p>
-                <div style={{ marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {V.sup.tags.length > 0 && (
+                  <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {V.sup.tags.map((t) => (
+                      <span
+                        key={t}
+                        style={{
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 999,
+                          padding: '6px 14px',
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          color: '#171717',
+                        }}
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {V.sup.galleryPreview.length > 0 && (
+                  <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: `repeat(${V.sup.galleryPreview.length}, 1fr)`, gap: 10 }}>
+                    {V.sup.galleryPreview.map((src, i) => (
+                      <img
+                        key={i}
+                        src={src}
+                        alt={V.sup.name + ' gallery photo ' + (i + 1)}
+                        loading="lazy"
+                        style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: 14, display: 'block' }}
+                      />
+                    ))}
+                  </div>
+                )}
+                <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                   {V.sup.whatsappUrl && (
                     <button
                       onClick={V.openWaModal}
                       style={{
+                        flex: '2 1 200px',
                         display: 'inline-flex',
                         alignItems: 'center',
+                        justifyContent: 'center',
                         gap: 6,
                         border: 0,
                         borderRadius: 999,
                         background: '#25D366',
                         color: '#FFFFFF',
-                        padding: '10px 18px',
+                        padding: '15px 22px',
                         cursor: 'pointer',
                         fontFamily: DISPLAY,
-                        fontSize: 13.5,
-                        fontWeight: 600,
+                        fontSize: 14.5,
+                        fontWeight: 700,
                       }}
                     >
                       Message on WhatsApp →
                     </button>
                   )}
                   <button
-                    onClick={V.startQuote}
+                    onClick={V.sup.toggleSaved}
                     style={{
+                      flex: '1 1 120px',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 8,
-                      border: '1px solid #171717',
+                      justifyContent: 'center',
+                      gap: 6,
+                      border: '1px solid #D7D7D2',
                       borderRadius: 999,
-                      background: '#171717',
-                      color: '#FFFFFF',
-                      padding: '13px 24px',
+                      background: V.sup.isSaved ? '#171717' : 'transparent',
+                      color: V.sup.isSaved ? '#FFFFFF' : '#171717',
+                      padding: '15px 20px',
                       cursor: 'pointer',
                       fontFamily: DISPLAY,
-                      fontSize: 15,
+                      fontSize: 14.5,
                       fontWeight: 700,
                     }}
                   >
-                    Get a quote →
+                    {V.sup.isSaved ? '★ Saved' : '☆ Save'}
                   </button>
                 </div>
-              </div>
+                <button
+                  onClick={V.startQuote}
+                  style={{ marginTop: 10, display: 'block', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13.5, fontWeight: 700, color: '#5B5B5B', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                >
+                  Get a detailed quote instead →
+                </button>
+            </div>
+          </div>
 
-              <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', gap: 8, borderBottom: '1px solid #ECECEC', paddingBottom: 16 }}>
+          <div style={{ marginTop: 20 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, borderBottom: '1px solid #ECECEC', paddingBottom: 16 }}>
                 {V.supplierTabs.map((t) => (
                   <button
                     key={t.key}
