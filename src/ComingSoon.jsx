@@ -89,7 +89,7 @@ export default function ComingSoon() {
           Eventory
         </div>
         <p style={{ margin: '14px 0 0', fontSize: 17, lineHeight: 1.55, color: 'rgba(255,255,255,0.88)' }}>
-          One place to find and book every vendor for your next event — caterers, venues, photographers and more.
+          One place to find and book every vendor for your next event: caterers, venues, photographers and more.
           We're putting the finishing touches on it.
         </p>
 
@@ -176,8 +176,24 @@ export default function ComingSoon() {
         )}
 
         <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.55)' }}>
-          No spam — just one email when we're live.
+          No spam, just one email when we're live.
         </div>
+        <a
+          href="https://www.re5agency.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            marginTop: 10,
+            display: 'inline-block',
+            fontFamily: MONO,
+            fontSize: 11,
+            letterSpacing: '0.06em',
+            color: 'rgba(255,255,255,0.55)',
+            textDecoration: 'none',
+          }}
+        >
+          By Re5Agency
+        </a>
       </div>
     </div>
   );
