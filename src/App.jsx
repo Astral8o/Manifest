@@ -30,8 +30,6 @@ import {
   updateVendorProfile,
   addVendorPackage,
   removeVendorPackage,
-  addVendorAddon,
-  removeVendorAddon,
   addVendorGalleryPhoto,
   removeVendorGalleryPhoto,
   addVendorMenuItem,
@@ -1164,7 +1162,7 @@ export default function App() {
                 ...(parsed.supId ? { supId: parsed.supId } : {}),
                 ...(parsed.supplierTab ? { supplierTab: parsed.supplierTab } : {}),
                 ...(parsed.openWa
-                  ? { waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null }
+                  ? { waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null, waAddons: [] }
                   : {}),
               };
             }
@@ -1359,6 +1357,7 @@ export default function App() {
       photoUrl: p[8] || '',
       inclusions: p[9] || [],
       type: p[10] || 'package',
+      addons: p[11] || [],
       priceOnRequest: !!s.priceOnRequest,
     }));
   // Resolves a single product id ("<vendorId>-<index>") against whichever
@@ -1545,12 +1544,6 @@ export default function App() {
     .map((p) => ({ id: p.id, name: p.name, unit: p.unit, priceMin: p.min, qty: rentalQty(p.id) }))
     .filter((r) => r.qty > 0);
   const rentalCartSummary = rentalCartItems.map((r) => r.qty + '× ' + r.name).join(', ');
-  // Vendor-level optional extras (e.g. a décor vendor's "Flowers", "LED
-  // Numbers") — not tied to any one package, so a buyer can tack any of
-  // them onto whichever package or rental they're asking about.
-  const selectedAddonNames = (sup.addons || [])
-    .filter((a) => (st.selectedAddons || []).indexOf(a.name) >= 0)
-    .map((a) => a.name);
   const socialUrl = (platform, handle) => {
     if (!handle) return null;
     const h = handle
@@ -2011,17 +2004,6 @@ export default function App() {
       startPriceLabel: sup.priceOnRequest ? 'Price on request' : startPrice(sup) === null ? '' : 'From ' + money(startPrice(sup)),
       responseLabel: sup.response || '',
       galleryPreview: (sup.gallery || []).slice(0, 3).map((g) => g.photoUrl),
-      addonTiles: (sup.addons || []).map((a) => ({
-        key: a.name,
-        name: a.name,
-        priceLabel: a.price === null || a.price === undefined ? 'Ask for pricing' : '+' + money(a.price),
-        selected: (st.selectedAddons || []).indexOf(a.name) >= 0,
-        toggle: () =>
-          patch((s) => {
-            const cur = s.selectedAddons || [];
-            return { selectedAddons: cur.indexOf(a.name) >= 0 ? cur.filter((n) => n !== a.name) : cur.concat([a.name]) };
-          }),
-      })),
       facts: [
         { label: 'Based in', value: sup.city },
         sup.addressLine1
@@ -2066,7 +2048,7 @@ export default function App() {
     aboutExpanded: !!st.aboutExpanded,
     toggleAboutExpanded: () => patch((s) => ({ aboutExpanded: !s.aboutExpanded })),
 
-    openWaModal: () => {
+    openWaModal: (preselectService) => {
       if (!st.signedIn) {
         try {
           localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: 'supplier', supId: sup.id, openWa: true }));
@@ -2076,7 +2058,7 @@ export default function App() {
         patch({ screen: 'account', navMenuOpen: false });
         return;
       }
-      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null });
+      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: preselectService || null, waAddons: [] });
     },
     closeWaModal: () => patch({ waModalOpen: false }),
     waModalOpen: !!st.waModalOpen,
@@ -2098,8 +2080,28 @@ export default function App() {
       key: p.name,
       label: p.name,
       on: st.waService === p.name,
-      pick: () => patch({ waService: st.waService === p.name ? null : p.name }),
+      // Add-ons are per-package, so switching which package this inquiry
+      // is about clears any add-ons picked for the previous one.
+      pick: () => patch({ waService: st.waService === p.name ? null : p.name, waAddons: [] }),
     })),
+    // Only the currently-selected package's own add-ons are offered — a
+    // décor vendor's "Flowers" on one package doesn't imply it's available
+    // on another package that never listed it.
+    waAddonTiles: (() => {
+      const selected = packageProducts.find((p) => p.name === st.waService);
+      if (!selected) return [];
+      return (selected.addons || []).map((a) => ({
+        key: a.name,
+        label: a.name,
+        priceLabel: a.price === null || a.price === undefined ? 'Ask for pricing' : '+' + money(a.price),
+        selected: (st.waAddons || []).indexOf(a.name) >= 0,
+        toggle: () =>
+          patch((s) => {
+            const cur = s.waAddons || [];
+            return { waAddons: cur.indexOf(a.name) >= 0 ? cur.filter((n) => n !== a.name) : cur.concat([a.name]) };
+          }),
+      }));
+    })(),
     waSendDisabled: !st.waEventType || (st.waEventType === 'other' && !(st.waEventTypeOther || '').trim()),
     waSendUrl: sup.phone
       ? 'https://wa.me/' +
@@ -2115,7 +2117,7 @@ export default function App() {
             venue: st.waVenue,
             attendees: st.waAttendees,
             service: rentalCartItems.length ? rentalCartSummary : st.waService,
-            addons: selectedAddonNames,
+            addons: st.waAddons || [],
           })
         )
       : null,
@@ -2270,6 +2272,7 @@ export default function App() {
       descriptionLong: (p.description || '').length > 220,
       openDetails: () => patch({ openPackageId: p.id }),
       inclusions: p.inclusions || [],
+      addons: p.addons || [],
       priceLabel: priceLabel(p),
       saved: (st.saved || []).indexOf(p.id) >= 0,
       saveLabel: (st.saved || []).indexOf(p.id) >= 0 ? '★ Saved' : '☆ Save',
@@ -2290,6 +2293,7 @@ export default function App() {
         name: p.name,
         description: p.description,
         inclusions: p.inclusions || [],
+        addons: p.addons || [],
         priceLabel: priceLabel(p),
         saved: (st.saved || []).indexOf(p.id) >= 0,
         saveLabel: (st.saved || []).indexOf(p.id) >= 0 ? '★ Saved' : '☆ Save',
@@ -2339,7 +2343,7 @@ export default function App() {
         patch({ screen: 'account', navMenuOpen: false });
         return;
       }
-      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null });
+      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null, waAddons: [] });
     },
 
     email: st.email || '',
@@ -2756,6 +2760,23 @@ export default function App() {
       patch((s) => ({ vdPkgInclusions: (s.vdPkgInclusions || []).concat([text]), vdPkgInclusionDraft: '' }));
     },
     removeVdPkgInclusion: (i) => patch((s) => ({ vdPkgInclusions: (s.vdPkgInclusions || []).filter((_, idx) => idx !== i) })),
+    vdPkgAddons: st.vdPkgAddons || [],
+    vdPkgAddonName: st.vdPkgAddonName || '',
+    setVdPkgAddonName: (e) => patch({ vdPkgAddonName: e.target.value }),
+    vdPkgAddonPrice: st.vdPkgAddonPrice || '',
+    setVdPkgAddonPrice: (e) => patch({ vdPkgAddonPrice: e.target.value }),
+    addVdPkgAddonDisabled: !(st.vdPkgAddonName || '').trim(),
+    addVdPkgAddon: () => {
+      const name = (st.vdPkgAddonName || '').trim();
+      if (!name) return;
+      const price = st.vdPkgAddonPrice === '' ? null : Number(st.vdPkgAddonPrice);
+      patch((s) => ({
+        vdPkgAddons: (s.vdPkgAddons || []).concat([{ name, price }]),
+        vdPkgAddonName: '',
+        vdPkgAddonPrice: '',
+      }));
+    },
+    removeVdPkgAddon: (i) => patch((s) => ({ vdPkgAddons: (s.vdPkgAddons || []).filter((_, idx) => idx !== i) })),
     vdPkgUnit: st.vdPkgUnit || '',
     setVdPkgUnit: (e) => patch({ vdPkgUnit: e.target.value }),
     vdPkgMinQty: st.vdPkgMinQty || '',
@@ -2796,6 +2817,7 @@ export default function App() {
           type,
           description: (st.vdPkgDescription || '').trim(),
           inclusions: st.vdPkgInclusions || [],
+          addons: st.vdPkgAddons || [],
           priceMin: Number(st.vdPkgPriceMin),
           priceMax: Number(st.vdPkgPriceMax),
           unit: type === 'rental_item' ? unit : undefined,
@@ -2810,6 +2832,9 @@ export default function App() {
           vdPkgDescription: '',
           vdPkgInclusions: [],
           vdPkgInclusionDraft: '',
+          vdPkgAddons: [],
+          vdPkgAddonName: '',
+          vdPkgAddonPrice: '',
           vdPkgUnit: '',
           vdPkgMinQty: '',
           vdPkgPriceMin: '',
@@ -2818,7 +2843,7 @@ export default function App() {
           vdVendor: {
             ...s.vdVendor,
             packages: s.vdVendor.packages.concat([
-              { id: row.id, name: row.name, type: row.type || 'package', description: row.description || '', priceMin: Number(row.price_min), priceMax: Number(row.price_max), unit: row.unit, minQty: Number(row.min_qty) || 1, photoUrl: row.photo_url || '', inclusions: row.inclusions || [] },
+              { id: row.id, name: row.name, type: row.type || 'package', description: row.description || '', priceMin: Number(row.price_min), priceMax: Number(row.price_max), unit: row.unit, minQty: Number(row.min_qty) || 1, photoUrl: row.photo_url || '', inclusions: row.inclusions || [], addons: (row.addons || []).map((a) => ({ name: a.name, price: a.price === null || a.price === undefined ? null : Number(a.price) })) },
             ]),
           },
         }));
@@ -2832,45 +2857,6 @@ export default function App() {
         patch((s) => ({ vdVendor: { ...s.vdVendor, packages: s.vdVendor.packages.filter((p) => p.id !== id) } }));
       } catch (err) {
         patch({ vdSaveError: err.message || 'Could not remove package.' });
-      }
-    },
-
-    vdAddonName: st.vdAddonName || '',
-    setVdAddonName: (e) => patch({ vdAddonName: e.target.value }),
-    vdAddonPrice: st.vdAddonPrice || '',
-    setVdAddonPrice: (e) => patch({ vdAddonPrice: e.target.value }),
-    vdAddingAddon: !!st.vdAddingAddon,
-    vdAddAddonDisabled: !(st.vdAddonName || '').trim() || !!st.vdAddingAddon,
-    addVdAddon: async () => {
-      const name = (st.vdAddonName || '').trim();
-      if (!name || st.vdAddingAddon || !st.vdVendor) return;
-      patch({ vdAddingAddon: true, vdSaveError: null });
-      try {
-        const price = st.vdAddonPrice === '' ? null : Number(st.vdAddonPrice);
-        const row = await addVendorAddon(st.vdVendor.id, {
-          name,
-          price,
-          sortOrder: (st.vdVendor.addons || []).length,
-        });
-        patch((s) => ({
-          vdAddingAddon: false,
-          vdAddonName: '',
-          vdAddonPrice: '',
-          vdVendor: {
-            ...s.vdVendor,
-            addons: (s.vdVendor.addons || []).concat([{ id: row.id, name: row.name, price: row.price === null ? null : Number(row.price) }]),
-          },
-        }));
-      } catch (err) {
-        patch({ vdAddingAddon: false, vdSaveError: err.message || 'Could not add add-on.' });
-      }
-    },
-    removeVdAddon: (id) => async () => {
-      try {
-        await removeVendorAddon(id);
-        patch((s) => ({ vdVendor: { ...s.vdVendor, addons: (s.vdVendor.addons || []).filter((a) => a.id !== id) } }));
-      } catch (err) {
-        patch({ vdSaveError: err.message || 'Could not remove add-on.' });
       }
     },
 
@@ -3200,13 +3186,13 @@ export default function App() {
         adminPkgDescription: '',
         adminPkgInclusions: [],
         adminPkgInclusionDraft: '',
+        adminPkgAddons: [],
+        adminPkgAddonName: '',
+        adminPkgAddonPrice: '',
         adminPkgPriceMin: '',
         adminPkgPriceMax: '',
         adminPkgUnit: '',
         adminPkgMinQty: '',
-        adminAddons: [],
-        adminAddonName: '',
-        adminAddonPrice: '',
         adminFaqs: DEFAULT_FAQ_TEMPLATES.map((f) => ({ ...f })),
         adminPaymentTerms: '',
         adminDepositTerms: '',
@@ -3260,13 +3246,13 @@ export default function App() {
           adminPkgDescription: '',
           adminPkgInclusions: [],
           adminPkgInclusionDraft: '',
+          adminPkgAddons: [],
+          adminPkgAddonName: '',
+          adminPkgAddonPrice: '',
           adminPkgPriceMin: '',
           adminPkgPriceMax: '',
           adminPkgUnit: '',
           adminPkgMinQty: '',
-          adminAddons: v.addons || [],
-          adminAddonName: '',
-          adminAddonPrice: '',
           adminFaqs: v.faqs.length ? v.faqs : DEFAULT_FAQ_TEMPLATES.map((f) => ({ ...f })),
           adminPaymentTerms: v.paymentTerms,
           adminDepositTerms: v.depositTerms,
@@ -3461,6 +3447,23 @@ export default function App() {
       patch((s) => ({ adminPkgInclusions: (s.adminPkgInclusions || []).concat([text]), adminPkgInclusionDraft: '' }));
     },
     removeAdminPkgInclusion: (i) => patch((s) => ({ adminPkgInclusions: (s.adminPkgInclusions || []).filter((_, idx) => idx !== i) })),
+    adminPkgAddons: st.adminPkgAddons || [],
+    adminPkgAddonName: st.adminPkgAddonName || '',
+    setAdminPkgAddonName: (e) => patch({ adminPkgAddonName: e.target.value }),
+    adminPkgAddonPrice: st.adminPkgAddonPrice || '',
+    setAdminPkgAddonPrice: (e) => patch({ adminPkgAddonPrice: e.target.value }),
+    addAdminPkgAddonDisabled: !(st.adminPkgAddonName || '').trim(),
+    addAdminPkgAddon: () => {
+      const name = (st.adminPkgAddonName || '').trim();
+      if (!name) return;
+      const price = st.adminPkgAddonPrice === '' ? null : Number(st.adminPkgAddonPrice);
+      patch((s) => ({
+        adminPkgAddons: (s.adminPkgAddons || []).concat([{ name, price }]),
+        adminPkgAddonName: '',
+        adminPkgAddonPrice: '',
+      }));
+    },
+    removeAdminPkgAddon: (i) => patch((s) => ({ adminPkgAddons: (s.adminPkgAddons || []).filter((_, idx) => idx !== i) })),
     adminPkgPriceMin: st.adminPkgPriceMin || '',
     setAdminPkgPriceMin: (e) => patch({ adminPkgPriceMin: e.target.value }),
     adminPkgPriceMax: st.adminPkgPriceMax || '',
@@ -3489,6 +3492,7 @@ export default function App() {
             photoUrl: (s.adminPkgPhotoUrl || '').trim(),
             description: (s.adminPkgDescription || '').trim(),
             inclusions: s.adminPkgInclusions || [],
+            addons: s.adminPkgAddons || [],
             priceMin,
             priceMax,
             unit: type === 'rental_item' ? unit : 'event',
@@ -3501,6 +3505,9 @@ export default function App() {
         adminPkgDescription: '',
         adminPkgInclusions: [],
         adminPkgInclusionDraft: '',
+        adminPkgAddons: [],
+        adminPkgAddonName: '',
+        adminPkgAddonPrice: '',
         adminPkgPriceMin: '',
         adminPkgPriceMax: '',
         adminPkgUnit: '',
@@ -3508,24 +3515,6 @@ export default function App() {
       }));
     },
     adminRemovePackage: (i) => patch((s) => ({ adminPackages: (s.adminPackages || []).filter((_, idx) => idx !== i) })),
-
-    adminAddons: st.adminAddons || [],
-    adminAddonName: st.adminAddonName || '',
-    setAdminAddonName: (e) => patch({ adminAddonName: e.target.value }),
-    adminAddonPrice: st.adminAddonPrice || '',
-    setAdminAddonPrice: (e) => patch({ adminAddonPrice: e.target.value }),
-    adminAddAddonDisabled: !(st.adminAddonName || '').trim(),
-    adminAddAddon: () => {
-      const name = (st.adminAddonName || '').trim();
-      if (!name) return;
-      const price = st.adminAddonPrice === '' ? null : Number(st.adminAddonPrice);
-      patch((s) => ({
-        adminAddons: (s.adminAddons || []).concat([{ name, price }]),
-        adminAddonName: '',
-        adminAddonPrice: '',
-      }));
-    },
-    adminRemoveAddon: (i) => patch((s) => ({ adminAddons: (s.adminAddons || []).filter((_, idx) => idx !== i) })),
 
     adminStep4Next: () => patch({ adminStep: 5 }),
 
@@ -3582,7 +3571,6 @@ export default function App() {
         logoUrl: (st.adminLogoUrl || '').trim(),
         gallery: st.adminGallery || [],
         packages: st.adminPackages || [],
-        addons: st.adminAddons || [],
         faqs: (st.adminFaqs || []).filter((f) => f.q.trim() && f.a.trim()),
         paymentTerms: (st.adminPaymentTerms || '').trim(),
         depositTerms: (st.adminDepositTerms || '').trim(),
@@ -5271,42 +5259,6 @@ export default function App() {
                     ))}
                   </div>
                 )}
-                {V.sup.addonTiles.length > 0 && (
-                  <div style={{ marginTop: 18 }}>
-                    <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                      Add-ons available
-                    </div>
-                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {V.sup.addonTiles.map((a) => (
-                        <button
-                          key={a.key}
-                          onClick={a.toggle}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            border: a.selected ? `1px solid ${ACCENT}` : '1px solid #E4E4DF',
-                            borderRadius: 999,
-                            background: a.selected ? `${ACCENT}17` : 'transparent',
-                            color: a.selected ? ACCENT : '#171717',
-                            padding: '6px 14px',
-                            cursor: 'pointer',
-                            fontSize: 12.5,
-                            fontWeight: 600,
-                          }}
-                        >
-                          {a.name}
-                          <span style={{ fontFamily: MONO, fontSize: 11, opacity: 0.8 }}>{a.priceLabel}</span>
-                        </button>
-                      ))}
-                    </div>
-                    {V.sup.addonTiles.some((a) => a.selected) && (
-                      <div style={{ marginTop: 6, fontSize: 12, color: '#9A9A9A' }}>
-                        Tap to select — they'll be included when you message on WhatsApp.
-                      </div>
-                    )}
-                  </div>
-                )}
                 {V.sup.galleryPreview.length > 0 && (
                   <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: `repeat(${V.sup.galleryPreview.length}, 1fr)`, gap: 10 }}>
                     {V.sup.galleryPreview.map((src, i) => (
@@ -5549,6 +5501,11 @@ export default function App() {
                                 </li>
                               ))}
                             </ul>
+                          )}
+                          {p.addons.length > 0 && (
+                            <div style={{ marginTop: 10, fontSize: 12.5, color: '#9A9A9A' }}>
+                              Add-ons available: {p.addons.map((a) => a.name).join(', ')}
+                            </div>
                           )}
                           <div style={{ marginTop: 14, fontFamily: MONO, fontSize: 17, fontWeight: 700 }}>{p.priceLabel}</div>
                           <div style={{ marginTop: 'auto', paddingTop: 16, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -7839,6 +7796,51 @@ export default function App() {
                         <input type="number" value={V.vdPkgPriceMin} onChange={V.setVdPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                         <input type="number" value={V.vdPkgPriceMax} onChange={V.setVdPkgPriceMax} placeholder="Price max (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                       </div>
+                      <div>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Add-ons (optional)</span>
+                        <div style={{ marginTop: 2, fontSize: 12, color: '#8A8A8A' }}>Optional extras a buyer can ask for on top of this one, e.g. an extra hour. Leave price blank for "ask for pricing."</div>
+                        <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+                          <input
+                            type="text"
+                            value={V.vdPkgAddonName}
+                            onChange={V.setVdPkgAddonName}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                V.addVdPkgAddon();
+                              }
+                            }}
+                            placeholder="Add-on name, e.g. Extra hour"
+                            style={{ flex: 2, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
+                          />
+                          <input
+                            type="number"
+                            value={V.vdPkgAddonPrice}
+                            onChange={V.setVdPkgAddonPrice}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                V.addVdPkgAddon();
+                              }
+                            }}
+                            placeholder="Price (optional)"
+                            style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
+                          />
+                          <button onClick={V.addVdPkgAddon} disabled={V.addVdPkgAddonDisabled} style={{ flexShrink: 0, border: '1px solid #D7D7D2', borderRadius: 14, background: '#FFFFFF', padding: '0 18px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.addVdPkgAddonDisabled ? 0.4 : 1 }}>
+                            Add
+                          </button>
+                        </div>
+                        {V.vdPkgAddons.length > 0 && (
+                          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {V.vdPkgAddons.map((a, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderRadius: 10, background: '#F7F7F5', padding: '7px 12px' }}>
+                                <span style={{ fontSize: 13, color: '#171717' }}>{a.name} — {a.price !== null ? 'TT$' + a.price : 'Ask for pricing'}</span>
+                                <button onClick={() => V.removeVdPkgAddon(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         {V.vdPkgPhotoUrl && (
                           <img src={V.vdPkgPhotoUrl} alt="Package" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
@@ -7853,54 +7855,6 @@ export default function App() {
                         {V.vdAddingPkg ? 'Adding…' : V.vdPkgType === 'rental_item' ? 'Add rental item' : 'Add package'}
                       </button>
                       {V.vdSaveError && <div style={{ fontSize: 12, color: '#B3261E' }}>{V.vdSaveError}</div>}
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: 28 }}>
-                    <div style={{ fontSize: 16, fontWeight: 800 }}>Add-ons</div>
-                    <div style={{ marginTop: 4, fontSize: 12, color: '#8A8A8A' }}>Optional extras buyers can select for any package, e.g. an extra hour or a delivery fee. Leave price blank for "ask for pricing."</div>
-                    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {(V.vdVendor.addons || []).map((a) => (
-                        <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, border: '1px solid #ECECEC', borderRadius: 16, padding: '12px 16px' }}>
-                          <div style={{ fontSize: 14 }}>
-                            <strong>{a.name}</strong> — {a.price !== null ? 'TT$' + a.price : 'Ask for pricing'}
-                          </div>
-                          <button onClick={V.removeVdAddon(a.id)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 13, color: '#B3261E', fontWeight: 700 }}>Remove</button>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ marginTop: 12, border: '1px dashed #D7D7D2', borderRadius: 16, padding: 16 }}>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <input
-                          type="text"
-                          value={V.vdAddonName}
-                          onChange={V.setVdAddonName}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              V.addVdAddon();
-                            }
-                          }}
-                          placeholder="Add-on name, e.g. Extra hour"
-                          style={{ flex: 2, border: '2px solid #171717', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14, fontWeight: 600 }}
-                        />
-                        <input
-                          type="number"
-                          value={V.vdAddonPrice}
-                          onChange={V.setVdAddonPrice}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              V.addVdAddon();
-                            }
-                          }}
-                          placeholder="Price (optional)"
-                          style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
-                        />
-                      </div>
-                      <button onClick={V.addVdAddon} disabled={V.vdAddAddonDisabled} style={{ marginTop: 10, alignSelf: 'flex-start', border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '10px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.vdAddAddonDisabled ? 0.5 : 1 }}>
-                        {V.vdAddingAddon ? 'Adding…' : 'Add add-on'}
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -8906,6 +8860,51 @@ export default function App() {
                       <input type="number" value={V.adminPkgPriceMin} onChange={V.setAdminPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                       <input type="number" value={V.adminPkgPriceMax} onChange={V.setAdminPkgPriceMax} placeholder="Price max (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                     </div>
+                    <div>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Add-ons (optional)</span>
+                      <div style={{ marginTop: 2, fontSize: 12, color: '#9A9A9A' }}>Optional extras a buyer can ask for on top of this one, e.g. an extra hour. Leave price blank for "ask for pricing."</div>
+                      <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+                        <input
+                          type="text"
+                          value={V.adminPkgAddonName}
+                          onChange={V.setAdminPkgAddonName}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              V.addAdminPkgAddon();
+                            }
+                          }}
+                          placeholder="Add-on name, e.g. Extra hour"
+                          style={{ flex: 2, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
+                        />
+                        <input
+                          type="number"
+                          value={V.adminPkgAddonPrice}
+                          onChange={V.setAdminPkgAddonPrice}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              V.addAdminPkgAddon();
+                            }
+                          }}
+                          placeholder="Price (optional)"
+                          style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
+                        />
+                        <button onClick={V.addAdminPkgAddon} disabled={V.addAdminPkgAddonDisabled} style={{ flexShrink: 0, border: '1px solid #D7D7D2', borderRadius: 14, background: '#FFFFFF', padding: '0 18px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.addAdminPkgAddonDisabled ? 0.4 : 1 }}>
+                          Add
+                        </button>
+                      </div>
+                      {V.adminPkgAddons.length > 0 && (
+                        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {V.adminPkgAddons.map((a, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderRadius: 10, background: '#F7F7F5', padding: '7px 12px' }}>
+                              <span style={{ fontSize: 13, color: '#171717' }}>{a.name} — {a.price !== null ? 'TT$' + a.price : 'Ask for pricing'}</span>
+                              <button onClick={() => V.removeAdminPkgAddon(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <div style={{ fontSize: 12, color: '#9A9A9A' }}>
                       {V.adminPkgType === 'rental_item'
                         ? 'For a flat price, enter the same amount in both fields. Needs a name, unit, min, and max (max ≥ min) before you can add it.'
@@ -8927,52 +8926,6 @@ export default function App() {
                             <strong>{p.name}</strong> — TT${p.priceMin}–TT${p.priceMax}{p.type === 'rental_item' ? ' ' + (p.unit || 'each') + ' · min ' + (p.minQty || 1) : ''}
                           </div>
                           <button onClick={() => V.adminRemovePackage(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 13, color: '#B3261E', fontWeight: 700 }}>Remove</button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <h3 style={{ margin: '28px 0 0', fontSize: 17, letterSpacing: '-0.01em', fontWeight: 800 }}>Add-ons</h3>
-                  <p style={{ margin: '6px 0 0', fontSize: 13, color: '#5B5B5B' }}>Optional extras buyers can select for any package, e.g. an extra hour or a delivery fee. Leave price blank for "ask for pricing."</p>
-                  <div style={{ marginTop: 10, display: 'flex', gap: 10 }}>
-                    <input
-                      type="text"
-                      value={V.adminAddonName}
-                      onChange={V.setAdminAddonName}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          V.adminAddAddon();
-                        }
-                      }}
-                      placeholder="Add-on name, e.g. Extra hour"
-                      style={{ flex: 2, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
-                    />
-                    <input
-                      type="number"
-                      value={V.adminAddonPrice}
-                      onChange={V.setAdminAddonPrice}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          V.adminAddAddon();
-                        }
-                      }}
-                      placeholder="Price (optional)"
-                      style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
-                    />
-                    <button onClick={V.adminAddAddon} disabled={V.adminAddAddonDisabled} style={{ flexShrink: 0, border: '1px solid #D7D7D2', borderRadius: 14, background: '#FFFFFF', padding: '0 18px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.adminAddAddonDisabled ? 0.4 : 1 }}>
-                      Add
-                    </button>
-                  </div>
-                  {V.adminAddons.length > 0 && (
-                    <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      {V.adminAddons.map((a, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTop: '1px solid #ECECEC', padding: '10px 2px' }}>
-                          <div style={{ fontSize: 13, color: '#4A4A4A' }}>
-                            <strong>{a.name}</strong> — {a.price !== null && a.price !== '' ? 'TT$' + a.price : 'Ask for pricing'}
-                          </div>
-                          <button onClick={() => V.adminRemoveAddon(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 13, color: '#B3261E', fontWeight: 700 }}>Remove</button>
                         </div>
                       ))}
                     </div>
@@ -9911,6 +9864,38 @@ export default function App() {
               </div>
             )}
 
+            {V.waAddonTiles.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                  Add-ons for this package (optional)
+                </span>
+                <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {V.waAddonTiles.map((a) => (
+                    <button
+                      key={a.key}
+                      onClick={a.toggle}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        border: a.selected ? `1px solid ${ACCENT}` : '1px solid #E4E4DF',
+                        borderRadius: 999,
+                        background: a.selected ? `${ACCENT}17` : 'transparent',
+                        color: a.selected ? ACCENT : '#171717',
+                        padding: '9px 14px',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {a.label}
+                      <span style={{ fontFamily: MONO, fontSize: 11, opacity: 0.8 }}>{a.priceLabel}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <label style={{ flex: '1 1 160px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
@@ -10089,12 +10074,44 @@ export default function App() {
                   ))}
                 </ul>
               )}
+              {V.openPackage.addons.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                    Add-ons available
+                  </div>
+                  <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {V.openPackage.addons.map((a) => (
+                      <span
+                        key={a.name}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          border: '1px solid #E4E4DF',
+                          borderRadius: 999,
+                          padding: '6px 14px',
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          color: '#171717',
+                        }}
+                      >
+                        {a.name}
+                        <span style={{ fontFamily: MONO, fontSize: 11, opacity: 0.8 }}>
+                          {a.price === null || a.price === undefined ? 'Ask for pricing' : '+' + money(a.price)}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 12, color: '#9A9A9A' }}>Choose these when you message on WhatsApp.</div>
+                </div>
+              )}
               <div style={{ marginTop: 22, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {V.sup.whatsappUrl && (
                   <button
                     onClick={() => {
+                      const name = V.openPackage.name;
                       V.closePackageDetails();
-                      V.openWaModal();
+                      V.openWaModal(name);
                     }}
                     style={{
                       display: 'inline-flex',

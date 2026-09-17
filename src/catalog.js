@@ -28,17 +28,13 @@ function reshapeVendor(v) {
       p.photo_url || '',
       p.inclusions || [],
       p.type || 'package',
+      (p.addons || []).map((a) => ({ name: a.name, price: a.price === null || a.price === undefined ? null : Number(a.price) })),
     ]);
 
   const gallery = (v.vendor_gallery || [])
     .slice()
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((g) => ({ eventType: g.event_type, photoUrl: g.photo_url }));
-
-  const addons = (v.vendor_addons || [])
-    .slice()
-    .sort((a, b) => a.sort_order - b.sort_order)
-    .map((a) => ({ name: a.name, price: a.price === null || a.price === undefined ? null : Number(a.price) }));
 
   return {
     id: v.id,
@@ -93,7 +89,6 @@ function reshapeVendor(v) {
     })),
     faqs: (v.vendor_faqs || []).map((f) => ({ q: f.question, a: f.answer })),
     gallery,
-    addons,
     products,
   };
 }
@@ -204,7 +199,7 @@ export async function fetchVendorDetail(id) {
   const { data, error } = await supabase
     .from('vendors')
     .select(
-      '*, vendor_promos(*), vendor_reviews(*), vendor_faqs(*), products(*), vendor_gallery(*), vendor_addons(*), vendor_policies(*), menu_items(*)'
+      '*, vendor_promos(*), vendor_reviews(*), vendor_faqs(*), products(*), vendor_gallery(*), vendor_policies(*), menu_items(*)'
     )
     .eq('id', id)
     .eq('published', true)
@@ -462,6 +457,7 @@ export async function adminCreateVendor(v) {
         lead_time_days: 0,
         photo_url: p.photoUrl || null,
         inclusions: p.inclusions || [],
+        addons: (p.addons || []).map((a) => ({ name: a.name, price: a.price === '' || a.price === null || a.price === undefined ? null : a.price })),
         sort_order: i,
       }))
     );
@@ -474,18 +470,6 @@ export async function adminCreateVendor(v) {
         vendor_id: vendorId,
         event_type: g.eventType,
         photo_url: g.photoUrl,
-        sort_order: i,
-      }))
-    );
-    if (error) throw error;
-  }
-
-  if (v.addons && v.addons.length) {
-    const { error } = await supabase.from('vendor_addons').insert(
-      v.addons.map((a, i) => ({
-        vendor_id: vendorId,
-        name: a.name,
-        price: a.price === '' || a.price === null || a.price === undefined ? null : a.price,
         sort_order: i,
       }))
     );
@@ -524,7 +508,7 @@ export async function adminFetchVendorForEdit(vendorId) {
   }
   const { data, error } = await supabase
     .from('vendors')
-    .select('*, products(*), vendor_gallery(*), vendor_addons(*), vendor_faqs(*), vendor_policies(*)')
+    .select('*, products(*), vendor_gallery(*), vendor_faqs(*), vendor_policies(*)')
     .eq('id', vendorId)
     .maybeSingle();
   if (error) throw error;
@@ -551,10 +535,6 @@ export async function adminFetchVendorForEdit(vendorId) {
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((g) => ({ eventType: g.event_type, photoUrl: g.photo_url })),
-    addons: (data.vendor_addons || [])
-      .slice()
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((a) => ({ name: a.name, price: a.price === null ? '' : String(a.price) })),
     packages: (data.products || [])
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
@@ -568,6 +548,7 @@ export async function adminFetchVendorForEdit(vendorId) {
         type: p.type || 'package',
         photoUrl: p.photo_url || '',
         inclusions: p.inclusions || [],
+        addons: (p.addons || []).map((a) => ({ name: a.name, price: a.price === null ? '' : String(a.price) })),
       })),
     faqs: (data.vendor_faqs || []).map((f) => ({ q: f.question, a: f.answer })),
     paymentTerms: policyBody('Payment'),
@@ -622,6 +603,7 @@ export async function adminUpdateVendor(vendorId, v) {
         lead_time_days: 0,
         photo_url: p.photoUrl || null,
         inclusions: p.inclusions || [],
+        addons: (p.addons || []).map((a) => ({ name: a.name, price: a.price === '' || a.price === null || a.price === undefined ? null : a.price })),
         sort_order: i,
       }))
     );
@@ -633,20 +615,6 @@ export async function adminUpdateVendor(vendorId, v) {
   if (v.gallery && v.gallery.length) {
     const { error } = await supabase.from('vendor_gallery').insert(
       v.gallery.map((g, i) => ({ vendor_id: vendorId, event_type: g.eventType, photo_url: g.photoUrl, sort_order: i }))
-    );
-    if (error) throw error;
-  }
-
-  const { error: delAddonsError } = await supabase.from('vendor_addons').delete().eq('vendor_id', vendorId);
-  if (delAddonsError) throw delAddonsError;
-  if (v.addons && v.addons.length) {
-    const { error } = await supabase.from('vendor_addons').insert(
-      v.addons.map((a, i) => ({
-        vendor_id: vendorId,
-        name: a.name,
-        price: a.price === '' || a.price === null || a.price === undefined ? null : a.price,
-        sort_order: i,
-      }))
     );
     if (error) throw error;
   }
@@ -858,7 +826,7 @@ export async function fetchMyVendor() {
 
   const { data, error } = await supabase
     .from('vendors')
-    .select('*, products(*), vendor_gallery(*), vendor_addons(*), vendor_faqs(*), vendor_policies(*), menu_items(*), vendor_promos(*)')
+    .select('*, products(*), vendor_gallery(*), vendor_faqs(*), vendor_policies(*), menu_items(*), vendor_promos(*)')
     .eq('owner_user_id', user.id)
     .maybeSingle();
   if (error) throw error;
@@ -900,15 +868,12 @@ export async function fetchMyVendor() {
         type: p.type || 'package',
         photoUrl: p.photo_url || '',
         inclusions: p.inclusions || [],
+        addons: (p.addons || []).map((a) => ({ name: a.name, price: a.price === null || a.price === undefined ? null : Number(a.price) })),
       })),
     gallery: (data.vendor_gallery || [])
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((g) => ({ id: g.id, eventType: g.event_type, photoUrl: g.photo_url })),
-    addons: (data.vendor_addons || [])
-      .slice()
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((a) => ({ id: a.id, name: a.name, price: a.price === null ? null : Number(a.price) })),
     menu: (data.menu_items || [])
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
@@ -974,6 +939,7 @@ export async function addVendorPackage(vendorId, p) {
       lead_time_days: 0,
       photo_url: p.photoUrl || null,
       inclusions: p.inclusions || [],
+      addons: (p.addons || []).map((a) => ({ name: a.name, price: a.price === '' || a.price === null || a.price === undefined ? null : a.price })),
       sort_order: p.sortOrder || 0,
     })
     .select()
@@ -987,35 +953,6 @@ export async function removeVendorPackage(id) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
   const { error } = await supabase.from('products').delete().eq('id', id);
-  if (error) throw error;
-}
-
-// Vendor-level, not per-package — an optional extra a buyer can ask for on
-// top of any package (e.g. "Flowers", "LED Numbers"). price is nullable:
-// a vendor can list an add-on by name only and quote it on request.
-export async function addVendorAddon(vendorId, a) {
-  if (!supabaseConfigured) {
-    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
-  }
-  const { data, error } = await supabase
-    .from('vendor_addons')
-    .insert({
-      vendor_id: vendorId,
-      name: a.name,
-      price: a.price === '' || a.price === null || a.price === undefined ? null : a.price,
-      sort_order: a.sortOrder || 0,
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-}
-
-export async function removeVendorAddon(id) {
-  if (!supabaseConfigured) {
-    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
-  }
-  const { error } = await supabase.from('vendor_addons').delete().eq('id', id);
   if (error) throw error;
 }
 
