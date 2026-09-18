@@ -2735,6 +2735,8 @@ export default function App() {
       patch((s) => ({ vdPkgInclusions: (s.vdPkgInclusions || []).concat([text]), vdPkgInclusionDraft: '' }));
     },
     removeVdPkgInclusion: (i) => patch((s) => ({ vdPkgInclusions: (s.vdPkgInclusions || []).filter((_, idx) => idx !== i) })),
+    vdPkgGroupLabel: st.vdPkgGroupLabel || '',
+    setVdPkgGroupLabel: (e) => patch({ vdPkgGroupLabel: e.target.value }),
     vdPkgUnit: st.vdPkgUnit || '',
     setVdPkgUnit: (e) => patch({ vdPkgUnit: e.target.value }),
     vdPkgMinQty: st.vdPkgMinQty || '',
@@ -2775,6 +2777,7 @@ export default function App() {
           type,
           description: (st.vdPkgDescription || '').trim(),
           inclusions: st.vdPkgInclusions || [],
+          groupLabel: (st.vdPkgGroupLabel || '').trim(),
           priceMin: Number(st.vdPkgPriceMin),
           priceMax: Number(st.vdPkgPriceMax),
           unit: type === 'rental_item' ? unit : undefined,
@@ -2789,6 +2792,7 @@ export default function App() {
           vdPkgDescription: '',
           vdPkgInclusions: [],
           vdPkgInclusionDraft: '',
+          vdPkgGroupLabel: '',
           vdPkgUnit: '',
           vdPkgMinQty: '',
           vdPkgPriceMin: '',
@@ -2797,7 +2801,7 @@ export default function App() {
           vdVendor: {
             ...s.vdVendor,
             packages: s.vdVendor.packages.concat([
-              { id: row.id, name: row.name, type: row.type || 'package', description: row.description || '', priceMin: Number(row.price_min), priceMax: Number(row.price_max), unit: row.unit, minQty: Number(row.min_qty) || 1, photoUrl: row.photo_url || '', inclusions: row.inclusions || [] },
+              { id: row.id, name: row.name, type: row.type || 'package', description: row.description || '', priceMin: Number(row.price_min), priceMax: Number(row.price_max), unit: row.unit, minQty: Number(row.min_qty) || 1, photoUrl: row.photo_url || '', inclusions: row.inclusions || [], groupLabel: row.group_label || '' },
             ]),
           },
         }));
@@ -3140,6 +3144,7 @@ export default function App() {
         adminPkgDescription: '',
         adminPkgInclusions: [],
         adminPkgInclusionDraft: '',
+        adminPkgGroupLabel: '',
         adminPkgPriceMin: '',
         adminPkgPriceMax: '',
         adminPkgUnit: '',
@@ -3197,6 +3202,7 @@ export default function App() {
           adminPkgDescription: '',
           adminPkgInclusions: [],
           adminPkgInclusionDraft: '',
+          adminPkgGroupLabel: '',
           adminPkgPriceMin: '',
           adminPkgPriceMax: '',
           adminPkgUnit: '',
@@ -3395,6 +3401,8 @@ export default function App() {
       patch((s) => ({ adminPkgInclusions: (s.adminPkgInclusions || []).concat([text]), adminPkgInclusionDraft: '' }));
     },
     removeAdminPkgInclusion: (i) => patch((s) => ({ adminPkgInclusions: (s.adminPkgInclusions || []).filter((_, idx) => idx !== i) })),
+    adminPkgGroupLabel: st.adminPkgGroupLabel || '',
+    setAdminPkgGroupLabel: (e) => patch({ adminPkgGroupLabel: e.target.value }),
     adminPkgPriceMin: st.adminPkgPriceMin || '',
     setAdminPkgPriceMin: (e) => patch({ adminPkgPriceMin: e.target.value }),
     adminPkgPriceMax: st.adminPkgPriceMax || '',
@@ -3423,6 +3431,7 @@ export default function App() {
             photoUrl: (s.adminPkgPhotoUrl || '').trim(),
             description: (s.adminPkgDescription || '').trim(),
             inclusions: s.adminPkgInclusions || [],
+            groupLabel: (s.adminPkgGroupLabel || '').trim(),
             priceMin,
             priceMax,
             unit: type === 'rental_item' ? unit : 'event',
@@ -3435,6 +3444,7 @@ export default function App() {
         adminPkgDescription: '',
         adminPkgInclusions: [],
         adminPkgInclusionDraft: '',
+        adminPkgGroupLabel: '',
         adminPkgPriceMin: '',
         adminPkgPriceMax: '',
         adminPkgUnit: '',
@@ -7631,6 +7641,9 @@ export default function App() {
                             {p.type === 'rental_item' && (
                               <span style={{ marginRight: 6, fontFamily: MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>Rental</span>
                             )}
+                            {p.groupLabel && (
+                              <span style={{ marginRight: 6, fontFamily: MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>{p.groupLabel}</span>
+                            )}
                             <strong>{p.name}</strong> — TT${p.priceMin}–TT${p.priceMax}{p.type === 'rental_item' ? ' ' + (p.unit || 'each') + ' · min ' + (p.minQty || 1) : ''}
                           </div>
                         </div>
@@ -7673,6 +7686,11 @@ export default function App() {
                     )}
                     <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <input type="text" value={V.vdPkgName} onChange={V.setVdPkgName} placeholder={V.vdPkgType === 'rental_item' ? 'Item name, e.g. Folding chair, white' : 'Package name'} style={{ border: '2px solid #171717', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14, fontWeight: 600 }} />
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Service group (optional)</span>
+                        <input type="text" value={V.vdPkgGroupLabel} onChange={V.setVdPkgGroupLabel} placeholder="e.g. Cakes, Classes, Decor" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                        <span style={{ fontSize: 12, color: '#9A9A9A' }}>If you offer distinct service lines (e.g. cake orders vs. cake classes), group your packages so buyers can filter by each.</span>
+                      </label>
                       {V.vdPkgType === 'rental_item' ? (
                         <div style={{ display: 'flex', gap: 8 }}>
                           <input type="text" value={V.vdPkgUnit} onChange={V.setVdPkgUnit} placeholder="Unit, e.g. each, per set" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
@@ -8682,6 +8700,11 @@ export default function App() {
                       ))}
                     </div>
                     <input type="text" value={V.adminPkgName} onChange={V.setAdminPkgName} placeholder={V.adminPkgType === 'rental_item' ? 'Item name, e.g. Folding chair, white' : 'Package name'} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Service group (optional)</span>
+                      <input type="text" value={V.adminPkgGroupLabel} onChange={V.setAdminPkgGroupLabel} placeholder="e.g. Cakes, Classes, Decor — leave blank for one group" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <span style={{ fontSize: 12, color: '#9A9A9A' }}>Vendors offering distinct service lines (e.g. cake orders vs. cake classes) can group packages under their own label — buyers get a filter for each group.</span>
+                    </label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       {V.adminPkgPhotoUrl && (
                         <img src={V.adminPkgPhotoUrl} alt="Package" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
@@ -8754,6 +8777,9 @@ export default function App() {
                           <div style={{ fontSize: 13, color: '#4A4A4A' }}>
                             {p.type === 'rental_item' && (
                               <span style={{ marginRight: 6, fontFamily: MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>Rental</span>
+                            )}
+                            {p.groupLabel && (
+                              <span style={{ marginRight: 6, fontFamily: MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>{p.groupLabel}</span>
                             )}
                             <strong>{p.name}</strong> — TT${p.priceMin}–TT${p.priceMax}{p.type === 'rental_item' ? ' ' + (p.unit || 'each') + ' · min ' + (p.minQty || 1) : ''}
                           </div>

@@ -456,6 +456,7 @@ export async function adminCreateVendor(v) {
         lead_time_days: 0,
         photo_url: p.photoUrl || null,
         inclusions: p.inclusions || [],
+        group_label: p.groupLabel || null,
         sort_order: i,
       }))
     );
@@ -546,6 +547,7 @@ export async function adminFetchVendorForEdit(vendorId) {
         type: p.type || 'package',
         photoUrl: p.photo_url || '',
         inclusions: p.inclusions || [],
+        groupLabel: p.group_label || '',
       })),
     faqs: (data.vendor_faqs || []).map((f) => ({ q: f.question, a: f.answer })),
     paymentTerms: policyBody('Payment'),
@@ -600,6 +602,7 @@ export async function adminUpdateVendor(vendorId, v) {
         lead_time_days: 0,
         photo_url: p.photoUrl || null,
         inclusions: p.inclusions || [],
+        group_label: p.groupLabel || null,
         sort_order: i,
       }))
     );
@@ -864,6 +867,7 @@ export async function fetchMyVendor() {
         type: p.type || 'package',
         photoUrl: p.photo_url || '',
         inclusions: p.inclusions || [],
+        groupLabel: p.group_label || '',
       })),
     gallery: (data.vendor_gallery || [])
       .slice()
@@ -934,6 +938,7 @@ export async function addVendorPackage(vendorId, p) {
       lead_time_days: 0,
       photo_url: p.photoUrl || null,
       inclusions: p.inclusions || [],
+      group_label: p.groupLabel || null,
       sort_order: p.sortOrder || 0,
     })
     .select()
