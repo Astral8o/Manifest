@@ -28,6 +28,7 @@ import {
   signInVendor,
   fetchMyVendor,
   updateVendorProfile,
+  updateVendorAddonInterest,
   addVendorPackage,
   removeVendorPackage,
   addVendorGalleryPhoto,
@@ -787,8 +788,24 @@ function validateBulkCsvRows(csvRows, cats, locations) {
   });
 }
 
-const VD_GUIDE_TABS = ['profile', 'packages', 'gallery', 'menu', 'faqs', 'policies', 'promos'];
-const VD_TAB_LABELS = { profile: 'Profile', packages: 'Packages', gallery: 'Gallery', menu: 'Menu', faqs: 'FAQ', policies: 'Policies', promos: 'Promos', inquiries: 'Inquiries' };
+const VD_GUIDE_TABS = ['profile', 'packages', 'gallery', 'menu', 'faqs', 'policies', 'promos', 'addons'];
+const VD_TAB_LABELS = { profile: 'Profile', packages: 'Packages', gallery: 'Gallery', menu: 'Menu', faqs: 'FAQ', policies: 'Policies', promos: 'Promos', addons: 'Add-ons', inquiries: 'Inquiries' };
+
+// Placeholder-only paid add-ons pitched near the end of the profile builder
+// and from the dashboard — no real integration or billing exists yet, this
+// just captures which vendors would want them.
+const VD_ADDONS = [
+  {
+    key: 'integrations',
+    title: 'Integrations',
+    blurb: 'Connect Instagram, Facebook and Google so your reviews, photos and hours stay in sync automatically — no more updating things twice.',
+  },
+  {
+    key: 'marketing',
+    title: 'Marketing',
+    blurb: 'Send promotions and event reminders straight to buyers who have already inquired with you, right from your dashboard.',
+  },
+];
 
 const MOBILE_BREAKPOINT = 760;
 function useIsMobile() {
@@ -1101,6 +1118,8 @@ export default function App() {
           vdVendor: v,
           vdSubcategory: v.subcategory,
           vdContactPerson: v.contactPerson,
+          vdContactPhotoUrl: v.contactPhotoUrl,
+          vdAddonInterest: v.addonInterest || [],
           vdPhone: v.phone,
           vdCity: v.city && MUNICIPALITIES.includes(v.city) ? v.city : v.city ? 'Other' : '',
           vdCityOther: v.city && !MUNICIPALITIES.includes(v.city) ? v.city : '',
@@ -1998,6 +2017,8 @@ export default function App() {
       region: sup.region && sup.region !== sup.city ? sup.region : '',
       tags: sup.tags || [],
       verified: !!sup.verified,
+      contactPerson: sup.contactPerson || '',
+      contactPhotoUrl: sup.contactPhotoUrl || '',
       ratingLabel: sup.rating,
       startPriceLabel: sup.priceOnRequest ? 'Price on request' : startPrice(sup) === null ? '' : 'From ' + money(startPrice(sup)),
       responseLabel: sup.response || '',
@@ -2017,8 +2038,9 @@ export default function App() {
         ? 'https://wa.me/' +
           whatsappDigits(sup.phone) +
           '?text=' +
-          encodeURIComponent(`Hi ${sup.name}, I found you on Eventory and I'm interested in your services.`)
+          encodeURIComponent(`Hi ${sup.contactPerson || sup.name}, I found you on Eventory and I'm interested in your services.`)
         : null,
+      waButtonLabel: sup.contactPerson ? `Message ${sup.contactPerson.split(' ')[0]} on WhatsApp →` : 'Message on WhatsApp →',
       social: [
         sup.instagram ? { key: 'instagram', label: 'Instagram', href: socialUrl('instagram', sup.instagram) } : null,
         sup.facebook ? { key: 'facebook', label: 'Facebook', href: socialUrl('facebook', sup.facebook) } : null,
@@ -2086,7 +2108,7 @@ export default function App() {
         whatsappDigits(sup.phone) +
         '?text=' +
         encodeURIComponent(
-          buildWaMessage(sup.name, {
+          buildWaMessage(sup.contactPerson || sup.name, {
             eventTypeLabel:
               st.waEventType === 'other'
                 ? (st.waEventTypeOther || '').trim()
@@ -2603,6 +2625,22 @@ export default function App() {
       const i = VD_GUIDE_TABS.indexOf(st.vdTab || 'profile');
       if (i < VD_GUIDE_TABS.length - 1) patch({ vdTab: VD_GUIDE_TABS[i + 1] });
     },
+    vdAddons: VD_ADDONS,
+    vdAddonInterest: st.vdAddonInterest || [],
+    isVdAddonInterested: (key) => (st.vdAddonInterest || []).includes(key),
+    toggleVdAddonInterest: (key) => async () => {
+      if (!st.vdVendor) return;
+      const current = st.vdAddonInterest || [];
+      const next = current.includes(key) ? current.filter((k) => k !== key) : [...current, key];
+      patch({ vdAddonInterest: next });
+      try {
+        await updateVendorAddonInterest(st.vdVendor.id, next);
+      } catch {
+        // Best-effort only — this is an interest signal, not critical data,
+        // so a failed save just leaves the toggle as the vendor left it
+        // rather than surfacing an error for something this low-stakes.
+      }
+    },
     goVdPublicProfile: () =>
       st.vdVendor &&
       patch({ screen: 'supplier', supId: st.vdVendor.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
@@ -2615,6 +2653,19 @@ export default function App() {
     setVdSubcategory: (e) => patch({ vdSubcategory: e.target.value }),
     vdContactPerson: st.vdContactPerson || '',
     setVdContactPerson: (e) => patch({ vdContactPerson: e.target.value }),
+    vdContactPhotoUrl: st.vdContactPhotoUrl || '',
+    vdUploadingContactPhoto: !!st.vdUploadingContactPhoto,
+    uploadVdContactPhoto: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ vdUploadingContactPhoto: true, vdSaveError: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ vdUploadingContactPhoto: false, vdContactPhotoUrl: url });
+      } catch (err) {
+        patch({ vdUploadingContactPhoto: false, vdSaveError: err.message || 'Could not upload photo.' });
+      }
+    },
     vdPhone: st.vdPhone || '',
     setVdPhone: (e) => patch({ vdPhone: e.target.value }),
     vdCityOptions: MUNICIPALITIES,
@@ -2678,6 +2729,7 @@ export default function App() {
         await updateVendorProfile(st.vdVendor.id, {
           subcategory: st.vdSubcategory,
           contactPerson: st.vdContactPerson,
+          contactPhotoUrl: st.vdContactPhotoUrl,
           phone: st.vdPhone,
           city: vdEffectiveCity,
           bio: st.vdBio,
@@ -2699,6 +2751,7 @@ export default function App() {
             ...s.vdVendor,
             subcategory: s.vdSubcategory,
             contactPerson: s.vdContactPerson,
+            contactPhotoUrl: s.vdContactPhotoUrl,
             phone: s.vdPhone,
             city: vdEffectiveCity,
             bio: s.vdBio,
@@ -3127,6 +3180,9 @@ export default function App() {
         adminCity: '',
         adminWhatsapp: '',
         adminEmail: '',
+        adminContactPerson: '',
+        adminContactPhotoUrl: '',
+        adminUploadingContactPhoto: false,
         adminBio: '',
         adminDescription: '',
         adminCoverUrl: '',
@@ -3185,6 +3241,9 @@ export default function App() {
           adminCity: v.city,
           adminWhatsapp: v.phone,
           adminEmail: v.email,
+          adminContactPerson: v.contactPerson,
+          adminContactPhotoUrl: v.contactPhotoUrl,
+          adminUploadingContactPhoto: false,
           adminBio: v.bio,
           adminDescription: v.description,
           adminCoverUrl: v.coverUrl,
@@ -3292,6 +3351,21 @@ export default function App() {
     setAdminWhatsapp: (e) => patch({ adminWhatsapp: e.target.value }),
     adminEmail: st.adminEmail || '',
     setAdminEmail: (e) => patch({ adminEmail: e.target.value }),
+    adminContactPerson: st.adminContactPerson || '',
+    setAdminContactPerson: (e) => patch({ adminContactPerson: e.target.value }),
+    adminContactPhotoUrl: st.adminContactPhotoUrl || '',
+    adminUploadingContactPhoto: !!st.adminUploadingContactPhoto,
+    uploadAdminContactPhoto: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ adminUploadingContactPhoto: true, adminSaveError: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ adminUploadingContactPhoto: false, adminContactPhotoUrl: url });
+      } catch (err) {
+        patch({ adminUploadingContactPhoto: false, adminSaveError: err.message || 'Could not upload photo.' });
+      }
+    },
     adminBio: st.adminBio || '',
     setAdminBio: (e) => patch({ adminBio: e.target.value }),
     adminStep1NextDisabled: !(
@@ -3487,10 +3561,10 @@ export default function App() {
     // it to storage but never into the saved gallery/packages), so the
     // Save/Publish buttons block on this instead of just disabling on
     // adminSaving.
-    adminAnyUploading: !!(st.adminUploadingCover || st.adminUploadingLogo || st.adminUploadingGalleryPhoto || st.adminUploadingPkgPhoto),
+    adminAnyUploading: !!(st.adminUploadingCover || st.adminUploadingLogo || st.adminUploadingContactPhoto || st.adminUploadingGalleryPhoto || st.adminUploadingPkgPhoto),
     adminSaveVendor: async (published) => {
       if (st.adminSaving) return;
-      if (st.adminUploadingCover || st.adminUploadingLogo || st.adminUploadingGalleryPhoto || st.adminUploadingPkgPhoto) {
+      if (st.adminUploadingCover || st.adminUploadingLogo || st.adminUploadingContactPhoto || st.adminUploadingGalleryPhoto || st.adminUploadingPkgPhoto) {
         patch({ adminSaveError: 'A photo is still uploading — wait for it to finish before saving.' });
         return;
       }
@@ -3504,6 +3578,8 @@ export default function App() {
         description: (st.adminDescription || '').trim(),
         phone: (st.adminWhatsapp || '').trim(),
         email: (st.adminEmail || '').trim(),
+        contactPerson: (st.adminContactPerson || '').trim(),
+        contactPhotoUrl: (st.adminContactPhotoUrl || '').trim(),
         coverUrl: (st.adminCoverUrl || '').trim(),
         logoUrl: (st.adminLogoUrl || '').trim(),
         gallery: st.adminGallery || [],
@@ -5177,6 +5253,20 @@ export default function App() {
                   </div>
                 )}
                 <p style={{ margin: '14px 0 0', maxWidth: 620, fontSize: 16, lineHeight: 1.55, color: '#4A4A4A' }}>{V.sup.description}</p>
+                {V.sup.contactPerson && (
+                  <div style={{ marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                    {V.sup.contactPhotoUrl ? (
+                      <img src={V.sup.contactPhotoUrl} alt={V.sup.contactPerson} style={{ width: 36, height: 36, borderRadius: 999, objectFit: 'cover' }} />
+                    ) : (
+                      <span style={{ width: 36, height: 36, borderRadius: 999, background: '#F7F7F5', border: '1px solid #E4E4DF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#9A9A9A' }}>
+                        {V.sup.contactPerson.trim().charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                    <span style={{ fontSize: 13.5, color: '#5B5B5B' }}>
+                      Your contact — <span style={{ fontWeight: 700, color: '#171717' }}>{V.sup.contactPerson}</span>
+                    </span>
+                  </div>
+                )}
                 {V.sup.tags.length > 0 && (
                   <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {V.sup.tags.map((t) => (
@@ -5230,7 +5320,7 @@ export default function App() {
                         fontWeight: 700,
                       }}
                     >
-                      Message on WhatsApp →
+                      {V.sup.waButtonLabel}
                     </button>
                   )}
                   <button
@@ -7494,6 +7584,41 @@ export default function App() {
                 </div>
               )}
 
+              {!V.vdGuidedOpen && (
+                <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+                  {V.vdAddons.map((addon) => {
+                    const interested = V.isVdAddonInterested(addon.key);
+                    return (
+                      <div key={addon.key} style={{ border: '1px solid #ECECEC', borderRadius: 20, padding: 18 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                          <div style={{ fontSize: 15, fontWeight: 800 }}>{addon.title}</div>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700, border: '1px solid #E4E4DF', borderRadius: 999, padding: '3px 9px' }}>
+                            Coming soon
+                          </span>
+                        </div>
+                        <p style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.5, color: '#5B5B5B' }}>{addon.blurb}</p>
+                        <button
+                          onClick={V.toggleVdAddonInterest(addon.key)}
+                          style={{
+                            marginTop: 12,
+                            border: interested ? 0 : '1px solid #171717',
+                            borderRadius: 999,
+                            background: interested ? '#171717' : '#FFFFFF',
+                            color: interested ? '#FFFFFF' : '#171717',
+                            padding: '9px 16px',
+                            cursor: 'pointer',
+                            fontSize: 12.5,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {interested ? "✓ You're interested" : "I'm interested"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               {V.vdGuidedOpen && (
                 <div style={{ marginTop: 22 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -7551,10 +7676,27 @@ export default function App() {
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Main category (optional)</span>
                     <input type="text" value={V.vdSubcategory} onChange={V.setVdSubcategory} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
                   </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Contact person</span>
-                    <input type="text" value={V.vdContactPerson} onChange={V.setVdContactPerson} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
-                  </label>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>Your contact person</div>
+                    <div style={{ marginTop: 4, fontSize: 13, color: '#7A7A7A' }}>Shown on your public profile and in the WhatsApp inquiry so buyers know who they're messaging.</div>
+                    <div style={{ marginTop: 12, display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer' }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Photo</span>
+                        {V.vdContactPhotoUrl ? (
+                          <img src={V.vdContactPhotoUrl} alt="Contact" style={{ width: 84, height: 84, borderRadius: 999, objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: 84, height: 84, borderRadius: 999, background: '#F7F7F5', border: '1px dashed #D7D7D2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#9A9A9A', textAlign: 'center' }}>
+                            {V.vdUploadingContactPhoto ? 'Uploading…' : 'Add photo'}
+                          </div>
+                        )}
+                        <input type="file" accept="image/*" onChange={V.uploadVdContactPhoto} style={{ fontSize: 12, maxWidth: 84 }} />
+                      </label>
+                      <label style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Name</span>
+                        <input type="text" value={V.vdContactPerson} onChange={V.setVdContactPerson} placeholder="e.g. Alicia Ramnarine" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                      </label>
+                    </div>
+                  </div>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Phone number</span>
                     <input type="tel" value={V.vdPhone} onChange={V.setVdPhone} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
@@ -7888,6 +8030,52 @@ export default function App() {
                     </button>
                     {V.vdSaveError && <div style={{ marginTop: 8, fontSize: 12, color: '#B3261E' }}>{V.vdSaveError}</div>}
                   </div>
+                </div>
+              )}
+
+              {V.vdTab === 'addons' && (
+                <div style={{ marginTop: 22 }}>
+                  <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                    Two things we're building next, as paid add-ons down the line. Flag your interest now — it costs
+                    nothing, doesn't affect your listing, and helps us build what vendors actually want first.
+                  </p>
+                  <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {V.vdAddons.map((addon) => {
+                      const interested = V.isVdAddonInterested(addon.key);
+                      return (
+                        <div key={addon.key} style={{ border: '1px solid #ECECEC', borderRadius: 20, padding: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ fontSize: 15, fontWeight: 800 }}>{addon.title}</div>
+                              <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700, border: '1px solid #E4E4DF', borderRadius: 999, padding: '3px 9px' }}>
+                                Coming soon
+                              </span>
+                            </div>
+                            <p style={{ margin: '6px 0 0', fontSize: 13, lineHeight: 1.5, color: '#5B5B5B', maxWidth: 440 }}>{addon.blurb}</p>
+                          </div>
+                          <button
+                            onClick={V.toggleVdAddonInterest(addon.key)}
+                            style={{
+                              flexShrink: 0,
+                              border: interested ? 0 : '1px solid #171717',
+                              borderRadius: 999,
+                              background: interested ? '#171717' : '#FFFFFF',
+                              color: interested ? '#FFFFFF' : '#171717',
+                              padding: '11px 18px',
+                              cursor: 'pointer',
+                              fontSize: 13,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {interested ? "✓ You're interested" : "I'm interested"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p style={{ margin: '14px 0 0', fontSize: 12, color: '#9A9A9A' }}>
+                    This step is just for feedback — you can finish and publish your profile either way.
+                  </p>
                 </div>
               )}
 
@@ -8573,6 +8761,22 @@ export default function App() {
                       <input type="email" value={V.adminEmail} onChange={V.setAdminEmail} placeholder="vendor@business.tt" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }} />
                       <span style={{ fontSize: 12, color: '#9A9A9A' }}>Needed later if you want to create their login and hand off the profile.</span>
                     </label>
+                    <div>
+                      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Contact person (optional)</div>
+                      <div style={{ marginTop: 8, display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer' }}>
+                          {V.adminContactPhotoUrl ? (
+                            <img src={V.adminContactPhotoUrl} alt="Contact" style={{ width: 72, height: 72, borderRadius: 999, objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ width: 72, height: 72, borderRadius: 999, background: '#F7F7F5', border: '1px dashed #D7D7D2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#9A9A9A', textAlign: 'center' }}>
+                              {V.adminUploadingContactPhoto ? 'Uploading…' : 'Add photo'}
+                            </div>
+                          )}
+                          <input type="file" accept="image/*" onChange={V.uploadAdminContactPhoto} style={{ fontSize: 12, maxWidth: 72 }} />
+                        </label>
+                        <input type="text" value={V.adminContactPerson} onChange={V.setAdminContactPerson} placeholder="e.g. Alicia Ramnarine" style={{ flex: 1, minWidth: 200, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }} />
+                      </div>
+                    </div>
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Short description</span>
                       <textarea value={V.adminBio} onChange={V.setAdminBio} rows={2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15, resize: 'vertical' }} />
@@ -9778,7 +9982,7 @@ export default function App() {
                   opacity: 0.5,
                 }}
               >
-                Message on WhatsApp →
+                {V.sup.waButtonLabel}
               </div>
             ) : (
               <a
@@ -9803,7 +10007,7 @@ export default function App() {
                   textDecoration: 'none',
                 }}
               >
-                Message on WhatsApp →
+                {V.sup.waButtonLabel}
               </a>
             )}
             <a
@@ -9922,7 +10126,7 @@ export default function App() {
                       fontWeight: 600,
                     }}
                   >
-                    Message on WhatsApp →
+                    {V.sup.waButtonLabel}
                   </button>
                 )}
                 <button

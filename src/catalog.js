@@ -65,6 +65,7 @@ function reshapeVendor(v) {
     coverUrl: v.cover_photo_url,
     subcategory: v.subcategory,
     contactPerson: v.contact_person,
+    contactPhotoUrl: v.contact_photo_url,
     country: v.country,
     startingPrice: v.starting_price === null || v.starting_price === undefined ? null : Number(v.starting_price),
     policies: (v.vendor_policies || [])
@@ -129,6 +130,7 @@ function reshapeLeanVendor(v) {
     coverUrl: v.cover_photo_url,
     subcategory: v.subcategory,
     contactPerson: v.contact_person,
+    contactPhotoUrl: v.contact_photo_url,
     country: v.country,
     startingPrice: v.starting_price === null || v.starting_price === undefined ? null : Number(v.starting_price),
     minProductPrice: v.min_price === null || v.min_price === undefined ? null : Number(v.min_price),
@@ -429,6 +431,8 @@ export async function adminCreateVendor(v) {
       description: v.description,
       phone: v.phone,
       email: v.email || null,
+      contact_person: v.contactPerson || null,
+      contact_photo_url: v.contactPhotoUrl || null,
       logo_url: v.logoUrl || null,
       cover_photo_url: v.coverUrl || null,
       min_group: 1,
@@ -527,6 +531,8 @@ export async function adminFetchVendorForEdit(vendorId) {
     description: data.description || '',
     phone: data.phone || '',
     email: data.email || '',
+    contactPerson: data.contact_person || '',
+    contactPhotoUrl: data.contact_photo_url || '',
     coverUrl: data.cover_photo_url || '',
     logoUrl: data.logo_url || '',
     published: !!data.published,
@@ -579,6 +585,8 @@ export async function adminUpdateVendor(vendorId, v) {
       description: v.description,
       phone: v.phone,
       email: v.email || null,
+      contact_person: v.contactPerson || null,
+      contact_photo_url: v.contactPhotoUrl || null,
       logo_url: v.logoUrl || null,
       cover_photo_url: v.coverUrl || null,
       published: !!v.published,
@@ -732,6 +740,7 @@ async function insertVendorRow(ownerUserId, payload) {
       subcategory: payload.subcategory || null,
       name: payload.name,
       contact_person: payload.contactPerson,
+      contact_photo_url: payload.contactPhotoUrl || null,
       country: payload.country,
       city: payload.city,
       region: payload.city,
@@ -840,6 +849,8 @@ export async function fetchMyVendor() {
     addressLine1: data.address_line1 || '',
     addressLine2: data.address_line2 || '',
     contactPerson: data.contact_person || '',
+    contactPhotoUrl: data.contact_photo_url || '',
+    addonInterest: data.addon_interest || [],
     phone: data.phone || '',
     email: data.email || '',
     bio: data.bio || '',
@@ -901,6 +912,7 @@ export async function updateVendorProfile(vendorId, v) {
     .update({
       subcategory: v.subcategory || null,
       contact_person: v.contactPerson,
+      contact_photo_url: v.contactPhotoUrl || null,
       phone: v.phone,
       city: v.city,
       region: v.city,
@@ -916,6 +928,20 @@ export async function updateVendorProfile(vendorId, v) {
       map_link: v.mapLink || null,
       starting_price: v.startingPrice || null,
     })
+    .eq('id', vendorId);
+  if (error) throw error;
+}
+
+// Records which paid add-ons (Integrations, Marketing, etc.) a vendor has
+// flagged interest in. These are placeholder toggles only — no real
+// integration or billing exists yet, this just captures demand.
+export async function updateVendorAddonInterest(vendorId, addonInterest) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase
+    .from('vendors')
+    .update({ addon_interest: addonInterest || [] })
     .eq('id', vendorId);
   if (error) throw error;
 }
