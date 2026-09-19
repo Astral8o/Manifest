@@ -2611,8 +2611,12 @@ export default function App() {
     // sequence instead of browsed freely. Clearing vdTab on the way out
     // keeps the dashboard from showing whatever section was last open.
     vdGuidedOpen: !!st.vdGuidedOpen,
-    startVdGuide: () => patch({ vdGuidedOpen: true, vdTab: VD_GUIDE_TABS[0] }),
-    exitVdGuide: () => patch({ vdGuidedOpen: false, vdTab: '' }),
+    startVdGuide: () => patch({ vdGuidedOpen: true, vdTab: VD_GUIDE_TABS[0], vdJustOnboarded: false }),
+    exitVdGuide: () => patch({ vdGuidedOpen: false, vdTab: '', vdJustOnboarded: false }),
+    // True only for the single render right after onboarding hands off into
+    // this flow — shows a one-time "your account is live" banner on step 1
+    // so it's obvious there's more to do, rather than a settings form.
+    vdJustOnboarded: !!st.vdJustOnboarded,
     vdGuideStepNumber: VD_GUIDE_TABS.indexOf(st.vdTab || 'profile') + 1,
     vdGuideStepCount: VD_GUIDE_TABS.length,
     vdGuideStepLabel: VD_TAB_LABELS[st.vdTab || 'profile'],
@@ -2624,7 +2628,7 @@ export default function App() {
     },
     vdGuideNext: () => {
       const i = VD_GUIDE_TABS.indexOf(st.vdTab || 'profile');
-      if (i < VD_GUIDE_TABS.length - 1) patch({ vdTab: VD_GUIDE_TABS[i + 1] });
+      if (i < VD_GUIDE_TABS.length - 1) patch({ vdTab: VD_GUIDE_TABS[i + 1], vdJustOnboarded: false });
     },
     vdAddons: VD_ADDONS,
     vdAddonInterest: st.vdAddonInterest || [],
@@ -3819,7 +3823,7 @@ export default function App() {
       }
     },
     voPhotosFinish: async () => {
-      const goToDashboard = () => patch({ screen: 'vendor-dashboard', vdGuidedOpen: true, vdTab: VD_GUIDE_TABS[0] });
+      const goToDashboard = () => patch({ screen: 'vendor-dashboard', vdGuidedOpen: true, vdTab: VD_GUIDE_TABS[0], vdJustOnboarded: true });
       if (!st.voVendorId || (!st.voLogoUrl && !st.voCoverUrl)) {
         goToDashboard();
         return;
@@ -7678,6 +7682,19 @@ export default function App() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {V.vdGuidedOpen && V.vdJustOnboarded && V.vdGuideStepNumber === 1 && (
+                <div style={{ marginTop: 22, display: 'flex', alignItems: 'flex-start', gap: 12, border: '1px solid #FFD9C2', borderRadius: 18, background: '#FFF6F0', padding: '16px 18px' }}>
+                  <span style={{ fontSize: 22, lineHeight: 1 }}>🎉</span>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 800 }}>Your account is live!</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5, lineHeight: 1.5, color: '#5B5B5B' }}>
+                      Now let's finish building your public profile — {V.vdGuideStepCount} short steps below. Hit{' '}
+                      <strong>Continue</strong> at the bottom of each one, and save and come back anytime.
+                    </p>
+                  </div>
                 </div>
               )}
 
