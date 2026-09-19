@@ -1499,7 +1499,6 @@ export default function App() {
       patch({
         screen: 'vendor-onboarding',
         voStep: st.signedIn ? 2 : 0,
-        voDone: false,
         voVendorId: null,
         voSectors: [b.categoryCode],
         voSectorOtherText: '',
@@ -3613,7 +3612,6 @@ export default function App() {
         // business info instead of asking them to sign up again, which
         // would just fail since the account already exists.
         voStep: st.signedIn ? 2 : 0,
-        voDone: false,
         voVendorId: null,
         voSectors: [],
         voSectorOtherText: '',
@@ -3633,7 +3631,6 @@ export default function App() {
         navMenuOpen: false,
       }),
     voStep: st.voStep ?? 1,
-    voDone: !!st.voDone,
 
     voSectorTiles: [...CATS.map((c) => ({ key: c[0], name: c[1] })), { key: 'OTHER', name: 'Other' }].map((c) => ({
       code: c.key,
@@ -3762,11 +3759,18 @@ export default function App() {
           password: st.voPassword,
           startingPrice: st.voStartingPrice ? Number(st.voStartingPrice) : null,
         });
+        // Flow straight into the same guided builder a vendor's dashboard
+        // uses to edit their profile, instead of stopping on a "you're in"
+        // dead end that made account creation feel disconnected from
+        // building the actual listing — one continuous step-by-step, same
+        // as the rest of the profile builder.
         patch({
           voStep1Submitting: false,
           voVendorId: vendorId,
-          voDone: true,
           accountRole: 'vendor',
+          screen: 'vendor-dashboard',
+          vdGuidedOpen: true,
+          vdTab: VD_GUIDE_TABS[0],
         });
       } catch (err) {
         patch({ voStep1Submitting: false, voStep1Error: err.message || 'Could not create your account. Please try again.' });
@@ -9091,7 +9095,7 @@ export default function App() {
         <div style={{ padding: '34px 0 0', maxWidth: 720 }}>
           <button
             onClick={
-              !V.voDone && V.voStep > 0 && !(V.signedIn && V.voStep === 2)
+              V.voStep > 0 && !(V.signedIn && V.voStep === 2)
                 ? () => patch({ voStep: V.voStep - 1 })
                 : V.goHome
             }
@@ -9100,32 +9104,10 @@ export default function App() {
             ← Back
           </button>
           <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 28 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>
-            {V.voStep === 0 && !V.voDone ? 'List your business on Eventory' : 'Vendor onboarding'}
+            {V.voStep === 0 ? 'List your business on Eventory' : 'Vendor onboarding'}
           </h1>
 
-          {V.voDone ? (
-            <div style={{ marginTop: 24, maxWidth: 460, border: '1px solid #ECECEC', borderRadius: 24, padding: 28 }}>
-              <div style={{ fontSize: 20, fontWeight: 700 }}>You're in!</div>
-              <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-                Your account is live. Add photos, packages, and the rest of your profile whenever you're
-                ready — straight from your dashboard, no rush.
-              </p>
-              <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => patch({ screen: 'vendor-dashboard' })}
-                  style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
-                >
-                  Go to your dashboard
-                </button>
-                <button
-                  onClick={V.goHome}
-                  style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', color: '#5B5B5B', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
-                >
-                  Back to home
-                </button>
-              </div>
-            </div>
-          ) : V.voStep === 0 ? (
+          {V.voStep === 0 ? (
             <>
               <p style={{ margin: '14px 0 0', fontSize: 16, lineHeight: 1.5, color: '#5B5B5B', maxWidth: 480 }}>
                 Get discovered by people planning events in T&amp;T. Takes about two minutes.
