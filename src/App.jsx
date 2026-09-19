@@ -7914,8 +7914,8 @@ export default function App() {
                       </label>
                       {V.vdPkgType === 'rental_item' ? (
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <input type="text" value={V.vdPkgUnit} onChange={V.setVdPkgUnit} placeholder="Unit, e.g. each, per set" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                          <input type="number" min={1} value={V.vdPkgMinQty} onChange={V.setVdPkgMinQty} placeholder="Min order qty" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                          <input type="text" value={V.vdPkgUnit} onChange={V.setVdPkgUnit} placeholder="Unit, e.g. each, per set" style={{ flex: 1, minWidth: 0, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                          <input type="number" min={1} value={V.vdPkgMinQty} onChange={V.setVdPkgMinQty} placeholder="Min order qty" style={{ flex: 1, minWidth: 0, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                         </div>
                       ) : (
                         <>
@@ -7954,8 +7954,8 @@ export default function App() {
                         </>
                       )}
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <input type="number" value={V.vdPkgPriceMin} onChange={V.setVdPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                        <input type="number" value={V.vdPkgPriceMax} onChange={V.setVdPkgPriceMax} placeholder="Price max (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                        <input type="number" value={V.vdPkgPriceMin} onChange={V.setVdPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, minWidth: 0, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                        <input type="number" value={V.vdPkgPriceMax} onChange={V.setVdPkgPriceMax} placeholder="Price max (TT$)" style={{ flex: 1, minWidth: 0, border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         {V.vdPkgPhotoUrl && (
@@ -9000,8 +9000,8 @@ export default function App() {
                     </div>
                     {V.adminPkgType === 'rental_item' ? (
                       <div style={{ display: 'flex', gap: 10 }}>
-                        <input type="text" value={V.adminPkgUnit} onChange={V.setAdminPkgUnit} placeholder="Unit, e.g. each, per set, per table" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                        <input type="number" min={1} value={V.adminPkgMinQty} onChange={V.setAdminPkgMinQty} placeholder="Min order qty" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                        <input type="text" value={V.adminPkgUnit} onChange={V.setAdminPkgUnit} placeholder="Unit, e.g. each, per set, per table" style={{ flex: 1, minWidth: 0, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                        <input type="number" min={1} value={V.adminPkgMinQty} onChange={V.setAdminPkgMinQty} placeholder="Min order qty" style={{ flex: 1, minWidth: 0, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                       </div>
                     ) : (
                       <>
@@ -9040,8 +9040,8 @@ export default function App() {
                       </>
                     )}
                     <div style={{ display: 'flex', gap: 10 }}>
-                      <input type="number" value={V.adminPkgPriceMin} onChange={V.setAdminPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
-                      <input type="number" value={V.adminPkgPriceMax} onChange={V.setAdminPkgPriceMax} placeholder="Price max (TT$)" style={{ flex: 1, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <input type="number" value={V.adminPkgPriceMin} onChange={V.setAdminPkgPriceMin} placeholder="Price min (TT$)" style={{ flex: 1, minWidth: 0, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                      <input type="number" value={V.adminPkgPriceMax} onChange={V.setAdminPkgPriceMax} placeholder="Price max (TT$)" style={{ flex: 1, minWidth: 0, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
                     </div>
                     <div style={{ fontSize: 12, color: '#9A9A9A' }}>
                       {V.adminPkgType === 'rental_item'
