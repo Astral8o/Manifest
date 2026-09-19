@@ -29,6 +29,7 @@ import {
   fetchMyVendor,
   updateVendorProfile,
   updateVendorAddonInterest,
+  updateVendorBranding,
   addVendorPackage,
   removeVendorPackage,
   addVendorGalleryPhoto,
@@ -1498,7 +1499,7 @@ export default function App() {
     claim: () =>
       patch({
         screen: 'vendor-onboarding',
-        voStep: st.signedIn ? 2 : 0,
+        voStep: st.signedIn ? 1 : 0,
         voVendorId: null,
         voSectors: [b.categoryCode],
         voSectorOtherText: '',
@@ -1508,12 +1509,13 @@ export default function App() {
         voCountry: null,
         voCity: null,
         voCityOther: '',
-        voStartingPrice: '',
         voEmail: st.signedIn ? st.email || '' : '',
         voPhone: b.phone || '',
         voPassword: '',
         voConfirmPassword: '',
         voAgree: false,
+        voLogoUrl: '',
+        voCoverUrl: '',
         voStep1Error: null,
         navMenuOpen: false,
       }),
@@ -3608,10 +3610,11 @@ export default function App() {
       patch({
         screen: 'vendor-onboarding',
         // Already signed in (e.g. confirmed their email and landed back
-        // logged in, but never got a listing created) — skip straight to
-        // business info instead of asking them to sign up again, which
-        // would just fail since the account already exists.
-        voStep: st.signedIn ? 2 : 0,
+        // logged in, but never got a listing created) — skip the marketing
+        // intro screen, but they still pick a sector and fill in business
+        // info same as anyone else, so this only skips ahead to step 1, not
+        // all the way to step 3.
+        voStep: st.signedIn ? 1 : 0,
         voVendorId: null,
         voSectors: [],
         voSectorOtherText: '',
@@ -3621,12 +3624,13 @@ export default function App() {
         voCountry: null,
         voCity: null,
         voCityOther: '',
-        voStartingPrice: '',
         voEmail: st.signedIn ? st.email || '' : '',
         voPhone: '',
         voPassword: '',
         voConfirmPassword: '',
         voAgree: false,
+        voLogoUrl: '',
+        voCoverUrl: '',
         voStep1Error: null,
         navMenuOpen: false,
       }),
@@ -3665,8 +3669,6 @@ export default function App() {
     voCityOtherSelected: st.voCity === 'Other',
     voCityOther: st.voCityOther || '',
     setVoCityOther: (e) => patch({ voCityOther: e.target.value }),
-    voStartingPrice: st.voStartingPrice || '',
-    setVoStartingPrice: (e) => patch({ voStartingPrice: e.target.value }),
     voEmail: st.voEmail || '',
     setVoEmail: (e) => patch({ voEmail: e.target.value }),
     voPhone: st.voPhone || '',
@@ -3683,6 +3685,27 @@ export default function App() {
     toggleVoAgree: () => patch((s) => ({ voAgree: !s.voAgree })),
     voStep1Submitting: !!st.voStep1Submitting,
     voStep1Error: st.voStep1Error || '',
+
+    // Step 1 — what type of vendor. Its own screen, first, so a visitor
+    // isn't asked to create an account before saying what they even do.
+    voSectorStepDisabled: !(
+      (st.voSectors || []).some((c) => c !== 'OTHER') &&
+      (!(st.voSectors || []).includes('OTHER') || (st.voSectorOtherText || '').trim())
+    ),
+    goVoAccountStep: () => {
+      const disabled = !(
+        (st.voSectors || []).some((c) => c !== 'OTHER') &&
+        (!(st.voSectors || []).includes('OTHER') || (st.voSectorOtherText || '').trim())
+      );
+      if (disabled) return;
+      // Already signed in (e.g. confirmed their email and landed back
+      // logged in) — skip account credentials, which would just fail since
+      // the account already exists, straight to business info.
+      patch({ voStep: st.signedIn ? 3 : 2 });
+    },
+
+    // Step 2 — account credentials (skipped entirely for a signed-in visitor
+    // with no listing yet).
     voAccountStepDisabled: !(
       (st.voEmail || '').trim() &&
       st.voEmail.indexOf('@') > 0 &&
@@ -3691,7 +3714,7 @@ export default function App() {
       st.voPassword === st.voConfirmPassword &&
       st.voAgree
     ),
-    goVoBusinessStep: () => {
+    goVoBusinessInfoStep: () => {
       const disabled = !(
         (st.voEmail || '').trim() &&
         st.voEmail.indexOf('@') > 0 &&
@@ -3701,21 +3724,21 @@ export default function App() {
         st.voAgree
       );
       if (disabled) return;
-      patch({ voStep: 2 });
+      patch({ voStep: 3 });
     },
-    voStep1Disabled: !(
-      (st.voSectors || []).some((c) => c !== 'OTHER') &&
-      (!(st.voSectors || []).includes('OTHER') || (st.voSectorOtherText || '').trim()) &&
+
+    // Step 3 — business name & contact info. This is where the account and
+    // vendor row actually get created (the earliest point every required
+    // field is on hand), handing off into step 4 to pick photos.
+    voBusinessStepDisabled: !(
       (st.voBusinessName || '').trim() &&
       (st.voContactPerson || '').trim() &&
       st.voCountry &&
       (st.voCity === 'Other' ? (st.voCityOther || '').trim() : st.voCity) &&
       (st.voEmail || '').trim() &&
-      (st.voPhone || '').trim() &&
-      (st.signedIn ||
-        ((st.voPassword || '').length >= 6 && st.voPassword === st.voConfirmPassword && st.voAgree))
+      (st.voPhone || '').trim()
     ),
-    voStep1Next: async () => {
+    voBusinessStepNext: async () => {
       const name = (st.voBusinessName || '').trim();
       const contactPerson = (st.voContactPerson || '').trim();
       const email = (st.voEmail || '').trim();
@@ -3757,24 +3780,59 @@ export default function App() {
           email,
           phone,
           password: st.voPassword,
-          startingPrice: st.voStartingPrice ? Number(st.voStartingPrice) : null,
+          startingPrice: null,
         });
-        // Flow straight into the same guided builder a vendor's dashboard
-        // uses to edit their profile, instead of stopping on a "you're in"
-        // dead end that made account creation feel disconnected from
-        // building the actual listing — one continuous step-by-step, same
-        // as the rest of the profile builder.
-        patch({
-          voStep1Submitting: false,
-          voVendorId: vendorId,
-          accountRole: 'vendor',
-          screen: 'vendor-dashboard',
-          vdGuidedOpen: true,
-          vdTab: VD_GUIDE_TABS[0],
-        });
+        patch({ voStep1Submitting: false, voVendorId: vendorId, accountRole: 'vendor', voStep: 4 });
       } catch (err) {
         patch({ voStep1Submitting: false, voStep1Error: err.message || 'Could not create your account. Please try again.' });
       }
+    },
+
+    // Step 4 — logo & cover photo, the last onboarding screen. The account
+    // already exists by now, so uploads attach to a real vendor row; "Skip
+    // for now" is always available since a bare listing shouldn't be
+    // blocked on branding.
+    voLogoUrl: st.voLogoUrl || '',
+    voUploadingLogo: !!st.voUploadingLogo,
+    uploadVoLogo: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ voUploadingLogo: true, voStep1Error: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ voUploadingLogo: false, voLogoUrl: url });
+      } catch (err) {
+        patch({ voUploadingLogo: false, voStep1Error: err.message || 'Could not upload photo.' });
+      }
+    },
+    voCoverUrl: st.voCoverUrl || '',
+    voUploadingCover: !!st.voUploadingCover,
+    uploadVoCover: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ voUploadingCover: true, voStep1Error: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ voUploadingCover: false, voCoverUrl: url });
+      } catch (err) {
+        patch({ voUploadingCover: false, voStep1Error: err.message || 'Could not upload photo.' });
+      }
+    },
+    voPhotosFinish: async () => {
+      const goToDashboard = () => patch({ screen: 'vendor-dashboard', vdGuidedOpen: true, vdTab: VD_GUIDE_TABS[0] });
+      if (!st.voVendorId || (!st.voLogoUrl && !st.voCoverUrl)) {
+        goToDashboard();
+        return;
+      }
+      patch({ voStep1Submitting: true });
+      try {
+        await updateVendorBranding(st.voVendorId, { logoUrl: st.voLogoUrl, coverUrl: st.voCoverUrl });
+      } catch {
+        // Best-effort — branding photos aren't critical path, and the
+        // vendor can always add or fix them from the dashboard either way.
+      }
+      patch({ voStep1Submitting: false });
+      goToDashboard();
     },
   };
 
@@ -9095,7 +9153,11 @@ export default function App() {
         <div style={{ padding: '34px 0 0', maxWidth: 720 }}>
           <button
             onClick={
-              V.voStep > 0 && !(V.signedIn && V.voStep === 2)
+              // Signed-in visitors skip step 2 (credentials) entirely, and
+              // step 4's account is already created — stepping "back" into
+              // either would land on a screen that doesn't apply or can't
+              // be safely resubmitted, so those two go home instead.
+              V.voStep > 0 && V.voStep !== 4 && !(V.signedIn && V.voStep === 3)
                 ? () => patch({ voStep: V.voStep - 1 })
                 : V.goHome
             }
@@ -9141,13 +9203,15 @@ export default function App() {
           ) : (
             <>
               <div style={{ marginTop: 22, fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, color: ACCENT }}>
-                Step {V.voStep} of 2 · {['', 'Create your account', 'Your business'][V.voStep]}
+                Step {V.voStep} of 4 · {['', 'What you do', 'Create your account', 'Your business', 'Photos'][V.voStep]}
               </div>
               <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: '#5B5B5B' }}>
-                {V.voStep === 1 && "Let's get you set up — this takes about a minute."}
-                {V.voStep === 2 && "Almost there — tell us what you do and where to find you. You can add photos, pricing, and everything else later from your dashboard."}
+                {V.voStep === 1 && "Let's start with what kind of vendor you are."}
+                {V.voStep === 2 && "Let's get you set up — this takes about a minute."}
+                {V.voStep === 3 && "Tell us about your business and how buyers can reach you."}
+                {V.voStep === 4 && 'Add a face to your listing — you can always change these later from your dashboard.'}
               </p>
-              {V.voStep === 1 && (
+              {V.voStep === 2 && (
                 <p style={{ margin: '8px 0 0', fontSize: 13, color: '#8A8A8A' }}>
                   Already have a vendor account?{' '}
                   <button onClick={V.goVendorSignIn} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
@@ -9157,12 +9221,62 @@ export default function App() {
                 </p>
               )}
               <div style={{ marginTop: 14, display: 'flex', gap: 4 }}>
-                {[1, 2].map((n) => (
+                {[1, 2, 3, 4].map((n) => (
                   <div key={n} style={{ flex: 1, height: 4, borderRadius: 2, background: V.voStep >= n ? '#171717' : '#ECECEC' }} />
                 ))}
               </div>
 
               {V.voStep === 1 && (
+                <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  <div>
+                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Sector * (up to 3)</div>
+                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {V.voSectorTiles.map((c) => (
+                        <button
+                          key={c.code}
+                          onClick={c.pick}
+                          disabled={c.maxed}
+                          style={{
+                            border: c.on ? '2px solid #171717' : '1px solid #E4E4DF',
+                            borderRadius: 999,
+                            background: c.on ? '#171717' : '#FFFFFF',
+                            color: c.on ? '#FFFFFF' : c.maxed ? '#C8C8C2' : '#171717',
+                            padding: '9px 16px',
+                            cursor: c.maxed ? 'default' : 'pointer',
+                            fontSize: 13,
+                            fontWeight: 700,
+                            opacity: c.maxed ? 0.6 : 1,
+                          }}
+                        >
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                    {V.voSectorOtherSelected && (
+                      <input
+                        type="text"
+                        value={V.voSectorOtherText}
+                        onChange={V.setVoSectorOtherText}
+                        placeholder="Tell us what you offer"
+                        style={{ marginTop: 8, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }}
+                      />
+                    )}
+                  </div>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Main category (optional)</span>
+                    <input type="text" value={V.voSubcategory} onChange={V.setVoSubcategory} placeholder="e.g. Buffet Catering, Wedding Venues" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
+                  </label>
+                  <button
+                    onClick={V.goVoAccountStep}
+                    disabled={V.voSectorStepDisabled}
+                    style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.voSectorStepDisabled ? 0.5 : 1 }}
+                  >
+                    Continue →
+                  </button>
+                </div>
+              )}
+
+              {V.voStep === 2 && (
                 <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Email address *</span>
@@ -9203,56 +9317,21 @@ export default function App() {
                     </span>
                   </div>
 
-                  <button
-                    onClick={V.goVoBusinessStep}
-                    disabled={V.voAccountStepDisabled}
-                    style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.voAccountStepDisabled ? 0.5 : 1 }}
-                  >
-                    Continue →
-                  </button>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={() => patch({ voStep: 1 })} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '14px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Previous</button>
+                    <button
+                      onClick={V.goVoBusinessInfoStep}
+                      disabled={V.voAccountStepDisabled}
+                      style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.voAccountStepDisabled ? 0.5 : 1 }}
+                    >
+                      Continue →
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {V.voStep === 2 && (
+              {V.voStep === 3 && (
                 <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
-                  <div>
-                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Sector * (up to 3)</div>
-                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {V.voSectorTiles.map((c) => (
-                        <button
-                          key={c.code}
-                          onClick={c.pick}
-                          disabled={c.maxed}
-                          style={{
-                            border: c.on ? '2px solid #171717' : '1px solid #E4E4DF',
-                            borderRadius: 999,
-                            background: c.on ? '#171717' : '#FFFFFF',
-                            color: c.on ? '#FFFFFF' : c.maxed ? '#C8C8C2' : '#171717',
-                            padding: '9px 16px',
-                            cursor: c.maxed ? 'default' : 'pointer',
-                            fontSize: 13,
-                            fontWeight: 700,
-                            opacity: c.maxed ? 0.6 : 1,
-                          }}
-                        >
-                          {c.name}
-                        </button>
-                      ))}
-                    </div>
-                    {V.voSectorOtherSelected && (
-                      <input
-                        type="text"
-                        value={V.voSectorOtherText}
-                        onChange={V.setVoSectorOtherText}
-                        placeholder="Tell us what you offer"
-                        style={{ marginTop: 8, width: '100%', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }}
-                      />
-                    )}
-                  </div>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Main category (optional)</span>
-                    <input type="text" value={V.voSubcategory} onChange={V.setVoSubcategory} placeholder="e.g. Buffet Catering, Wedding Venues" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
-                  </label>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Business name *</span>
                     <input type="text" value={V.voBusinessName} onChange={V.setVoBusinessName} placeholder="Your business name" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
@@ -9304,23 +9383,59 @@ export default function App() {
                       />
                     )}
                   </label>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Starting price (TT$, optional)</span>
-                    <input type="number" value={V.voStartingPrice} onChange={V.setVoStartingPrice} placeholder="e.g. 500" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15 }} />
-                    <span style={{ fontSize: 12, color: '#9A9A9A' }}>Rough figure for now — this updates automatically once you add real packages.</span>
-                  </label>
 
                   {V.voStep1Error && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.voStep1Error}</div>}
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={() => patch({ voStep: 1 })} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '14px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Previous</button>
+                    <button onClick={() => patch({ voStep: st.signedIn ? 1 : 2 })} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '14px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>← Previous</button>
                     <button
-                      onClick={V.voStep1Next}
-                      disabled={V.voStep1Disabled || V.voStep1Submitting}
-                      style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.voStep1Disabled || V.voStep1Submitting ? 0.5 : 1 }}
+                      onClick={V.voBusinessStepNext}
+                      disabled={V.voBusinessStepDisabled || V.voStep1Submitting}
+                      style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.voBusinessStepDisabled || V.voStep1Submitting ? 0.5 : 1 }}
                     >
                       {V.voStep1Submitting ? (V.signedIn ? 'Creating your listing…' : 'Creating account…') : 'Continue →'}
                     </button>
                   </div>
+                </div>
+              )}
+
+              {V.voStep === 4 && (
+                <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  <p style={{ margin: 0, fontSize: 13, color: '#8A8A8A' }}>
+                    Clear, well-lit photos help buyers trust your listing before they ever message you. Totally optional right now — you can skip and add these anytime.
+                  </p>
+                  <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer' }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Cover photo</span>
+                      {V.voCoverUrl ? (
+                        <img src={V.voCoverUrl} alt="Cover" style={{ width: 180, height: 100, borderRadius: 12, objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: 180, height: 100, borderRadius: 12, background: '#F7F7F5', border: '1px dashed #D7D7D2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9A9A9A' }}>
+                          {V.voUploadingCover ? 'Uploading…' : 'Add photo'}
+                        </div>
+                      )}
+                      <input type="file" accept="image/*" onChange={V.uploadVoCover} style={{ fontSize: 12 }} />
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer' }}>
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Logo</span>
+                      {V.voLogoUrl ? (
+                        <img src={V.voLogoUrl} alt="Logo" style={{ width: 100, height: 100, borderRadius: 999, objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: 100, height: 100, borderRadius: 999, background: '#F7F7F5', border: '1px dashed #D7D7D2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#9A9A9A', textAlign: 'center' }}>
+                          {V.voUploadingLogo ? 'Uploading…' : 'Add logo'}
+                        </div>
+                      )}
+                      <input type="file" accept="image/*" onChange={V.uploadVoLogo} style={{ fontSize: 12 }} />
+                    </label>
+                  </div>
+
+                  {V.voStep1Error && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.voStep1Error}</div>}
+                  <button
+                    onClick={V.voPhotosFinish}
+                    disabled={V.voUploadingLogo || V.voUploadingCover || V.voStep1Submitting}
+                    style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '14px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700, opacity: V.voUploadingLogo || V.voUploadingCover || V.voStep1Submitting ? 0.5 : 1 }}
+                  >
+                    {V.voLogoUrl || V.voCoverUrl ? 'Finish →' : 'Skip for now →'}
+                  </button>
                 </div>
               )}
             </>

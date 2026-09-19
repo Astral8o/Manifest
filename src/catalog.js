@@ -932,6 +932,22 @@ export async function updateVendorProfile(vendorId, v) {
   if (error) throw error;
 }
 
+// Saves just the logo/cover photo a brand-new vendor picks during onboarding's
+// final step, right after their account and vendor row are created — a
+// narrow patch rather than routing through updateVendorProfile, which would
+// otherwise overwrite every other profile field with whatever this caller
+// happened to have on hand.
+export async function updateVendorBranding(vendorId, { logoUrl, coverUrl }) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase
+    .from('vendors')
+    .update({ logo_url: logoUrl || null, cover_photo_url: coverUrl || null })
+    .eq('id', vendorId);
+  if (error) throw error;
+}
+
 // Records which paid add-ons (Integrations, Marketing, etc.) a vendor has
 // flagged interest in. These are placeholder toggles only — no real
 // integration or billing exists yet, this just captures demand.
