@@ -676,6 +676,24 @@ function descriptionTeaser(text) {
   return firstLine || '';
 }
 
+// Clusters a package's flat addons array by their optional `group` label
+// (e.g. "House Call" vs "Makeup Add-Ons") so related, mutually-relevant
+// options render together instead of one undifferentiated list. Items
+// without a group land in a single unlabeled bucket, shown first.
+function groupAddons(addons) {
+  const order = [];
+  const byGroup = {};
+  (addons || []).forEach((a) => {
+    const key = a.group || '';
+    if (!byGroup[key]) {
+      byGroup[key] = { group: key, items: [] };
+      order.push(byGroup[key]);
+    }
+    byGroup[key].items.push(a);
+  });
+  return order;
+}
+
 // A short, readable temp password for the admin to hand a vendor directly
 // (WhatsApp, in person, etc.) — avoids visually ambiguous characters
 // (0/O, 1/l/I) since it has to be read off a screen and typed back in.
@@ -1260,7 +1278,7 @@ export default function App() {
                 ...(parsed.supId ? { supId: parsed.supId } : {}),
                 ...(parsed.supplierTab ? { supplierTab: parsed.supplierTab } : {}),
                 ...(parsed.openWa
-                  ? { waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null }
+                  ? { waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null, waAddons: [] }
                   : {}),
               };
             }
@@ -1455,6 +1473,7 @@ export default function App() {
       photoUrl: p[8] || '',
       inclusions: p[9] || [],
       type: p[10] || 'package',
+      addons: p[11] || [],
       priceOnRequest: !!s.priceOnRequest,
     }));
   // Resolves a single product id ("<vendorId>-<index>") against whichever
@@ -1654,7 +1673,7 @@ export default function App() {
     if (platform === 'tiktok') return 'https://tiktok.com/@' + h;
     return null;
   };
-  const buildWaMessage = (name, { eventTypeLabel, eventDate, venue, attendees, service, buyerName, message }) => {
+  const buildWaMessage = (name, { eventTypeLabel, eventDate, venue, attendees, service, addons, buyerName, message }) => {
     let msg = buyerName
       ? `Hi ${name}, I'm ${buyerName} and I found you on Eventory. I'm interested in ${service ? `your ${service}` : 'your services'}`
       : `Hi ${name}, I found you on Eventory and I'm interested in ${service ? `your ${service}` : 'your services'}`;
@@ -1665,6 +1684,7 @@ export default function App() {
     if (attendees) details.push(`for about ${attendees} guests`);
     if (details.length) msg += ' ' + details.join(' ');
     msg += '.';
+    if (addons && addons.length) msg += ` I'd also like: ${addons.join(', ')}.`;
     if (message) msg += ` ${message}`;
     return msg;
   };
@@ -2147,7 +2167,7 @@ export default function App() {
     aboutExpanded: !!st.aboutExpanded,
     toggleAboutExpanded: () => patch((s) => ({ aboutExpanded: !s.aboutExpanded })),
 
-    openWaModal: () => {
+    openWaModal: (preselectService) => {
       if (!st.signedIn) {
         try {
           localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: 'supplier', supId: sup.id, openWa: true }));
@@ -2157,7 +2177,7 @@ export default function App() {
         patch({ screen: 'account', navMenuOpen: false });
         return;
       }
-      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null });
+      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: preselectService || null, waAddons: [] });
     },
     closeWaModal: () => patch({ waModalOpen: false }),
     waModalOpen: !!st.waModalOpen,
@@ -2178,9 +2198,39 @@ export default function App() {
     waServiceTiles: packageProducts.map((p) => ({
       key: p.name,
       label: p.name,
+      // Add-ons are per-package, so switching which package this inquiry
+      // is about clears any add-ons picked for the previous one.
       on: st.waService === p.name,
-      pick: () => patch({ waService: st.waService === p.name ? null : p.name }),
+      pick: () => patch({ waService: st.waService === p.name ? null : p.name, waAddons: [] }),
     })),
+    // Only the currently-selected package's own add-ons are offered, and
+    // they're clustered by group (e.g. a "House Call" region beside another
+    // isn't the same choice as two "Makeup Add-Ons" — both are still
+    // freely selectable, just visually grouped so related options read
+    // together instead of one flat list).
+    waAddonGroups: (() => {
+      const selected = packageProducts.find((p) => p.name === st.waService);
+      if (!selected) return [];
+      return groupAddons(selected.addons).map((g) => ({
+        key: g.group || 'General',
+        label: g.group || '',
+        items: g.items.map((a) => {
+          const label = a.duration ? `${a.name} (${a.duration})` : a.name;
+          const selectedLabel = g.group ? `${g.group} — ${a.name}` : a.name;
+          return {
+            key: selectedLabel,
+            label,
+            priceLabel: a.price === null || a.price === undefined ? 'Ask for pricing' : '+' + money(a.price),
+            selected: (st.waAddons || []).indexOf(selectedLabel) >= 0,
+            toggle: () =>
+              patch((s) => {
+                const cur = s.waAddons || [];
+                return { waAddons: cur.indexOf(selectedLabel) >= 0 ? cur.filter((n) => n !== selectedLabel) : cur.concat([selectedLabel]) };
+              }),
+          };
+        }),
+      }));
+    })(),
     waSendDisabled: !st.waEventType || (st.waEventType === 'other' && !(st.waEventTypeOther || '').trim()),
     waSendUrl: sup.phone
       ? 'https://wa.me/' +
@@ -2196,6 +2246,7 @@ export default function App() {
             venue: st.waVenue,
             attendees: st.waAttendees,
             service: rentalCartItems.length ? rentalCartSummary : st.waService,
+            addons: st.waAddons || [],
           })
         )
       : null,
@@ -2350,6 +2401,7 @@ export default function App() {
       descriptionLong: (p.description || '').length > 220,
       openDetails: () => patch({ openPackageId: p.id }),
       inclusions: p.inclusions || [],
+      addonsLabel: (p.addons || []).length > 0 ? (p.addons || []).length + ' add-on' + ((p.addons || []).length === 1 ? '' : 's') + ' available' : '',
       priceLabel: priceLabel(p),
       saved: (st.saved || []).indexOf(p.id) >= 0,
       saveLabel: (st.saved || []).indexOf(p.id) >= 0 ? '★ Saved' : '☆ Save',
@@ -2370,10 +2422,31 @@ export default function App() {
         name: p.name,
         descriptionBlocks: parseDescriptionBlocks(p.description),
         inclusions: p.inclusions || [],
+        addonGroups: groupAddons(p.addons).map((g) => ({
+          key: g.group || 'General',
+          label: g.group || '',
+          items: g.items.map((a) => ({
+            key: a.name,
+            label: a.duration ? `${a.name} (${a.duration})` : a.name,
+            priceLabel: a.price === null || a.price === undefined ? 'Ask for pricing' : '+' + money(a.price),
+          })),
+        })),
         priceLabel: priceLabel(p),
         saved: (st.saved || []).indexOf(p.id) >= 0,
         saveLabel: (st.saved || []).indexOf(p.id) >= 0 ? '★ Saved' : '☆ Save',
         toggleSave: () => toggleSave(p.id),
+        goSelectAddons: () => {
+          if (!st.signedIn) {
+            try {
+              localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: 'supplier', supId: sup.id, openWa: true }));
+            } catch {
+              // ignore storage failures — worst case the user has to click again after signing in
+            }
+            patch({ screen: 'account', navMenuOpen: false, openPackageId: null });
+            return;
+          }
+          patch({ openPackageId: null, waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: p.name, waAddons: [] });
+        },
       };
     })(),
     closePackageDetails: () => patch({ openPackageId: null }),
@@ -2419,7 +2492,7 @@ export default function App() {
         patch({ screen: 'account', navMenuOpen: false });
         return;
       }
-      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null });
+      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null, waAddons: [] });
     },
 
     email: st.email || '',
@@ -2942,6 +3015,28 @@ export default function App() {
       patch((s) => ({ vdPkgInclusions: (s.vdPkgInclusions || []).concat([text]), vdPkgInclusionDraft: '' }));
     },
     removeVdPkgInclusion: (i) => patch((s) => ({ vdPkgInclusions: (s.vdPkgInclusions || []).filter((_, idx) => idx !== i) })),
+    vdPkgAddons: st.vdPkgAddons || [],
+    vdPkgAddonName: st.vdPkgAddonName || '',
+    setVdPkgAddonName: (e) => patch({ vdPkgAddonName: e.target.value }),
+    vdPkgAddonPrice: st.vdPkgAddonPrice || '',
+    setVdPkgAddonPrice: (e) => patch({ vdPkgAddonPrice: e.target.value }),
+    vdPkgAddonDuration: st.vdPkgAddonDuration || '',
+    setVdPkgAddonDuration: (e) => patch({ vdPkgAddonDuration: e.target.value }),
+    vdPkgAddonGroup: st.vdPkgAddonGroup || '',
+    setVdPkgAddonGroup: (e) => patch({ vdPkgAddonGroup: e.target.value }),
+    addVdPkgAddonDisabled: !(st.vdPkgAddonName || '').trim(),
+    addVdPkgAddon: () => {
+      const name = (st.vdPkgAddonName || '').trim();
+      if (!name) return;
+      const price = st.vdPkgAddonPrice === '' ? null : Number(st.vdPkgAddonPrice);
+      patch((s) => ({
+        vdPkgAddons: (s.vdPkgAddons || []).concat([{ name, price, duration: (s.vdPkgAddonDuration || '').trim(), group: (s.vdPkgAddonGroup || '').trim() }]),
+        vdPkgAddonName: '',
+        vdPkgAddonPrice: '',
+        vdPkgAddonDuration: '',
+      }));
+    },
+    removeVdPkgAddon: (i) => patch((s) => ({ vdPkgAddons: (s.vdPkgAddons || []).filter((_, idx) => idx !== i) })),
     vdPkgGroupLabel: st.vdPkgGroupLabel || '',
     setVdPkgGroupLabel: (e) => patch({ vdPkgGroupLabel: e.target.value }),
     vdPkgUnit: st.vdPkgUnit || '',
@@ -2984,6 +3079,7 @@ export default function App() {
           type,
           description: (st.vdPkgDescription || '').trim(),
           inclusions: st.vdPkgInclusions || [],
+          addons: st.vdPkgAddons || [],
           groupLabel: (st.vdPkgGroupLabel || '').trim(),
           priceMin: Number(st.vdPkgPriceMin),
           priceMax: Number(st.vdPkgPriceMax),
@@ -2999,6 +3095,11 @@ export default function App() {
           vdPkgDescription: '',
           vdPkgInclusions: [],
           vdPkgInclusionDraft: '',
+          vdPkgAddons: [],
+          vdPkgAddonName: '',
+          vdPkgAddonPrice: '',
+          vdPkgAddonDuration: '',
+          vdPkgAddonGroup: '',
           vdPkgGroupLabel: '',
           vdPkgUnit: '',
           vdPkgMinQty: '',
@@ -3008,7 +3109,7 @@ export default function App() {
           vdVendor: {
             ...s.vdVendor,
             packages: s.vdVendor.packages.concat([
-              { id: row.id, name: row.name, type: row.type || 'package', description: row.description || '', priceMin: Number(row.price_min), priceMax: Number(row.price_max), unit: row.unit, minQty: Number(row.min_qty) || 1, photoUrl: row.photo_url || '', inclusions: row.inclusions || [], groupLabel: row.group_label || '' },
+              { id: row.id, name: row.name, type: row.type || 'package', description: row.description || '', priceMin: Number(row.price_min), priceMax: Number(row.price_max), unit: row.unit, minQty: Number(row.min_qty) || 1, photoUrl: row.photo_url || '', inclusions: row.inclusions || [], addons: (row.addons || []).map((a) => ({ name: a.name, price: a.price === null || a.price === undefined ? null : Number(a.price), duration: a.duration || '', group: a.group || '' })), groupLabel: row.group_label || '' },
             ]),
           },
         }));
@@ -3629,6 +3730,28 @@ export default function App() {
       patch((s) => ({ adminPkgInclusions: (s.adminPkgInclusions || []).concat([text]), adminPkgInclusionDraft: '' }));
     },
     removeAdminPkgInclusion: (i) => patch((s) => ({ adminPkgInclusions: (s.adminPkgInclusions || []).filter((_, idx) => idx !== i) })),
+    adminPkgAddons: st.adminPkgAddons || [],
+    adminPkgAddonName: st.adminPkgAddonName || '',
+    setAdminPkgAddonName: (e) => patch({ adminPkgAddonName: e.target.value }),
+    adminPkgAddonPrice: st.adminPkgAddonPrice || '',
+    setAdminPkgAddonPrice: (e) => patch({ adminPkgAddonPrice: e.target.value }),
+    adminPkgAddonDuration: st.adminPkgAddonDuration || '',
+    setAdminPkgAddonDuration: (e) => patch({ adminPkgAddonDuration: e.target.value }),
+    adminPkgAddonGroup: st.adminPkgAddonGroup || '',
+    setAdminPkgAddonGroup: (e) => patch({ adminPkgAddonGroup: e.target.value }),
+    addAdminPkgAddonDisabled: !(st.adminPkgAddonName || '').trim(),
+    addAdminPkgAddon: () => {
+      const name = (st.adminPkgAddonName || '').trim();
+      if (!name) return;
+      const price = st.adminPkgAddonPrice === '' ? null : Number(st.adminPkgAddonPrice);
+      patch((s) => ({
+        adminPkgAddons: (s.adminPkgAddons || []).concat([{ name, price, duration: (s.adminPkgAddonDuration || '').trim(), group: (s.adminPkgAddonGroup || '').trim() }]),
+        adminPkgAddonName: '',
+        adminPkgAddonPrice: '',
+        adminPkgAddonDuration: '',
+      }));
+    },
+    removeAdminPkgAddon: (i) => patch((s) => ({ adminPkgAddons: (s.adminPkgAddons || []).filter((_, idx) => idx !== i) })),
     adminPkgGroupLabel: st.adminPkgGroupLabel || '',
     setAdminPkgGroupLabel: (e) => patch({ adminPkgGroupLabel: e.target.value }),
     adminPkgPriceMin: st.adminPkgPriceMin || '',
@@ -3659,6 +3782,7 @@ export default function App() {
             photoUrl: (s.adminPkgPhotoUrl || '').trim(),
             description: (s.adminPkgDescription || '').trim(),
             inclusions: s.adminPkgInclusions || [],
+            addons: s.adminPkgAddons || [],
             groupLabel: (s.adminPkgGroupLabel || '').trim(),
             priceMin,
             priceMax,
@@ -3672,6 +3796,11 @@ export default function App() {
         adminPkgDescription: '',
         adminPkgInclusions: [],
         adminPkgInclusionDraft: '',
+        adminPkgAddons: [],
+        adminPkgAddonName: '',
+        adminPkgAddonPrice: '',
+        adminPkgAddonDuration: '',
+        adminPkgAddonGroup: '',
         adminPkgGroupLabel: '',
         adminPkgPriceMin: '',
         adminPkgPriceMax: '',
@@ -5743,6 +5872,14 @@ export default function App() {
                                 </li>
                               ))}
                             </ul>
+                          )}
+                          {p.addonsLabel && (
+                            <button
+                              onClick={p.openDetails}
+                              style={{ alignSelf: 'flex-start', marginTop: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: '#9A9A9A' }}
+                            >
+                              {p.addonsLabel} →
+                            </button>
                           )}
                           <div style={{ marginTop: 14, fontFamily: MONO, fontSize: 17, fontWeight: 700 }}>{p.priceLabel}</div>
                           <div style={{ marginTop: 'auto', paddingTop: 16, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -8262,6 +8399,57 @@ export default function App() {
                               </div>
                             )}
                           </div>
+                          <div>
+                            <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Add-ons (optional)</span>
+                            <div style={{ marginTop: 2, fontSize: 12, color: '#8A8A8A' }}>
+                              Optional extras a buyer can select for this package, e.g. a region or a duration option. Leave price blank for "ask for pricing." Give related options the same group name (e.g. "House Call") to cluster them.
+                            </div>
+                            <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              <input
+                                type="text"
+                                value={V.vdPkgAddonName}
+                                onChange={V.setVdPkgAddonName}
+                                placeholder="Name, e.g. East"
+                                style={{ flex: '2 1 140px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
+                              />
+                              <input
+                                type="number"
+                                value={V.vdPkgAddonPrice}
+                                onChange={V.setVdPkgAddonPrice}
+                                placeholder="Price"
+                                style={{ flex: '1 1 90px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
+                              />
+                              <input
+                                type="text"
+                                value={V.vdPkgAddonDuration}
+                                onChange={V.setVdPkgAddonDuration}
+                                placeholder="Duration (optional)"
+                                style={{ flex: '1 1 110px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
+                              />
+                              <input
+                                type="text"
+                                value={V.vdPkgAddonGroup}
+                                onChange={V.setVdPkgAddonGroup}
+                                placeholder="Group (optional)"
+                                style={{ flex: '1 1 110px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#FFFFFF', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
+                              />
+                              <button onClick={V.addVdPkgAddon} disabled={V.addVdPkgAddonDisabled} style={{ flexShrink: 0, border: '1px solid #D7D7D2', borderRadius: 14, background: '#FFFFFF', padding: '0 18px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.addVdPkgAddonDisabled ? 0.4 : 1 }}>
+                                Add
+                              </button>
+                            </div>
+                            {V.vdPkgAddons.length > 0 && (
+                              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                {V.vdPkgAddons.map((a, i) => (
+                                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderRadius: 10, background: '#F7F7F5', padding: '7px 12px' }}>
+                                    <span style={{ fontSize: 13, color: '#171717' }}>
+                                      {a.group ? `${a.group} — ` : ''}{a.name}{a.duration ? ` (${a.duration})` : ''} — {a.price !== null ? 'TT$' + a.price : 'Ask for pricing'}
+                                    </span>
+                                    <button onClick={() => V.removeVdPkgAddon(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </>
                       )}
                       <div style={{ display: 'flex', gap: 8 }}>
@@ -9348,6 +9536,57 @@ export default function App() {
                             </div>
                           )}
                         </div>
+                        <div>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Add-ons (optional)</span>
+                          <div style={{ marginTop: 2, fontSize: 12, color: '#9A9A9A' }}>
+                            Optional extras a buyer can select for this package. Leave price blank for "ask for pricing." Give related options the same group name (e.g. "House Call") to cluster them.
+                          </div>
+                          <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            <input
+                              type="text"
+                              value={V.adminPkgAddonName}
+                              onChange={V.setAdminPkgAddonName}
+                              placeholder="Name, e.g. East"
+                              style={{ flex: '2 1 140px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
+                            />
+                            <input
+                              type="number"
+                              value={V.adminPkgAddonPrice}
+                              onChange={V.setAdminPkgAddonPrice}
+                              placeholder="Price"
+                              style={{ flex: '1 1 90px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
+                            />
+                            <input
+                              type="text"
+                              value={V.adminPkgAddonDuration}
+                              onChange={V.setAdminPkgAddonDuration}
+                              placeholder="Duration (optional)"
+                              style={{ flex: '1 1 110px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
+                            />
+                            <input
+                              type="text"
+                              value={V.adminPkgAddonGroup}
+                              onChange={V.setAdminPkgAddonGroup}
+                              placeholder="Group (optional)"
+                              style={{ flex: '1 1 110px', border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }}
+                            />
+                            <button onClick={V.addAdminPkgAddon} disabled={V.addAdminPkgAddonDisabled} style={{ flexShrink: 0, border: '1px solid #D7D7D2', borderRadius: 14, background: '#FFFFFF', padding: '0 18px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.addAdminPkgAddonDisabled ? 0.4 : 1 }}>
+                              Add
+                            </button>
+                          </div>
+                          {V.adminPkgAddons.length > 0 && (
+                            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                              {V.adminPkgAddons.map((a, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderRadius: 10, background: '#F7F7F5', padding: '7px 12px' }}>
+                                  <span style={{ fontSize: 13, color: '#171717' }}>
+                                    {a.group ? `${a.group} — ` : ''}{a.name}{a.duration ? ` (${a.duration})` : ''} — {a.price !== null && a.price !== '' ? 'TT$' + a.price : 'Ask for pricing'}
+                                  </span>
+                                  <button onClick={() => V.removeAdminPkgAddon(i)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#B3261E', fontWeight: 700 }}>Remove</button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </>
                     )}
                     <div style={{ display: 'flex', gap: 10 }}>
@@ -10351,6 +10590,43 @@ export default function App() {
               </div>
             )}
 
+            {V.waAddonGroups.length > 0 && (
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {V.waAddonGroups.map((g) => (
+                  <div key={g.key}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                      {g.label || 'Add-ons (optional)'}
+                    </span>
+                    <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {g.items.map((a) => (
+                        <button
+                          key={a.key}
+                          onClick={a.toggle}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            border: a.selected ? `1px solid ${ACCENT}` : '1px solid #E4E4DF',
+                            borderRadius: 999,
+                            background: a.selected ? `${ACCENT}17` : 'transparent',
+                            color: a.selected ? ACCENT : '#171717',
+                            padding: '9px 14px',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {a.label}
+                          <span style={{ fontFamily: MONO, fontSize: 11, opacity: 0.8 }}>{a.priceLabel}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <div style={{ fontSize: 12, color: '#9A9A9A' }}>Tap to select — they'll be included when you message on WhatsApp.</div>
+              </div>
+            )}
+
             <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <label style={{ flex: '1 1 160px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
@@ -10542,12 +10818,53 @@ export default function App() {
                   ))}
                 </ul>
               )}
+              {V.openPackage.addonGroups.length > 0 && (
+                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {V.openPackage.addonGroups.map((g) => (
+                    <div key={g.key}>
+                      {g.label && (
+                        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                          {g.label}
+                        </div>
+                      )}
+                      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {g.items.map((a) => (
+                          <span
+                            key={a.key}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              border: '1px solid #E4E4DF',
+                              borderRadius: 999,
+                              padding: '6px 14px',
+                              fontSize: 12.5,
+                              fontWeight: 600,
+                              color: '#171717',
+                            }}
+                          >
+                            {a.label}
+                            <span style={{ fontFamily: MONO, fontSize: 11, opacity: 0.7 }}>{a.priceLabel}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    onClick={V.openPackage.goSelectAddons}
+                    style={{ alignSelf: 'flex-start', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                  >
+                    Select add-ons on WhatsApp →
+                  </button>
+                </div>
+              )}
               <div style={{ marginTop: 22, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {V.sup.whatsappUrl && (
                   <button
                     onClick={() => {
+                      const name = V.openPackage.name;
                       V.closePackageDetails();
-                      V.openWaModal();
+                      V.openWaModal(name);
                     }}
                     style={{
                       display: 'inline-flex',
