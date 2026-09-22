@@ -228,12 +228,17 @@ export async function submitInquiry({ buyer, groups }) {
   if (!supabaseConfigured) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const inquiryId = crypto.randomUUID();
   const { error: inquiryError } = await supabase.from('inquiries').insert({
     id: inquiryId,
+    buyer_user_id: user ? user.id : null,
     buyer_name: buyer.name || null,
     buyer_email: buyer.email,
     buyer_phone: buyer.phone || null,
+    event_type: buyer.eventType || null,
     event_date: buyer.eventDate || null,
     guests_expected: buyer.guestsExpected ? Number(buyer.guestsExpected) : null,
     event_time: buyer.eventTime || null,

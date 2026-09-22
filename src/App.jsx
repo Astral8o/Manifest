@@ -30,6 +30,7 @@ import {
   updateVendorProfile,
   updateVendorAddonInterest,
   updateVendorBranding,
+  submitInquiry,
   fetchVendorInquiries,
   markInquiryViewed,
   acceptInquiry,
@@ -445,7 +446,7 @@ const SPOTLIGHT_STARTER_PLAN = {
   tagline: 'List. Get found. Get booked.',
   bullets: [
     'Storefront — your own mini-website inside Eventory',
-    'Direct inquiries — planners message you, straight to WhatsApp',
+    'Direct inquiries — planners send requests straight to your dashboard inbox',
     'Active planners, not passive scrollers — visibility to buyers actively searching for vendors',
   ],
   cta: 'Create My Storefront',
@@ -497,7 +498,7 @@ const ABOUT_FAQS = [
   },
   {
     q: 'Can I message a vendor instantly?',
-    a: 'Yes. Most vendor profiles have a WhatsApp button for a quick, direct message — no sign-in required.',
+    a: 'Sign in and send an inquiry straight from their profile — it lands in their dashboard inbox right away.',
   },
   {
     q: "Can't find what you're looking for?",
@@ -601,16 +602,6 @@ const PRIVACY_SECTIONS = [
 
 const avatarUrl = (seed) =>
   'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(seed) + '&backgroundColor=171717&textColor=ffffff&fontWeight=700';
-
-// Normalizes a T&T phone number into the full digits wa.me needs. Vendors
-// often type just the local 7-digit number or the 10-digit "868..." form
-// without the country code, which otherwise makes the WhatsApp link 404.
-function whatsappDigits(phone) {
-  const digits = (phone || '').replace(/\D/g, '');
-  if (digits.length === 7) return '1868' + digits;
-  if (digits.length === 10 && digits.startsWith('868')) return '1' + digits;
-  return digits;
-}
 
 // Vendors routinely paste a whole package listing — title, price, a
 // checklist, add-ons, contact info — into the single free-text description
@@ -1278,7 +1269,7 @@ export default function App() {
                 ...(parsed.supId ? { supId: parsed.supId } : {}),
                 ...(parsed.supplierTab ? { supplierTab: parsed.supplierTab } : {}),
                 ...(parsed.openWa
-                  ? { waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null, waAddons: [] }
+                  ? { waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null, waAddons: [], waSubmitting: false, waSubmitted: false, waSubmitError: null }
                   : {}),
               };
             }
@@ -1659,7 +1650,6 @@ export default function App() {
   const rentalCartItems = rentalProducts
     .map((p) => ({ id: p.id, name: p.name, unit: p.unit, priceMin: p.min, qty: rentalQty(p.id) }))
     .filter((r) => r.qty > 0);
-  const rentalCartSummary = rentalCartItems.map((r) => r.qty + '× ' + r.name).join(', ');
   const socialUrl = (platform, handle) => {
     if (!handle) return null;
     const h = handle
@@ -1672,21 +1662,6 @@ export default function App() {
     if (platform === 'facebook') return 'https://facebook.com/' + h;
     if (platform === 'tiktok') return 'https://tiktok.com/@' + h;
     return null;
-  };
-  const buildWaMessage = (name, { eventTypeLabel, eventDate, venue, attendees, service, addons, buyerName, message }) => {
-    let msg = buyerName
-      ? `Hi ${name}, I'm ${buyerName} and I found you on Eventory. I'm interested in ${service ? `your ${service}` : 'your services'}`
-      : `Hi ${name}, I found you on Eventory and I'm interested in ${service ? `your ${service}` : 'your services'}`;
-    const details = [];
-    if (eventTypeLabel) details.push(`for a ${eventTypeLabel}`);
-    if (eventDate) details.push(`on ${eventDate}`);
-    if (venue) details.push(`at ${venue}`);
-    if (attendees) details.push(`for about ${attendees} guests`);
-    if (details.length) msg += ' ' + details.join(' ');
-    msg += '.';
-    if (addons && addons.length) msg += ` I'd also like: ${addons.join(', ')}.`;
-    if (message) msg += ` ${message}`;
-    return msg;
   };
   const supCoverFallback = sup.coverUrl || fallbackPhotoFor(sup.code, 0);
   const supCarouselPhotos = (() => {
@@ -2133,13 +2108,7 @@ export default function App() {
         { label: 'Response time', value: sup.response },
       ].filter(Boolean),
       phone: sup.phone,
-      whatsappUrl: sup.phone
-        ? 'https://wa.me/' +
-          whatsappDigits(sup.phone) +
-          '?text=' +
-          encodeURIComponent(`Hi ${sup.contactPerson || sup.name}, I found you on Eventory and I'm interested in your services.`)
-        : null,
-      waButtonLabel: sup.contactPerson ? `Message ${sup.contactPerson.split(' ')[0]} on WhatsApp →` : 'Message on WhatsApp →',
+      waButtonLabel: 'Send Inquiry →',
       social: [
         sup.instagram ? { key: 'instagram', label: 'Instagram', href: socialUrl('instagram', sup.instagram) } : null,
         sup.facebook ? { key: 'facebook', label: 'Facebook', href: socialUrl('facebook', sup.facebook) } : null,
@@ -2177,7 +2146,7 @@ export default function App() {
         patch({ screen: 'account', navMenuOpen: false });
         return;
       }
-      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: preselectService || null, waAddons: [] });
+      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: preselectService || null, waAddons: [], waSubmitting: false, waSubmitted: false, waSubmitError: null });
     },
     closeWaModal: () => patch({ waModalOpen: false }),
     waModalOpen: !!st.waModalOpen,
@@ -2231,25 +2200,41 @@ export default function App() {
         }),
       }));
     })(),
-    waSendDisabled: !st.waEventType || (st.waEventType === 'other' && !(st.waEventTypeOther || '').trim()),
-    waSendUrl: sup.phone
-      ? 'https://wa.me/' +
-        whatsappDigits(sup.phone) +
-        '?text=' +
-        encodeURIComponent(
-          buildWaMessage(sup.contactPerson || sup.name, {
-            eventTypeLabel:
-              st.waEventType === 'other'
-                ? (st.waEventTypeOther || '').trim()
-                : ((EVENT_TYPES.find((t) => t.key === st.waEventType) || {}).label || '').toLowerCase(),
+    waSendDisabled: !st.waEventType || (st.waEventType === 'other' && !(st.waEventTypeOther || '').trim()) || !!st.waSubmitting,
+    waSubmitting: !!st.waSubmitting,
+    waSubmitted: !!st.waSubmitted,
+    waSubmitError: st.waSubmitError || '',
+    submitWaInquiry: async () => {
+      if (st.waSubmitting) return;
+      if (!st.waEventType || (st.waEventType === 'other' && !(st.waEventTypeOther || '').trim())) return;
+      patch({ waSubmitting: true, waSubmitError: null });
+      try {
+        const eventType = st.waEventType === 'other' ? (st.waEventTypeOther || '').trim() : st.waEventType;
+        const items = rentalCartItems.length
+          ? rentalCartItems.map((r) => ({ productId: null, name: r.name, qty: r.qty, specAnswers: {} }))
+          : [
+              {
+                productId: null,
+                name: st.waService || 'General inquiry',
+                qty: 1,
+                specAnswers: (st.waAddons || []).length ? { addons: st.waAddons } : {},
+              },
+            ];
+        await submitInquiry({
+          buyer: {
+            email: st.email,
+            eventType,
             eventDate: st.waEventDate,
-            venue: st.waVenue,
-            attendees: st.waAttendees,
-            service: rentalCartItems.length ? rentalCartSummary : st.waService,
-            addons: st.waAddons || [],
-          })
-        )
-      : null,
+            guestsExpected: st.waAttendees,
+            venueAddress: st.waVenue,
+          },
+          groups: [{ vendorId: sup.id, items }],
+        });
+        patch({ waSubmitting: false, waSubmitted: true, rentalQty: {} });
+      } catch (err) {
+        patch({ waSubmitting: false, waSubmitError: err.message || 'Could not send your inquiry. Please try again.' });
+      }
+    },
 
     openFaqKey: st.openFaqKey || null,
     toggleFaq: (key) => patch((s) => ({ openFaqKey: s.openFaqKey === key ? null : key })),
@@ -2445,7 +2430,7 @@ export default function App() {
             patch({ screen: 'account', navMenuOpen: false, openPackageId: null });
             return;
           }
-          patch({ openPackageId: null, waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: p.name, waAddons: [] });
+          patch({ openPackageId: null, waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: p.name, waAddons: [], waSubmitting: false, waSubmitted: false, waSubmitError: null });
         },
       };
     })(),
@@ -2479,7 +2464,6 @@ export default function App() {
     }),
     rentalCartItems: rentalCartItems.map((r) => ({ key: r.id, label: r.qty + '× ' + r.name })),
     rentalCartCount: rentalCartItems.reduce((sum, r) => sum + r.qty, 0),
-    rentalCartSummary,
     rentalCartHasItems: rentalCartItems.length > 0,
     clearRentalCart: () => patch({ rentalQty: {} }),
     goRequestRentals: () => {
@@ -2492,7 +2476,7 @@ export default function App() {
         patch({ screen: 'account', navMenuOpen: false });
         return;
       }
-      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null, waAddons: [] });
+      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: null, waAddons: [], waSubmitting: false, waSubmitted: false, waSubmitError: null });
     },
 
     email: st.email || '',
@@ -4770,8 +4754,8 @@ export default function App() {
               <div style={{ maxWidth: 720 }}>
                 <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Reach out</div>
                 <div style={{ marginTop: 8, fontSize: 15, lineHeight: 1.5, color: '#A8A8A8' }}>
-                  Message a vendor on WhatsApp straight from their profile, or sign in and send them a
-                  detailed quote request.
+                  Sign in and send an inquiry straight from a vendor's profile — quick heads-up or a
+                  detailed quote request, either way it lands in their inbox.
                 </div>
               </div>
               <div style={{ fontFamily: MONO, fontSize: 34, color: '#4A4A4A' }}>02</div>
@@ -5644,29 +5628,27 @@ export default function App() {
                   </div>
                 )}
                 <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                  {V.sup.whatsappUrl && (
-                    <button
-                      onClick={V.openWaModal}
-                      style={{
-                        flex: '2 1 200px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 6,
-                        border: 0,
-                        borderRadius: 999,
-                        background: '#25D366',
-                        color: '#FFFFFF',
-                        padding: '15px 22px',
-                        cursor: 'pointer',
-                        fontFamily: DISPLAY,
-                        fontSize: 14.5,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {V.sup.waButtonLabel}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => V.openWaModal()}
+                    style={{
+                      flex: '2 1 200px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      border: 0,
+                      borderRadius: 999,
+                      background: ACCENT,
+                      color: ACCENT_ON,
+                      padding: '15px 22px',
+                      cursor: 'pointer',
+                      fontFamily: DISPLAY,
+                      fontSize: 14.5,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {V.sup.waButtonLabel}
+                  </button>
                   <button
                     onClick={V.sup.toggleSaved}
                     style={{
@@ -6972,11 +6954,11 @@ export default function App() {
                   Trinidad &amp; Tobago.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: ACCENT_ON_SOFT }}>
-                  Browse vendor profiles, then message them on WhatsApp for a quick question, or sign in and
-                  send a detailed quote request built around your event.
+                  Browse vendor profiles, sign in, and send an inquiry — a quick question or a detailed
+                  quote request built around your event.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: ACCENT_ON_SOFT }}>
-                  Either way, the vendor messages you back directly.
+                  It lands straight in the vendor's inbox, and they get back to you directly.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, fontWeight: 700, lineHeight: 1.6, color: ACCENT_ON }}>
                   You find the people you need. They take it from there.
@@ -7022,12 +7004,12 @@ export default function App() {
                   People are already looking for what you offer.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#D7D7D2' }}>
-                  Eventory helps them find your business when they're planning an event. They can message you
-                  on WhatsApp instantly, or sign in and send a detailed quote request from your profile.
+                  Eventory helps them find your business when they're planning an event. They sign in and send
+                  an inquiry from your profile — a quick question or a detailed quote request.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#D7D7D2' }}>
-                  When they're ready, you receive their request directly, with the event details and what they're
-                  interested in.
+                  When they're ready, their request lands in your dashboard inbox, with the event details and
+                  what they're interested in.
                 </p>
                 <p style={{ margin: 0, fontSize: 16, fontWeight: 700, lineHeight: 1.6, color: '#FFFFFF' }}>
                   You reach out, discuss the details, and take it from there.
@@ -8102,7 +8084,14 @@ export default function App() {
                               {inq.items.length > 0 && (
                                 <ul style={{ margin: '10px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
                                   {inq.items.map((it) => (
-                                    <li key={it.id} style={{ fontSize: 13, color: '#5B5B5B' }}>• {it.productName} × {it.qty}</li>
+                                    <li key={it.id} style={{ fontSize: 13, color: '#5B5B5B' }}>
+                                      • {it.productName} × {it.qty}
+                                      {(it.specAnswers.addons || []).length > 0 && (
+                                        <span style={{ display: 'block', marginTop: 2, marginLeft: 12, color: '#8A8A8A' }}>
+                                          Add-ons: {it.specAnswers.addons.join(', ')}
+                                        </span>
+                                      )}
+                                    </li>
                                   ))}
                                 </ul>
                               )}
@@ -8205,7 +8194,7 @@ export default function App() {
                   </label>
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 700 }}>Your contact person</div>
-                    <div style={{ marginTop: 4, fontSize: 13, color: '#7A7A7A' }}>Shown on your public profile and in the WhatsApp inquiry so buyers know who they're messaging.</div>
+                    <div style={{ marginTop: 4, fontSize: 13, color: '#7A7A7A' }}>Shown on your public profile so buyers know who they're reaching out to.</div>
                     <div style={{ marginTop: 12, display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer' }}>
                         <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Photo</span>
@@ -10507,7 +10496,7 @@ export default function App() {
           >
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 20 : 24, lineHeight: 1.15, letterSpacing: '-0.02em', fontWeight: 800 }}>
-                Message {V.sup.name}
+                {V.waSubmitted ? 'Inquiry sent' : `Send an inquiry to ${V.sup.name}`}
               </h2>
               <button
                 onClick={V.closeWaModal}
@@ -10517,6 +10506,20 @@ export default function App() {
                 ✕
               </button>
             </div>
+            {V.waSubmitted ? (
+              <>
+                <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
+                  {V.sup.name} will see this in their Eventory inbox and can accept or reply from there.
+                </p>
+                <button
+                  onClick={V.closeWaModal}
+                  style={{ marginTop: 20, width: '100%', boxSizing: 'border-box', border: 0, borderRadius: 999, background: ACCENT, color: ACCENT_ON, padding: '15px 26px', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}
+                >
+                  Done
+                </button>
+              </>
+            ) : (
+              <>
             <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>
               A quick heads-up on what you need helps them reply faster.
             </p>
@@ -10623,7 +10626,7 @@ export default function App() {
                     </div>
                   </div>
                 ))}
-                <div style={{ fontSize: 12, color: '#9A9A9A' }}>Tap to select — they'll be included when you message on WhatsApp.</div>
+                <div style={{ fontSize: 12, color: '#9A9A9A' }}>Tap to select — they'll be included in your inquiry.</div>
               </div>
             )}
 
@@ -10666,68 +10669,30 @@ export default function App() {
               </label>
             </div>
 
-            {V.waSendDisabled ? (
-              <div
-                style={{
-                  marginTop: 20,
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  textAlign: 'center',
-                  border: 0,
-                  borderRadius: 999,
-                  background: '#25D366',
-                  color: '#FFFFFF',
-                  padding: '15px 26px',
-                  fontSize: 15,
-                  fontWeight: 700,
-                  opacity: 0.5,
-                }}
-              >
-                {V.sup.waButtonLabel}
-              </div>
-            ) : (
-              <a
-                href={V.waSendUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={V.closeWaModal}
-                style={{
-                  marginTop: 20,
-                  display: 'block',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  textAlign: 'center',
-                  border: 0,
-                  borderRadius: 999,
-                  background: '#25D366',
-                  color: '#FFFFFF',
-                  padding: '15px 26px',
-                  cursor: 'pointer',
-                  fontSize: 15,
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                }}
-              >
-                {V.sup.waButtonLabel}
-              </a>
-            )}
-            <a
-              href={V.sup.whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={V.closeWaModal}
+            {V.waSubmitError && <div style={{ marginTop: 14, fontSize: 12.5, color: '#B3261E' }}>{V.waSubmitError}</div>}
+            <button
+              onClick={V.submitWaInquiry}
+              disabled={V.waSendDisabled}
               style={{
-                marginTop: 12,
-                display: 'block',
+                marginTop: 20,
+                width: '100%',
+                boxSizing: 'border-box',
                 textAlign: 'center',
-                fontSize: 13,
-                color: '#6E6E6E',
-                textDecoration: 'underline',
-                textUnderlineOffset: '3px',
+                border: 0,
+                borderRadius: 999,
+                background: ACCENT,
+                color: ACCENT_ON,
+                padding: '15px 26px',
+                cursor: V.waSendDisabled ? 'default' : 'pointer',
+                fontSize: 15,
+                fontWeight: 700,
+                opacity: V.waSendDisabled ? 0.5 : 1,
               }}
             >
-              Skip — just message directly
-            </a>
+              {V.waSubmitting ? 'Sending…' : V.sup.waButtonLabel}
+            </button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -10854,36 +10819,34 @@ export default function App() {
                     onClick={V.openPackage.goSelectAddons}
                     style={{ alignSelf: 'flex-start', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '2px' }}
                   >
-                    Select add-ons on WhatsApp →
+                    Select add-ons →
                   </button>
                 </div>
               )}
               <div style={{ marginTop: 22, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {V.sup.whatsappUrl && (
-                  <button
-                    onClick={() => {
-                      const name = V.openPackage.name;
-                      V.closePackageDetails();
-                      V.openWaModal(name);
-                    }}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      border: 0,
-                      borderRadius: 999,
-                      background: '#25D366',
-                      color: '#FFFFFF',
-                      padding: '12px 20px',
-                      cursor: 'pointer',
-                      fontFamily: DISPLAY,
-                      fontSize: 14,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {V.sup.waButtonLabel}
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    const name = V.openPackage.name;
+                    V.closePackageDetails();
+                    V.openWaModal(name);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    border: 0,
+                    borderRadius: 999,
+                    background: ACCENT,
+                    color: ACCENT_ON,
+                    padding: '12px 20px',
+                    cursor: 'pointer',
+                    fontFamily: DISPLAY,
+                    fontSize: 14,
+                    fontWeight: 600,
+                  }}
+                >
+                  {V.sup.waButtonLabel}
+                </button>
                 <button
                   onClick={V.openPackage.toggleSave}
                   style={{
