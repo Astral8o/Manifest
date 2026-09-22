@@ -612,6 +612,70 @@ function whatsappDigits(phone) {
   return digits;
 }
 
+// Vendors routinely paste a whole package listing — title, price, a
+// checklist, add-ons, contact info — into the single free-text description
+// field, rather than using the separate "what's included" list. Rendered as
+// plain text this collapses into an unreadable wall, so this splits it into
+// paragraph and bullet-list blocks by looking for lines that already start
+// with a bullet-like marker (✔, ✓, •, -, *, –) — the same shape vendors
+// already type instinctively — and groups consecutive ones into a list, so
+// it displays with the same structure the vendor typed it in, without
+// requiring them to re-enter anything into the structured field.
+const DESCRIPTION_BULLET_RE = /^[✔✓•●*\-–]\s*/;
+function parseDescriptionBlocks(text) {
+  if (!text) return [];
+  const lines = text.split('\n');
+  const blocks = [];
+  let paraLines = [];
+  let listItems = null;
+
+  const flushPara = () => {
+    if (paraLines.length) {
+      blocks.push({ type: 'p', text: paraLines.join(' ').trim() });
+      paraLines = [];
+    }
+  };
+  const flushList = () => {
+    if (listItems && listItems.length) blocks.push({ type: 'ul', items: listItems });
+    listItems = null;
+  };
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) {
+      flushPara();
+      flushList();
+      continue;
+    }
+    if (DESCRIPTION_BULLET_RE.test(line)) {
+      flushPara();
+      if (!listItems) listItems = [];
+      listItems.push(line.replace(DESCRIPTION_BULLET_RE, '').trim());
+    } else {
+      flushList();
+      paraLines.push(line);
+    }
+  }
+  flushPara();
+  flushList();
+  return blocks;
+}
+// A short plain-text teaser for card previews: the first substantial prose
+// paragraph if there is one (skipping short label-like fragments such as a
+// repeated title or "$2000" on its own line, which read as noise rather
+// than a summary), otherwise the first bullet group joined into a line, and
+// finally just the first non-empty line as a last resort.
+function descriptionTeaser(text) {
+  const blocks = parseDescriptionBlocks(text);
+  const paras = blocks.filter((b) => b.type === 'p' && b.text);
+  const teaser = paras.find((b) => b.text.length >= 24) || paras[0];
+  if (teaser) return teaser.text;
+  const firstList = blocks.find((b) => b.type === 'ul');
+  if (firstList) return firstList.items.join(', ');
+  const firstLine = (text || '').split('\n').map((l) => l.trim()).find(Boolean);
+  return firstLine || '';
+}
+
 // A short, readable temp password for the admin to hand a vendor directly
 // (WhatsApp, in person, etc.) — avoids visually ambiguous characters
 // (0/O, 1/l/I) since it has to be read off a screen and typed back in.
@@ -2276,13 +2340,13 @@ export default function App() {
       key: p.id,
       photo: p.photoUrl || fallbackPhotoFor(sup.code, i),
       name: p.name,
-      description: p.description,
       // Vendors sometimes paste an entire caption (contact info, add-ons,
-      // repeated boilerplate) into a package description — clamped in the
-      // card so one long-winded package doesn't blow out the grid's row
-      // height. Rather than expanding in place (which un-levels the whole
-      // row), "View full details" opens the one package in a modal, same
-      // as the WhatsApp inquiry modal elsewhere on this page.
+      // a whole bulleted checklist, repeated boilerplate) into the package
+      // description — a card teaser shows only the first prose sentence
+      // (never a stray bullet fragment out of context), clamped so one
+      // long-winded package doesn't blow out the grid's row height.
+      // "View full details" opens the full, structured version in a modal.
+      description: descriptionTeaser(p.description),
       descriptionLong: (p.description || '').length > 220,
       openDetails: () => patch({ openPackageId: p.id }),
       inclusions: p.inclusions || [],
@@ -2304,7 +2368,7 @@ export default function App() {
       return {
         photo: p.photoUrl || fallbackPhotoFor(sup.code, Math.max(idx, 0)),
         name: p.name,
-        description: p.description,
+        descriptionBlocks: parseDescriptionBlocks(p.description),
         inclusions: p.inclusions || [],
         priceLabel: priceLabel(p),
         saved: (st.saved || []).indexOf(p.id) >= 0,
@@ -10452,9 +10516,22 @@ export default function App() {
                 {V.openPackage.name}
               </h2>
               <div style={{ marginTop: 10, fontFamily: MONO, fontSize: 18, fontWeight: 700 }}>{V.openPackage.priceLabel}</div>
-              <p style={{ margin: '16px 0 0', fontSize: 14.5, lineHeight: 1.6, color: '#4A4A4A', whiteSpace: 'pre-line' }}>
-                {V.openPackage.description}
-              </p>
+              {V.openPackage.descriptionBlocks.map((block, i) =>
+                block.type === 'ul' ? (
+                  <ul key={i} style={{ margin: '14px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {block.items.map((item, j) => (
+                      <li key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>
+                        <span style={{ flexShrink: 0, color: '#16A34A', fontWeight: 800 }}>✓</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p key={i} style={{ margin: '14px 0 0', fontSize: 14.5, lineHeight: 1.6, color: '#4A4A4A' }}>
+                    {block.text}
+                  </p>
+                )
+              )}
               {V.openPackage.inclusions.length > 0 && (
                 <ul style={{ margin: '16px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {V.openPackage.inclusions.map((inc) => (
