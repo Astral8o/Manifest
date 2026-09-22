@@ -2585,6 +2585,24 @@ export default function App() {
     vdVendor: st.vdVendor,
     vdHasVendor: !!st.vdVendor,
     vdStatusLabel: st.vdVendor ? (st.vdVendor.published ? 'Published' : 'Pending review') : '',
+    // Trial = the vendor's first 4 accepted inquiries, tracked by
+    // accepted_inquiry_count (declined/ignored ones never count). Once
+    // that's used up, new inquiries need an active Spotlight subscription
+    // to unlock — see the requires_spotlight column on inquiry_vendor_groups.
+    vdTrial: (() => {
+      const v = st.vdVendor;
+      if (!v) return null;
+      const limit = 4;
+      const used = Math.min(v.acceptedInquiryCount || 0, limit);
+      const spotlightActive = v.spotlightStatus === 'active';
+      return {
+        limit,
+        used,
+        remaining: Math.max(limit - used, 0),
+        spotlightActive,
+        exhausted: !spotlightActive && (v.acceptedInquiryCount || 0) >= limit,
+      };
+    })(),
     // Nothing shown until the vendor is either walking the guided steps or
     // has opened Inquiries — there's no free-browse edit mode anymore, so
     // the dashboard never dumps a form on them unprompted.
@@ -7609,6 +7627,49 @@ export default function App() {
                   Submitted for review on {new Date(V.vdSubmittedAt).toLocaleDateString()}. We review new listings by hand
                   before publishing — you can keep editing anytime in the meantime.
                 </p>
+              )}
+
+              {V.vdTrial && V.vdTrial.spotlightActive && (
+                <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12, border: '1px solid #171717', borderRadius: 18, padding: '14px 18px' }}>
+                  <span style={{ fontSize: 20, lineHeight: 1 }}>✨</span>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800 }}>Spotlight active</div>
+                    <div style={{ marginTop: 2, fontSize: 13, color: '#5B5B5B' }}>
+                      All inquiries unlock automatically — no trial limit while you're subscribed.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {V.vdTrial && !V.vdTrial.spotlightActive && !V.vdTrial.exhausted && (
+                <div style={{ marginTop: 18, border: '1px solid #ECECEC', borderRadius: 18, padding: '14px 18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: 14, fontWeight: 800 }}>Free trial</div>
+                    <div style={{ fontFamily: MONO, fontSize: 12, fontWeight: 700, color: '#5B5B5B' }}>
+                      {V.vdTrial.used} of {V.vdTrial.limit} free inquiries used
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 10, display: 'flex', gap: 4 }}>
+                    {Array.from({ length: V.vdTrial.limit }).map((_, i) => (
+                      <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i < V.vdTrial.used ? '#171717' : '#ECECEC' }} />
+                    ))}
+                  </div>
+                  <p style={{ margin: '10px 0 0', fontSize: 12.5, color: '#9A9A9A' }}>
+                    Your first {V.vdTrial.limit} accepted inquiries are free. Declining or ignoring one doesn't use up your trial.
+                  </p>
+                </div>
+              )}
+
+              {V.vdTrial && !V.vdTrial.spotlightActive && V.vdTrial.exhausted && (
+                <div style={{ marginTop: 18, border: '1px solid #FFD9C2', borderRadius: 18, background: '#FFF6F0', padding: '16px 18px' }}>
+                  <div style={{ fontSize: 14, fontWeight: 800 }}>Your free trial has ended</div>
+                  <p style={{ margin: '6px 0 0', fontSize: 13, lineHeight: 1.5, color: '#5B5B5B' }}>
+                    You've accepted {V.vdTrial.limit} free inquiries — new ones now stay locked until you subscribe to{' '}
+                    <strong>Spotlight</strong>. Nothing is lost: locked inquiries queue up and unlock the moment you subscribe.
+                    Spotlight also gets you unlimited self-publish posts, a featured badge, a marketing post made for you, and
+                    email marketing inclusion — TT$175/month or TT$1,750/year.
+                  </p>
+                </div>
               )}
 
               {!V.vdGuidedOpen && (

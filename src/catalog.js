@@ -864,6 +864,12 @@ export async function fetchMyVendor() {
     startingPrice: data.starting_price === null || data.starting_price === undefined ? null : Number(data.starting_price),
     published: !!data.published,
     submittedAt: data.submitted_at || null,
+    acceptedInquiryCount: data.accepted_inquiry_count || 0,
+    spotlightStatus: data.spotlight_status || 'none',
+    spotlightPlan: data.spotlight_plan || null,
+    spotlightCurrentPeriodEnd: data.spotlight_current_period_end || null,
+    integrationsStatus: data.integrations_status || 'none',
+    instagramConnectionStatus: data.instagram_connection_status || 'disconnected',
     packages: (data.products || [])
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
