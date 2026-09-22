@@ -2146,7 +2146,24 @@ export default function App() {
         patch({ screen: 'account', navMenuOpen: false });
         return;
       }
-      patch({ waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: preselectService || null, waAddons: [], waSubmitting: false, waSubmitted: false, waSubmitError: null });
+      // A buyer who already picked add-ons for this package in the details
+      // modal keeps them here — only switching to a different (or no)
+      // package clears the selection, same as picking a different service
+      // tile does once inside this modal.
+      const keepAddons = preselectService && preselectService === st.waService;
+      patch({
+        waModalOpen: true,
+        waEventType: null,
+        waEventTypeOther: '',
+        waEventDate: '',
+        waVenue: '',
+        waAttendees: '',
+        waService: preselectService || null,
+        waAddons: keepAddons ? st.waAddons || [] : [],
+        waSubmitting: false,
+        waSubmitted: false,
+        waSubmitError: null,
+      });
     },
     closeWaModal: () => patch({ waModalOpen: false }),
     waModalOpen: !!st.waModalOpen,
@@ -2384,7 +2401,10 @@ export default function App() {
       // "View full details" opens the full, structured version in a modal.
       description: descriptionTeaser(p.description),
       descriptionLong: (p.description || '').length > 220,
-      openDetails: () => patch({ openPackageId: p.id }),
+      // Opening details also scopes the (already-selectable) add-on state to
+      // this package, so a buyer can pick add-ons right in the modal instead
+      // of a separate hop into the inquiry form to do the same thing.
+      openDetails: () => patch({ openPackageId: p.id, waService: p.name, waAddons: [] }),
       inclusions: p.inclusions || [],
       addonsLabel: (p.addons || []).length > 0 ? (p.addons || []).length + ' add-on' + ((p.addons || []).length === 1 ? '' : 's') + ' available' : '',
       priceLabel: priceLabel(p),
@@ -2407,31 +2427,11 @@ export default function App() {
         name: p.name,
         descriptionBlocks: parseDescriptionBlocks(p.description),
         inclusions: p.inclusions || [],
-        addonGroups: groupAddons(p.addons).map((g) => ({
-          key: g.group || 'General',
-          label: g.group || '',
-          items: g.items.map((a) => ({
-            key: a.name,
-            label: a.duration ? `${a.name} (${a.duration})` : a.name,
-            priceLabel: a.price === null || a.price === undefined ? 'Ask for pricing' : '+' + money(a.price),
-          })),
-        })),
+        hasAddons: (p.addons || []).length > 0,
         priceLabel: priceLabel(p),
         saved: (st.saved || []).indexOf(p.id) >= 0,
         saveLabel: (st.saved || []).indexOf(p.id) >= 0 ? '★ Saved' : '☆ Save',
         toggleSave: () => toggleSave(p.id),
-        goSelectAddons: () => {
-          if (!st.signedIn) {
-            try {
-              localStorage.setItem(POST_AUTH_RETURN_KEY, JSON.stringify({ screen: 'supplier', supId: sup.id, openWa: true }));
-            } catch {
-              // ignore storage failures — worst case the user has to click again after signing in
-            }
-            patch({ screen: 'account', navMenuOpen: false, openPackageId: null });
-            return;
-          }
-          patch({ openPackageId: null, waModalOpen: true, waEventType: null, waEventTypeOther: '', waEventDate: '', waVenue: '', waAttendees: '', waService: p.name, waAddons: [], waSubmitting: false, waSubmitted: false, waSubmitError: null });
-        },
       };
     })(),
     closePackageDetails: () => patch({ openPackageId: null }),
@@ -10783,9 +10783,9 @@ export default function App() {
                   ))}
                 </ul>
               )}
-              {V.openPackage.addonGroups.length > 0 && (
+              {V.openPackage.hasAddons && (
                 <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {V.openPackage.addonGroups.map((g) => (
+                  {V.waAddonGroups.map((g) => (
                     <div key={g.key}>
                       {g.label && (
                         <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
@@ -10794,33 +10794,31 @@ export default function App() {
                       )}
                       <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                         {g.items.map((a) => (
-                          <span
+                          <button
                             key={a.key}
+                            onClick={a.toggle}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 6,
-                              border: '1px solid #E4E4DF',
+                              border: a.selected ? `1px solid ${ACCENT}` : '1px solid #E4E4DF',
                               borderRadius: 999,
+                              background: a.selected ? `${ACCENT}17` : 'transparent',
+                              color: a.selected ? ACCENT : '#171717',
                               padding: '6px 14px',
+                              cursor: 'pointer',
                               fontSize: 12.5,
                               fontWeight: 600,
-                              color: '#171717',
                             }}
                           >
                             {a.label}
-                            <span style={{ fontFamily: MONO, fontSize: 11, opacity: 0.7 }}>{a.priceLabel}</span>
-                          </span>
+                            <span style={{ fontFamily: MONO, fontSize: 11, opacity: 0.8 }}>{a.priceLabel}</span>
+                          </button>
                         ))}
                       </div>
                     </div>
                   ))}
-                  <button
-                    onClick={V.openPackage.goSelectAddons}
-                    style={{ alignSelf: 'flex-start', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '2px' }}
-                  >
-                    Select add-ons →
-                  </button>
+                  <div style={{ fontSize: 12, color: '#9A9A9A' }}>Tap to select — they'll come with you into your inquiry.</div>
                 </div>
               )}
               <div style={{ marginTop: 22, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
