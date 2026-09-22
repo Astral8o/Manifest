@@ -265,6 +265,84 @@ export async function submitInquiry({ buyer, groups }) {
   return inquiryId;
 }
 
+// Vendor-facing inbox: every inquiry routed to this vendor, newest first.
+// requiresSpotlight/status come straight off inquiry_vendor_groups — see the
+// add_monetization_model_trial_spotlight_integrations migration for how
+// they're maintained.
+export async function fetchVendorInquiries(vendorId) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase
+    .from('inquiry_vendor_groups')
+    .select('*, inquiries(*), inquiry_items(*)')
+    .eq('vendor_id', vendorId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row) => {
+    const inquiry = row.inquiries || {};
+    return {
+      id: row.id,
+      status: row.status,
+      requiresSpotlight: !!row.requires_spotlight,
+      createdAt: row.created_at,
+      viewedAt: row.viewed_at,
+      respondedAt: row.responded_at,
+      acceptedAt: row.accepted_at,
+      declinedAt: row.declined_at,
+      noteToVendor: row.note_to_vendor || '',
+      eventType: inquiry.event_type || '',
+      eventDate: inquiry.event_date || '',
+      eventTime: inquiry.event_time || '',
+      guestsExpected: inquiry.guests_expected ?? null,
+      fulfilment: inquiry.fulfilment || '',
+      venueAddress: inquiry.venue_address || '',
+      accessNotes: inquiry.access_notes || '',
+      buyerName: inquiry.buyer_name || '',
+      buyerEmail: inquiry.buyer_email || '',
+      buyerPhone: inquiry.buyer_phone || '',
+      items: (row.inquiry_items || []).map((it) => ({
+        id: it.id,
+        productName: it.product_name,
+        qty: it.qty,
+        specAnswers: it.spec_answers || {},
+      })),
+    };
+  });
+}
+
+// Only advances 'sent' -> 'viewed' — a no-op if it's already moved further
+// along, so opening an old inquiry again can't regress its status.
+export async function markInquiryViewed(groupId) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase
+    .from('inquiry_vendor_groups')
+    .update({ status: 'viewed' })
+    .eq('id', groupId)
+    .eq('status', 'sent');
+  if (error) throw error;
+}
+
+// Accepting is what counts against (or past) the free trial — see
+// handle_inquiry_status_change(), which maintains vendors.accepted_inquiry_count.
+export async function acceptInquiry(groupId) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('inquiry_vendor_groups').update({ status: 'accepted' }).eq('id', groupId);
+  if (error) throw error;
+}
+
+export async function declineInquiry(groupId) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('inquiry_vendor_groups').update({ status: 'declined' }).eq('id', groupId);
+  if (error) throw error;
+}
+
 // New reviews are inserted with the default status ('pending') and only
 // become visible once approved, per the vendor_reviews RLS policy. company
 // is a honeypot (see submitContactMessage) — silently dropped, not surfaced

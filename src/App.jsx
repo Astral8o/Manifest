@@ -30,6 +30,10 @@ import {
   updateVendorProfile,
   updateVendorAddonInterest,
   updateVendorBranding,
+  fetchVendorInquiries,
+  markInquiryViewed,
+  acceptInquiry,
+  declineInquiry,
   addVendorPackage,
   removeVendorPackage,
   addVendorGalleryPhoto,
@@ -279,6 +283,7 @@ const EVENT_TYPES = [
   { key: 'thriftEvent', label: 'Thrift Event' },
   { key: 'other', label: 'Other' },
 ];
+const EVENT_TYPE_LABELS = Object.fromEntries(EVENT_TYPES.map((t) => [t.key, t.label]));
 
 // Two-tier taxonomy for the "Plan my event" modal: a broad celebration type
 // (step 1) narrows down to a specific occasion (step 2), which then drives
@@ -1136,6 +1141,15 @@ export default function App() {
           vdAddressLine2: v.addressLine2,
           vdStartingPrice: v.startingPrice === null ? '' : String(v.startingPrice),
         });
+        // Loaded quietly in the background just so the "new inquiries"
+        // badge on the dashboard hub is accurate before the vendor ever
+        // opens the Inquiries tab — opening it is what marks them viewed.
+        fetchVendorInquiries(v.id)
+          .then((rows) => patch({ vdInquiries: rows }))
+          .catch(() => {
+            // Best-effort — the badge just stays at 0 if this fails; the
+            // Inquiries tab itself will surface the real error on open.
+          });
       })
       .catch((err) => patch({ vdLoading: false, vdError: err.message || 'Could not load your listing.' }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2608,6 +2622,59 @@ export default function App() {
     // the dashboard never dumps a form on them unprompted.
     vdTab: st.vdTab || '',
     vdSubmittedAt: (st.vdVendor && st.vdVendor.submittedAt) || null,
+
+    vdInquiries: st.vdInquiries || [],
+    vdInquiriesLoading: !!st.vdInquiriesLoading,
+    vdInquiriesError: st.vdInquiriesError || '',
+    vdInquiriesNewCount: (st.vdInquiries || []).filter((i) => i.status === 'sent').length,
+    vdInquiryActionBusy: st.vdInquiryActionBusy || null,
+    openVdInquiries: async () => {
+      if (!st.vdVendor) return;
+      patch({ vdTab: 'inquiries', vdInquiriesLoading: true, vdInquiriesError: null });
+      try {
+        const rows = await fetchVendorInquiries(st.vdVendor.id);
+        // Opening the inbox counts as viewing whatever's freshly listed —
+        // flip 'sent' -> 'viewed' locally and persist it in the background.
+        const newlySent = rows.filter((r) => r.status === 'sent');
+        const viewedRows = rows.map((r) => (r.status === 'sent' ? { ...r, status: 'viewed' } : r));
+        patch({ vdInquiriesLoading: false, vdInquiries: viewedRows });
+        newlySent.forEach((r) => {
+          markInquiryViewed(r.id).catch(() => {
+            // Best-effort — a failed status bump doesn't block reading the inquiry.
+          });
+        });
+      } catch (err) {
+        patch({ vdInquiriesLoading: false, vdInquiriesError: err.message || 'Could not load your inquiries.' });
+      }
+    },
+    closeVdInquiries: () => patch({ vdTab: '', vdInquiriesError: null }),
+    acceptVdInquiry: (id) => async () => {
+      if (st.vdInquiryActionBusy) return;
+      patch({ vdInquiryActionBusy: id });
+      try {
+        await acceptInquiry(id);
+        patch((s) => ({
+          vdInquiryActionBusy: null,
+          vdInquiries: (s.vdInquiries || []).map((i) => (i.id === id ? { ...i, status: 'accepted' } : i)),
+          vdVendor: s.vdVendor ? { ...s.vdVendor, acceptedInquiryCount: (s.vdVendor.acceptedInquiryCount || 0) + 1 } : s.vdVendor,
+        }));
+      } catch (err) {
+        patch({ vdInquiryActionBusy: null, vdInquiriesError: err.message || 'Could not accept this inquiry.' });
+      }
+    },
+    declineVdInquiry: (id) => async () => {
+      if (st.vdInquiryActionBusy) return;
+      patch({ vdInquiryActionBusy: id });
+      try {
+        await declineInquiry(id);
+        patch((s) => ({
+          vdInquiryActionBusy: null,
+          vdInquiries: (s.vdInquiries || []).map((i) => (i.id === id ? { ...i, status: 'declined' } : i)),
+        }));
+      } catch (err) {
+        patch({ vdInquiryActionBusy: null, vdInquiriesError: err.message || 'Could not decline this inquiry.' });
+      }
+    },
     vdSubmitting: !!st.vdSubmitting,
     vdSubmitError: st.vdSubmitError || '',
     vdSubmitForReview: () => {
@@ -7672,10 +7739,45 @@ export default function App() {
                 </div>
               )}
 
-              {!V.vdGuidedOpen && (
+              {!V.vdGuidedOpen && V.vdTab !== 'inquiries' && (
                 <div
+                  onClick={V.openVdInquiries}
                   style={{
                     marginTop: 18,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 14,
+                    borderRadius: 20,
+                    padding: isMobile ? 18 : '20px 24px',
+                    border: '1px solid #ECECEC',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 22, lineHeight: 1 }}>📨</span>
+                    <div>
+                      <div style={{ fontSize: 17, fontWeight: 800 }}>Inquiries</div>
+                      <p style={{ margin: '4px 0 0', fontSize: 13.5, lineHeight: 1.5, color: '#5B5B5B' }}>
+                        {V.vdInquiriesNewCount > 0
+                          ? `${V.vdInquiriesNewCount} new inquir${V.vdInquiriesNewCount === 1 ? 'y' : 'ies'} waiting`
+                          : "See what buyers have sent you"}
+                      </p>
+                    </div>
+                  </div>
+                  {V.vdInquiriesNewCount > 0 && (
+                    <span style={{ flexShrink: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', minWidth: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, padding: '0 8px' }}>
+                      {V.vdInquiriesNewCount}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {!V.vdGuidedOpen && V.vdTab !== 'inquiries' && (
+                <div
+                  style={{
+                    marginTop: 14,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -7711,7 +7813,7 @@ export default function App() {
                 </div>
               )}
 
-              {!V.vdGuidedOpen && (
+              {!V.vdGuidedOpen && V.vdTab !== 'inquiries' && (
                 <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
                   {V.vdAddons.map((addon) => {
                     const interested = V.isVdAddonInterested(addon.key);
@@ -7743,6 +7845,90 @@ export default function App() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {!V.vdGuidedOpen && V.vdTab === 'inquiries' && (
+                <div style={{ marginTop: 18 }}>
+                  <button
+                    onClick={V.closeVdInquiries}
+                    style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+                  >
+                    ← Back
+                  </button>
+                  <h2 style={{ margin: '10px 0 0', fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, letterSpacing: '-0.01em' }}>Inquiries</h2>
+
+                  {V.vdInquiriesLoading && <div style={{ marginTop: 18, fontSize: 14, color: '#8A8A8A' }}>Loading inquiries…</div>}
+                  {!V.vdInquiriesLoading && V.vdInquiriesError && <div style={{ marginTop: 18, fontSize: 13, color: '#B3261E' }}>{V.vdInquiriesError}</div>}
+                  {!V.vdInquiriesLoading && !V.vdInquiriesError && V.vdInquiries.length === 0 && (
+                    <p style={{ marginTop: 18, fontSize: 14, color: '#8A8A8A' }}>No inquiries yet — they'll show up here as soon as a buyer reaches out.</p>
+                  )}
+
+                  <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {V.vdInquiries.map((inq) => {
+                      const locked = inq.requiresSpotlight && !V.vdTrial.spotlightActive;
+                      const pending = inq.status === 'sent' || inq.status === 'viewed';
+                      return (
+                        <div key={inq.id} style={{ border: '1px solid #ECECEC', borderRadius: 18, padding: 18 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 15, fontWeight: 800 }}>{inq.eventType ? EVENT_TYPE_LABELS[inq.eventType] || inq.eventType : 'Event inquiry'}</span>
+                              {inq.eventDate && <span style={{ fontSize: 13, color: '#5B5B5B' }}>{new Date(inq.eventDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+                            </div>
+                            <span style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 700, color: inq.status === 'accepted' ? '#1E7A32' : inq.status === 'declined' ? '#9A9A9A' : '#5B5B5B', border: '1px solid #E4E4DF', borderRadius: 999, padding: '4px 10px' }}>
+                              {inq.status === 'sent' ? 'New' : inq.status}
+                            </span>
+                          </div>
+
+                          {locked ? (
+                            <div style={{ marginTop: 14, border: '1px solid #FFD9C2', borderRadius: 14, background: '#FFF6F0', padding: 14 }}>
+                              <div style={{ fontSize: 13.5, fontWeight: 800 }}>🔒 Subscribe to Spotlight to see full details</div>
+                              <p style={{ margin: '6px 0 0', fontSize: 12.5, lineHeight: 1.5, color: '#5B5B5B' }}>
+                                Your free trial's used up, but this inquiry isn't lost — it's waiting here. Subscribe to Spotlight
+                                (TT$175/month or TT$1,750/year) and it unlocks immediately, along with everything after it.
+                              </p>
+                            </div>
+                          ) : (
+                            <>
+                              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13.5, color: '#3A3A3A' }}>
+                                {inq.buyerName && <div><strong>{inq.buyerName}</strong></div>}
+                                {inq.buyerEmail && <div>{inq.buyerEmail}</div>}
+                                {inq.buyerPhone && <div>{inq.buyerPhone}</div>}
+                                {inq.guestsExpected != null && <div>{inq.guestsExpected} guests expected</div>}
+                                {inq.venueAddress && <div>Venue: {inq.venueAddress}</div>}
+                                {inq.noteToVendor && <div style={{ marginTop: 6, fontStyle: 'italic', color: '#5B5B5B' }}>"{inq.noteToVendor}"</div>}
+                              </div>
+                              {inq.items.length > 0 && (
+                                <ul style={{ margin: '10px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  {inq.items.map((it) => (
+                                    <li key={it.id} style={{ fontSize: 13, color: '#5B5B5B' }}>• {it.productName} × {it.qty}</li>
+                                  ))}
+                                </ul>
+                              )}
+                              {pending && (
+                                <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
+                                  <button
+                                    onClick={V.acceptVdInquiry(inq.id)}
+                                    disabled={V.vdInquiryActionBusy === inq.id}
+                                    style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '9px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.vdInquiryActionBusy === inq.id ? 0.6 : 1 }}
+                                  >
+                                    Accept
+                                  </button>
+                                  <button
+                                    onClick={V.declineVdInquiry(inq.id)}
+                                    disabled={V.vdInquiryActionBusy === inq.id}
+                                    style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', color: '#5B5B5B', padding: '9px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: V.vdInquiryActionBusy === inq.id ? 0.6 : 1 }}
+                                  >
+                                    Decline
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
