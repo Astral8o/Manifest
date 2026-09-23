@@ -50,10 +50,13 @@ import {
   submitSpotlightInterest,
   submitContactMessage,
   submitSourcingRequest,
+  fetchBlogPosts,
+  adminListBlogPosts,
+  adminCreateBlogPost,
+  adminUpdateBlogPost,
+  adminDeleteBlogPost,
 } from './catalog';
 import { supabase } from './supabaseClient';
-import toastCupsPhoto from './assets/toast cups.jpg';
-import babyShowerPastelPhoto from './assets/baby shower pastel.jpg';
 import photographerPhoto from './assets/photographer.jpg';
 import videographersPhoto from './assets/videographers.jpg';
 import weddingVenuePhoto from './assets/wedding venue.jpg';
@@ -105,171 +108,6 @@ function LogoMark({ width = 46, barHeight = 10, gap = 7, topColor = '#E0512B', o
       <div style={bar} />
     </div>
   );
-}
-
-// Small line-icon set for the "Browse by category" tiles — one shape per
-// category code, same stroke style as the icons used elsewhere in the app
-// (24x24 viewBox, currentColor-able stroke). Kept as simple geometric marks
-// rather than detailed illustrations so they read cleanly at tile size.
-function CategoryIcon({ code, size = 26, color = '#5B5B5B' }) {
-  const props = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
-  switch (code) {
-    case 'CAT.01': // Catering
-      return (
-        <svg {...props}>
-          <path d="M5 2v7a2 2 0 0 0 4 0V2" />
-          <line x1="7" y1="2" x2="7" y2="22" />
-          <path d="M17 2c-2 2-3 4-3 7a3 3 0 0 0 3 3v10" />
-        </svg>
-      );
-    case 'CAT.02': // Venues
-      return (
-        <svg {...props}>
-          <rect x="4" y="3" width="16" height="18" rx="1" />
-          <rect x="9" y="7" width="2" height="2" />
-          <rect x="13" y="7" width="2" height="2" />
-          <rect x="9" y="11" width="2" height="2" />
-          <rect x="13" y="11" width="2" height="2" />
-          <rect x="9" y="16" width="6" height="5" />
-        </svg>
-      );
-    case 'CAT.03': // Décor
-      return (
-        <svg {...props}>
-          <path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z" />
-        </svg>
-      );
-    case 'CAT.04': // Rentals
-      return (
-        <svg {...props}>
-          <path d="M6 10V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5" />
-          <path d="M4 10h16v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4z" />
-          <line x1="6" y1="16" x2="6" y2="21" />
-          <line x1="18" y1="16" x2="18" y2="21" />
-        </svg>
-      );
-    case 'CAT.05': // Staging
-      return (
-        <svg {...props}>
-          <path d="M3 20h18" />
-          <path d="M6 20l3-8h6l3 8" />
-          <path d="M12 4l-3 6h6l-3-6z" />
-        </svg>
-      );
-    case 'CAT.06': // Production
-      return (
-        <svg {...props}>
-          <rect x="4" y="2" width="16" height="20" rx="2" />
-          <circle cx="12" cy="8" r="3" />
-          <circle cx="12" cy="16" r="4" />
-        </svg>
-      );
-    case 'CAT.07': // Lighting
-      return (
-        <svg {...props}>
-          <path d="M9 18h6" />
-          <path d="M10 22h4" />
-          <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2.3h6c0-1.1.4-1.8 1-2.3A7 7 0 0 0 12 2z" />
-        </svg>
-      );
-    case 'CAT.08': // Photography
-      return (
-        <svg {...props}>
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-          <circle cx="12" cy="13" r="4" />
-        </svg>
-      );
-    case 'CAT.09': // Entertainment
-      return (
-        <svg {...props}>
-          <path d="M9 18V5l12-2v13" />
-          <circle cx="6" cy="18" r="3" />
-          <circle cx="18" cy="16" r="3" />
-        </svg>
-      );
-    case 'CAT.10': // Event Agencies
-      return (
-        <svg {...props}>
-          <rect x="2" y="7" width="20" height="14" rx="2" />
-          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-        </svg>
-      );
-    case 'CAT.11': // Printing & Signage
-      return (
-        <svg {...props}>
-          <polyline points="6 9 6 2 18 2 18 9" />
-          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-          <rect x="6" y="14" width="12" height="8" />
-        </svg>
-      );
-    case 'CAT.12': // Merchandise
-      return (
-        <svg {...props}>
-          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <path d="M16 10a4 4 0 0 1-8 0" />
-        </svg>
-      );
-    case 'CAT.13': // Logistics
-      return (
-        <svg {...props}>
-          <rect x="1" y="3" width="15" height="13" />
-          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-          <circle cx="5.5" cy="18.5" r="2.5" />
-          <circle cx="18.5" cy="18.5" r="2.5" />
-        </svg>
-      );
-    case 'CAT.14': // Security & Safety
-      return (
-        <svg {...props}>
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        </svg>
-      );
-    case 'CAT.15': // Cakes & Desserts
-      return (
-        <svg {...props}>
-          <path d="M12 2v4" />
-          <path d="M5 21v-7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7" />
-          <path d="M3 21h18" />
-          <path d="M5 14c1-2 2-2 3 0s2 2 3 0 2-2 3 0 2 2 3 0" />
-        </svg>
-      );
-    case 'CAT.16': // Hair, Makeup & Styling
-      return (
-        <svg {...props}>
-          <circle cx="6" cy="6" r="3" />
-          <circle cx="6" cy="18" r="3" />
-          <line x1="20" y1="4" x2="8.12" y2="15.88" />
-          <line x1="14.47" y1="14.48" x2="20" y2="20" />
-          <line x1="8.12" y1="8.12" x2="12" y2="12" />
-        </svg>
-      );
-    case 'CAT.17': // Staffing Agencies
-      return (
-        <svg {...props}>
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      );
-    case 'CAT.18': // Favors & Gifts
-      return (
-        <svg {...props}>
-          <polyline points="20 12 20 22 4 22 4 12" />
-          <rect x="2" y="7" width="20" height="5" />
-          <line x1="12" y1="22" x2="12" y2="7" />
-          <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
-          <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
-        </svg>
-      );
-    default:
-      return (
-        <svg {...props}>
-          <circle cx="12" cy="12" r="9" />
-        </svg>
-      );
-  }
 }
 
 const EVENT_TYPES = [
@@ -472,7 +310,6 @@ const SPOTLIGHT_PLANS = [
 const POST_AUTH_RETURN_KEY = 'eventoryPostAuthReturn';
 const PROMO_ACCENT = '#FF5A36';
 const ACCENT = '#E0512B';
-const CTA_ACCENT = '#B8401F';
 const ACCENT_ON = '#FFFFFF';
 const ACCENT_ON_SOFT = 'rgba(255,255,255,0.72)';
 const ACCENT_ON_MUTED = 'rgba(255,255,255,0.32)';
@@ -683,6 +520,18 @@ function groupAddons(addons) {
     byGroup[key].items.push(a);
   });
   return order;
+}
+
+// Lowercase, hyphenated, ASCII-only — matches the blog_posts.slug column's
+// use as a URL path segment.
+function slugify(text) {
+  return (text || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 // A short, readable temp password for the admin to hand a vendor directly
@@ -1124,6 +973,16 @@ export default function App() {
     fetchUnclaimedBusinesses()
       .then(setUnclaimedBusinesses)
       .catch(() => setUnclaimedBusinesses([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Published posts for the homepage "From the blog" section — independent
+  // of the main catalog load, same reasoning as unclaimedBusinesses above.
+  const [blogPosts, setBlogPosts] = useState([]);
+  useEffect(() => {
+    fetchBlogPosts(3)
+      .then(setBlogPosts)
+      .catch(() => setBlogPosts([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1692,6 +1551,8 @@ export default function App() {
     catalogLoading: !catalog.ready,
     isHome: st.screen === 'home',
     isHowItWorks: st.screen === 'how-it-works',
+    isBlog: st.screen === 'blog',
+    isBlogPost: st.screen === 'blog-post',
     isSuppliers: st.screen === 'suppliers',
     isSupplier: st.screen === 'supplier',
     isUnclaimedVendor: st.screen === 'unclaimed-vendor',
@@ -1962,10 +1823,126 @@ export default function App() {
 
     homeQuery: st.dirQuery || '',
     setHomeQuery: (e) => patch({ dirQuery: e.target.value }),
-    runHomeSearch: () => patch({ screen: 'suppliers', dirCat: 'ALL', dirCats: [], dirPlanLabel: '', dirLoc: 0, dirVisible: 6, navMenuOpen: false }),
+    // Unlike the other nav-to-suppliers actions above, this keeps whatever
+    // category/location the buyer already picked on the homepage's own
+    // search bar instead of resetting to "ALL" / "All areas".
+    runHomeSearch: () => patch({ screen: 'suppliers', dirCats: [], dirPlanLabel: '', dirVisible: 6, navMenuOpen: false }),
     homeSearchKeyDown: (e) => {
-      if (e.key === 'Enter') patch({ screen: 'suppliers', dirCat: 'ALL', dirCats: [], dirPlanLabel: '', dirLoc: 0, dirVisible: 6, navMenuOpen: false });
+      if (e.key === 'Enter') patch({ screen: 'suppliers', dirCats: [], dirPlanLabel: '', dirVisible: 6, navMenuOpen: false });
     },
+    homeCatLabel: (CATS.find((c) => c[0] === st.dirCat) || [null, 'Any vendor'])[1] || 'Any vendor',
+    homeCatMenuOpen: !!st.homeCatMenuOpen,
+    toggleHomeCatMenu: () => patch((s) => ({ homeCatMenuOpen: !s.homeCatMenuOpen, homeLocMenuOpen: false })),
+    closeHomeCatMenu: () => patch({ homeCatMenuOpen: false }),
+    homeCatOptions: [{ code: 'ALL', name: 'Any vendor' }, ...CATS.map((c) => ({ code: c[0], name: c[1] }))].map((c) => ({
+      code: c.code,
+      label: c.name,
+      on: (st.dirCat || 'ALL') === c.code,
+      pick: () => patch({ dirCat: c.code, homeCatMenuOpen: false }),
+    })),
+    homeLocLabel: LOCATIONS[st.dirLoc || 0],
+    homeLocMenuOpen: !!st.homeLocMenuOpen,
+    toggleHomeLocMenu: () => patch((s) => ({ homeLocMenuOpen: !s.homeLocMenuOpen, homeCatMenuOpen: false })),
+    closeHomeLocMenu: () => patch({ homeLocMenuOpen: false }),
+    homeLocOptions: LOCATIONS.map((l, i) => ({
+      label: l,
+      on: i === (st.dirLoc || 0),
+      pick: () => patch({ dirLoc: i, homeLocMenuOpen: false }),
+    })),
+
+    // "What are you planning?" — broad celebration types with a real count
+    // of vendors who serve them (union of the suggested categories across
+    // every occasion under that type), not a fabricated popularity number.
+    // Picking one jumps straight into the Plan My Event modal at step 2
+    // (occasion), same as picking a celebration type there would.
+    homePlanningTiles: CELEBRATION_TYPES.map((t) => {
+      const categoryNames = new Set(
+        (OCCASIONS_BY_CELEBRATION_TYPE[t.key] || []).flatMap((occ) => OCCASION_SUGGESTED_CATEGORIES[occ] || [])
+      );
+      const codes = CATS.filter((c) => categoryNames.has(c[1])).map((c) => c[0]);
+      const n = SUPPLIERS.filter((s) => (s.codes || [s.code]).some((code) => codes.includes(code))).length;
+      return {
+        key: t.key,
+        label: t.label,
+        countLabel: n ? String(n) : '',
+        pick: () =>
+          patch({
+            planModalOpen: true,
+            planStep: 2,
+            planCelebrationType: t.key,
+            planOccasion: null,
+            planEventDate: '',
+            planLoc: 0,
+            planCats: [],
+            planBudget: 0,
+            authMode: 'signin',
+            authPassword: '',
+            authConfirmPassword: '',
+            authSending: false,
+            authConfirmPending: false,
+            authError: null,
+            planSubmitting: false,
+            planSubmitError: null,
+          }),
+      };
+    }),
+
+    // "In the spotlight" — vendors actively subscribed to Spotlight, newest
+    // first. Capped to 4 for the homepage; the full directory has no such
+    // cap. "Inquire" opens the vendor's profile rather than the inquiry
+    // modal directly — the modal needs that vendor's own product/addon
+    // state, which only exists once its profile has loaded.
+    homeSpotlightVendors: SUPPLIERS.filter((s) => s.spotlightStatus === 'active')
+      .slice(0, 4)
+      .map((s, i) => {
+        const open = () =>
+          patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 });
+        return {
+          key: s.id,
+          cover: s.coverUrl || fallbackPhotoFor(s.code, i),
+          name: s.name,
+          location: s.city,
+          categoryName: catName(s.code),
+          blurb: (s.desc || s.bio || '').slice(0, 110),
+          startPriceLabel: s.priceOnRequest ? 'Price on request' : startPrice(s) === null ? '' : 'From ' + money(startPrice(s)),
+          isSaved: (st.savedVendors || []).indexOf(s.id) >= 0,
+          toggleSaved: () => toggleSaveVendor(s.id),
+          open,
+          inquire: open,
+        };
+      }),
+
+    goBlog: nav('blog'),
+    openBlogPost: (slug) => () => patch({ screen: 'blog-post', blogSlug: slug }),
+    homeBlogTiles: blogPosts.slice(0, 3).map((p) => ({
+      key: p.id,
+      cover: p.coverImageUrl || fallbackPhotoFor(null, 0),
+      categoryLabel: p.categoryLabel,
+      readLabel: p.readMinutes ? p.readMinutes + ' min read' : '',
+      title: p.title,
+      excerpt: p.excerpt,
+      open: () => patch({ screen: 'blog-post', blogSlug: p.slug }),
+    })),
+    blogListTiles: blogPosts.map((p) => ({
+      key: p.id,
+      cover: p.coverImageUrl || fallbackPhotoFor(null, 0),
+      categoryLabel: p.categoryLabel,
+      readLabel: p.readMinutes ? p.readMinutes + ' min read' : '',
+      title: p.title,
+      excerpt: p.excerpt,
+      open: () => patch({ screen: 'blog-post', blogSlug: p.slug }),
+    })),
+    openBlogPostView: (() => {
+      const p = blogPosts.find((x) => x.slug === st.blogSlug);
+      if (!p) return null;
+      return {
+        title: p.title,
+        categoryLabel: p.categoryLabel,
+        readLabel: p.readMinutes ? p.readMinutes + ' min read' : '',
+        cover: p.coverImageUrl || '',
+        blocks: parseDescriptionBlocks(p.body),
+      };
+    })(),
 
     topCategoryTiles: (() => {
       const all = CATS.map((c) => ({
@@ -3406,6 +3383,125 @@ export default function App() {
       }
     },
     goAdminDashboard: () => patch({ adminSubScreen: 'dashboard', adminEditVendorId: null }),
+
+    // Blog manager — deliberately separate, fresh code from the vendor
+    // wizard above rather than adapted from it: posts have none of a
+    // vendor's structure (packages, gallery, policies), so reusing that
+    // machinery would mean fighting it more than using it.
+    adminBlogPosts: st.adminBlogPosts || [],
+    adminBlogLoading: !!st.adminBlogLoading,
+    adminBlogError: st.adminBlogError || '',
+    goAdminBlog: () => {
+      patch({ adminSubScreen: 'blog', adminBlogLoading: true, adminBlogError: null });
+      adminListBlogPosts()
+        .then((posts) => patch({ adminBlogPosts: posts, adminBlogLoading: false }))
+        .catch((err) => patch({ adminBlogLoading: false, adminBlogError: err.message || 'Could not load posts.' }));
+    },
+    goAdminNewBlogPost: () =>
+      patch({
+        adminSubScreen: 'blog-edit',
+        adminBlogEditId: null,
+        adminBlogTitle: '',
+        adminBlogSlug: '',
+        adminBlogExcerpt: '',
+        adminBlogBody: '',
+        adminBlogCoverUrl: '',
+        adminUploadingBlogCover: false,
+        adminBlogCategoryLabel: '',
+        adminBlogReadMinutes: '',
+        adminBlogPublished: false,
+        adminBlogSaveError: null,
+      }),
+    goAdminEditBlogPost: (id) => () => {
+      const p = (st.adminBlogPosts || []).find((x) => x.id === id);
+      if (!p) return;
+      patch({
+        adminSubScreen: 'blog-edit',
+        adminBlogEditId: p.id,
+        adminBlogTitle: p.title,
+        adminBlogSlug: p.slug,
+        adminBlogExcerpt: p.excerpt,
+        adminBlogBody: p.body,
+        adminBlogCoverUrl: p.coverImageUrl,
+        adminUploadingBlogCover: false,
+        adminBlogCategoryLabel: p.categoryLabel,
+        adminBlogReadMinutes: p.readMinutes ? String(p.readMinutes) : '',
+        adminBlogPublished: p.published,
+        adminBlogSaveError: null,
+      });
+    },
+    adminBlogTitle: st.adminBlogTitle || '',
+    setAdminBlogTitle: (e) => {
+      const title = e.target.value;
+      // Auto-derives the slug from the title for a brand-new post only —
+      // once a post exists (or its slug has been hand-edited away from
+      // that derivation), typing in the title stops touching the slug.
+      const autoSlug = !st.adminBlogEditId && (!st.adminBlogSlug || st.adminBlogSlug === slugify(st.adminBlogTitle || ''));
+      patch({ adminBlogTitle: title, ...(autoSlug ? { adminBlogSlug: slugify(title) } : {}) });
+    },
+    adminBlogSlug: st.adminBlogSlug || '',
+    setAdminBlogSlug: (e) => patch({ adminBlogSlug: slugify(e.target.value) }),
+    adminBlogExcerpt: st.adminBlogExcerpt || '',
+    setAdminBlogExcerpt: (e) => patch({ adminBlogExcerpt: e.target.value }),
+    adminBlogBody: st.adminBlogBody || '',
+    setAdminBlogBody: (e) => patch({ adminBlogBody: e.target.value }),
+    adminBlogCategoryLabel: st.adminBlogCategoryLabel || '',
+    setAdminBlogCategoryLabel: (e) => patch({ adminBlogCategoryLabel: e.target.value }),
+    adminBlogReadMinutes: st.adminBlogReadMinutes || '',
+    setAdminBlogReadMinutes: (e) => patch({ adminBlogReadMinutes: e.target.value.replace(/[^0-9]/g, '') }),
+    adminBlogPublished: !!st.adminBlogPublished,
+    toggleAdminBlogPublished: () => patch((s) => ({ adminBlogPublished: !s.adminBlogPublished })),
+    adminBlogCoverUrl: st.adminBlogCoverUrl || '',
+    adminUploadingBlogCover: !!st.adminUploadingBlogCover,
+    uploadAdminBlogCover: async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      patch({ adminUploadingBlogCover: true, adminBlogSaveError: null });
+      try {
+        const url = await uploadVendorMedia(file);
+        patch({ adminUploadingBlogCover: false, adminBlogCoverUrl: url });
+      } catch (err) {
+        patch({ adminUploadingBlogCover: false, adminBlogSaveError: err.message || 'Could not upload photo.' });
+      }
+    },
+    adminBlogSaving: !!st.adminBlogSaving,
+    adminBlogSaveError: st.adminBlogSaveError || '',
+    adminBlogSaveDisabled: !(st.adminBlogTitle || '').trim() || !(st.adminBlogSlug || '').trim() || !!st.adminBlogSaving,
+    saveAdminBlogPost: async () => {
+      const title = (st.adminBlogTitle || '').trim();
+      const slug = (st.adminBlogSlug || '').trim();
+      if (!title || !slug || st.adminBlogSaving) return;
+      patch({ adminBlogSaving: true, adminBlogSaveError: null });
+      const post = {
+        title,
+        slug,
+        excerpt: (st.adminBlogExcerpt || '').trim(),
+        body: (st.adminBlogBody || '').trim(),
+        coverImageUrl: st.adminBlogCoverUrl || '',
+        categoryLabel: (st.adminBlogCategoryLabel || '').trim(),
+        readMinutes: st.adminBlogReadMinutes ? Number(st.adminBlogReadMinutes) : null,
+        published: !!st.adminBlogPublished,
+      };
+      try {
+        if (st.adminBlogEditId) {
+          await adminUpdateBlogPost(st.adminBlogEditId, post);
+        } else {
+          await adminCreateBlogPost(post);
+        }
+        const posts = await adminListBlogPosts();
+        patch({ adminBlogSaving: false, adminSubScreen: 'blog', adminBlogPosts: posts });
+      } catch (err) {
+        patch({ adminBlogSaving: false, adminBlogSaveError: err.message || 'Could not save that post.' });
+      }
+    },
+    deleteAdminBlogPost: (id) => async () => {
+      try {
+        await adminDeleteBlogPost(id);
+        patch((s) => ({ adminBlogPosts: (s.adminBlogPosts || []).filter((p) => p.id !== id) }));
+      } catch (err) {
+        patch({ adminBlogError: err.message || 'Could not delete that post.' });
+      }
+    },
     goAdminNewVendor: () =>
       patch({
         adminSubScreen: 'wizard',
@@ -4178,6 +4274,12 @@ export default function App() {
                 >
                   How It Works
                 </button>
+                <button
+                  onClick={V.goBlog}
+                  style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5B5B5B' }}
+                >
+                  Blog
+                </button>
               </div>
             )}
           </div>
@@ -4209,6 +4311,12 @@ export default function App() {
                 style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
               >
                 How It Works
+              </button>
+              <button
+                onClick={V.goBlog}
+                style={{ border: 0, borderRadius: 10, background: 'transparent', padding: '12px 14px', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#171717', textAlign: 'left' }}
+              >
+                Blog
               </button>
             </div>
           )}
@@ -4252,360 +4360,292 @@ export default function App() {
           <div
             style={{
               position: 'relative',
-              isolation: 'isolate',
-              marginTop: 18,
               borderRadius: 28,
               overflow: 'hidden',
-              background: '#141414',
+              marginTop: 18,
+              minHeight: isMobile ? 480 : 560,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-end',
             }}
           >
             <img
-              src={toastCupsPhoto}
-              alt="A row of hands raising branded Eventory paper cups in a toast over a table of flowers"
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 72%' }}
+              src={weddingVenue2Photo}
+              alt="A draped reception tent strung with fairy lights, set for a wedding"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.32)' }} />
-            <div style={{ position: 'relative', mixBlendMode: 'lighten', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ background: '#FFFFFF', padding: isMobile ? '18px 16px 20px' : '26px 28px 30px' }}>
-                <div
-                  style={{
-                    fontFamily: DISPLAY_BLACK,
-                    fontSize: isMobile ? 'clamp(40px, 15vw, 90px)' : 'clamp(64px, 15.5vw, 300px)',
-                    lineHeight: 0.82,
-                    letterSpacing: '-0.045em',
-                    textTransform: 'uppercase',
-                    color: '#000000',
-                    textAlign: 'center',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  Eventory
-                </div>
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgba(20,20,20,0.78) 0%, rgba(20,20,20,0.32) 48%, rgba(20,20,20,0.1) 100%)' }} />
+            <div style={{ position: 'relative', padding: isMobile ? '28px 20px 130px' : '56px 56px 160px', maxWidth: 720 }}>
+              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.68)', fontWeight: 700 }}>
+                Event Vendors · Trinidad &amp; Tobago
               </div>
-              <div style={{ height: isMobile ? 190 : 300 }} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, paddingTop: 30 }}>
-            <button
-              onClick={V.goSuppliers}
-              style={{
-                width: isMobile ? '100%' : 'auto',
-                border: 0,
-                borderRadius: 999,
-                background: ACCENT,
-                color: '#FFFFFF',
-                padding: isMobile ? '18px 36px' : '20px 52px',
-                cursor: 'pointer',
-                fontFamily: DISPLAY,
-                fontSize: isMobile ? 16 : 18,
-                fontWeight: 700,
-                boxShadow: '0 18px 36px -14px rgba(224,81,43,0.6)',
-              }}
-            >
-              Discover Vendors →
-            </button>
-            <button
-              onClick={V.goVendorOnboarding}
-              style={{
-                border: '1px solid #D7D7D2',
-                borderRadius: 999,
-                background: 'transparent',
-                color: '#5B5B5B',
-                padding: '11px 24px',
-                cursor: 'pointer',
-                fontFamily: DISPLAY,
-                fontSize: 13,
-                fontWeight: 600,
-              }}
-            >
-              Join as a Vendor
-            </button>
-          </div>
-
-          <div style={{ marginTop: 30, maxWidth: 560, marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#171717' }}>What are you looking for?</div>
-            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #E4E4DF', borderRadius: 999, background: '#F7F7F5', padding: '6px 8px 6px 18px' }}>
-              <span style={{ fontSize: 15, color: '#9A9A9A', flexShrink: 0 }}>🔍</span>
-              <input
-                type="search"
-                value={V.homeQuery}
-                onChange={V.setHomeQuery}
-                onKeyDown={V.homeSearchKeyDown}
-                placeholder="Caterers, photographers, venues..."
-                style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', padding: '9px 0', fontFamily: SANS, fontSize: 14, color: '#171717' }}
-              />
-              <button
-                onClick={V.runHomeSearch}
+              <h1
                 style={{
-                  flexShrink: 0,
-                  border: 0,
-                  borderRadius: 999,
-                  background: '#171717',
+                  margin: '14px 0 0',
+                  fontFamily: DISPLAY,
+                  fontSize: isMobile ? 34 : 52,
+                  lineHeight: 1.05,
+                  letterSpacing: '-0.03em',
+                  fontWeight: 800,
                   color: '#FFFFFF',
-                  padding: '10px 18px',
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 700,
                 }}
               >
-                Search
-              </button>
+                Find the people behind your event.
+              </h1>
+              <p style={{ margin: '14px 0 0', maxWidth: 460, fontSize: isMobile ? 15 : 17, lineHeight: 1.5, color: 'rgba(255,255,255,0.82)' }}>
+                Browse vendors, compare what they offer, and send them an inquiry directly.
+              </p>
             </div>
           </div>
 
           <div
             style={{
-              marginTop: isMobile ? 48 : 84,
+              position: 'relative',
+              zIndex: 2,
+              marginTop: isMobile ? -104 : -78,
+              marginLeft: isMobile ? 12 : 40,
+              marginRight: isMobile ? 12 : 40,
+              border: '1px solid #ECECEC',
+              borderRadius: 24,
+              background: '#FFFFFF',
+              boxShadow: '0 24px 48px -24px rgba(23,23,23,0.28)',
+              padding: isMobile ? 14 : 18,
               display: 'flex',
               flexDirection: isMobile ? 'column' : 'row',
-              borderRadius: 28,
-              overflow: 'hidden',
-              boxShadow: '0 24px 60px -30px rgba(23,23,23,0.35)',
+              gap: isMobile ? 10 : 0,
+              alignItems: isMobile ? 'stretch' : 'center',
             }}
           >
-            <img
-              src={babyShowerPastelPhoto}
-              alt="A pastel balloon garland baby shower dessert display with a 'Hello Baby' neon sign and a tiered cake"
-              style={{ flex: isMobile ? 'none' : '1 1 46%', width: isMobile ? '100%' : 'auto', height: isMobile ? 240 : 440, objectFit: 'cover', display: 'block' }}
-            />
-            <div
-              style={{
-                flex: isMobile ? 'none' : '1 1 54%',
-                background: '#171717',
-                color: '#FFFFFF',
-                padding: isMobile ? '32px 26px' : '52px 52px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                gap: isMobile ? 26 : 34,
-              }}
-            >
-              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700 }}>
-                What we do
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 22 : 28 }}>
-                {['Discover trusted vendors', 'Plan your special moment', 'Connect with the right people'].map((title, i) => (
-                  <div key={title} style={{ display: 'flex', alignItems: 'baseline', gap: isMobile ? 14 : 20 }}>
-                    <div style={{ flexShrink: 0, fontFamily: MONO, fontSize: isMobile ? 20 : 28, fontWeight: 600, color: ACCENT }}>
-                      {'0' + (i + 1)}
-                    </div>
-                    <div style={{ fontSize: isMobile ? 19 : 25, fontWeight: 800, letterSpacing: '-0.015em', lineHeight: 1.15 }}>{title}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-              <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Browse by category</h2>
-              <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B', textAlign: isMobile ? 'left' : 'right' }}>
-                Pick the category that fits your event to see who's available.
-              </p>
-            </div>
-            {V.catalogLoading && <div style={{ marginTop: 16, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
-            <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
-              {V.topCategoryTiles.map((c) => (
-                <button
-                  key={c.code}
-                  onClick={c.open}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 10,
-                    textAlign: 'center',
-                    border: '1px solid #ECECEC',
-                    borderRadius: 18,
-                    padding: '20px 10px',
-                    cursor: 'pointer',
-                    minHeight: 110,
-                    background: '#F7F7F5',
-                  }}
-                >
-                  <CategoryIcon code={c.code} />
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2, color: '#171717' }}>{c.name}</div>
-                    <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 10, color: '#9A9A9A' }}>{c.supplierLabel}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-            {V.catHasMore && (
+            <div style={{ position: 'relative', flex: '1 1 0', minWidth: 0, padding: isMobile ? '4px 4px' : '2px 20px', borderRight: isMobile ? 'none' : '1px solid #ECECEC' }}>
+              <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Looking for</span>
               <button
-                onClick={V.toggleCatExpanded}
-                style={{
-                  marginTop: 16,
-                  border: `1px solid ${CTA_ACCENT}55`,
-                  borderRadius: 999,
-                  background: 'transparent',
-                  padding: '11px 20px',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: CTA_ACCENT,
-                }}
+                onClick={V.toggleHomeCatMenu}
+                style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: '2px 0 0', cursor: 'pointer', fontFamily: SANS, fontSize: 15, fontWeight: 600, color: '#171717' }}
               >
-                {V.catExpanded ? 'Show less ↑' : 'See all categories ↓'}
+                {V.homeCatLabel}
               </button>
-            )}
-          </div>
-
-          <div id="featured-vendors" style={{ padding: isMobile ? '48px 0 0' : '84px 0 0', scrollMarginTop: 100 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-              <h2 style={{ margin: 0, fontSize: isMobile ? 28 : 40, lineHeight: 1.02, letterSpacing: '-0.03em', fontWeight: 800 }}>Featured Vendors</h2>
-              <p style={{ margin: 0, maxWidth: 420, fontSize: 15, lineHeight: 1.5, color: '#5B5B5B' }}>
-                From birthday parties to corporate functions, here's who's ready to help.
-              </p>
-            </div>
-            {V.catalogLoading && <div style={{ marginTop: 16, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
-            <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
-              {V.topSuppliers.map((s) => (
-                <div
-                  key={s.key}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    border: '1px solid #ECECEC',
-                    borderRadius: 20,
-                    background: '#FFFFFF',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <button
-                    onClick={s.open}
-                    style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: 'pointer' }}
-                  >
-                    <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
-                      <img src={s.cover} alt={s.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      {s.rating && (
-                        <span
-                          style={{
-                            position: 'absolute',
-                            top: 10,
-                            right: 10,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            border: 0,
-                            borderRadius: 999,
-                            background: 'rgba(23,23,23,0.72)',
-                            color: '#FFFFFF',
-                            padding: '4px 10px',
-                            fontFamily: MONO,
-                            fontSize: 11,
-                            fontWeight: 600,
-                          }}
-                        >
-                          ★ {s.rating}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ padding: isMobile ? '14px 14px 0' : '16px 18px 0' }}>
-                      <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 700, letterSpacing: '-0.01em' }}>{s.name}</div>
-                      {s.startPriceLabel && (
-                        <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.startPriceLabel}</div>
-                      )}
-                    </div>
-                  </button>
+              {V.homeCatMenuOpen && (
+                <>
+                  <div onClick={V.closeHomeCatMenu} style={{ position: 'fixed', inset: 0, zIndex: 29 }} />
                   <div
                     style={{
-                      marginTop: 12,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 8,
-                      borderTop: '1px solid #F2F2F0',
-                      padding: isMobile ? '10px 14px 14px' : '10px 18px 16px',
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      left: 0,
+                      zIndex: 30,
+                      width: isMobile ? '100%' : 280,
+                      maxHeight: 320,
+                      overflowY: 'auto',
+                      border: '1px solid #ECECEC',
+                      borderRadius: 16,
+                      background: '#FFFFFF',
+                      boxShadow: '0 12px 28px rgba(0,0,0,0.12)',
+                      padding: 6,
                     }}
                   >
-                    <button
-                      onClick={s.open}
-                      style={{ display: 'flex', alignItems: 'center', gap: 5, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                        <circle cx="12" cy="10" r="3" />
-                      </svg>
-                      {s.location}
-                    </button>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {V.homeCatOptions.map((c) => (
                       <button
-                        onClick={s.toggleSaved}
-                        aria-label={s.isSaved ? 'Unsave vendor' : 'Save vendor'}
-                        title={s.isSaved ? 'Unsave vendor' : 'Save vendor'}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: 30,
-                          height: 30,
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 999,
-                          background: s.isSaved ? '#171717' : '#FFFFFF',
-                          color: s.isSaved ? '#FFFFFF' : '#171717',
-                          cursor: 'pointer',
-                        }}
+                        key={c.code}
+                        onClick={c.pick}
+                        style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, borderRadius: 10, background: c.on ? '#F7F7F5' : 'transparent', padding: '10px 12px', cursor: 'pointer', fontSize: 14, fontWeight: c.on ? 700 : 500, color: '#171717' }}
                       >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill={s.isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                        </svg>
+                        {c.label}
                       </button>
-                      <button
-                        onClick={s.share}
-                        aria-label="Share vendor"
-                        title={s.justCopied ? 'Link copied' : 'Share vendor'}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: 30,
-                          height: 30,
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 999,
-                          background: '#FFFFFF',
-                          color: '#171717',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {s.justCopied ? (
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        ) : (
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="18" cy="5" r="3" />
-                            <circle cx="6" cy="12" r="3" />
-                            <circle cx="18" cy="19" r="3" />
-                            <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
-                            <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
+                    ))}
                   </div>
-                </div>
-              ))}
+                </>
+              )}
+            </div>
+            <div style={{ position: 'relative', flex: '1 1 0', minWidth: 0, padding: isMobile ? '4px 4px' : '2px 20px', borderRight: isMobile ? 'none' : '1px solid #ECECEC' }}>
+              <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Where</span>
+              <button
+                onClick={V.toggleHomeLocMenu}
+                style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: '2px 0 0', cursor: 'pointer', fontFamily: SANS, fontSize: 15, fontWeight: 600, color: '#171717' }}
+              >
+                {V.homeLocLabel}
+              </button>
+              {V.homeLocMenuOpen && (
+                <>
+                  <div onClick={V.closeHomeLocMenu} style={{ position: 'fixed', inset: 0, zIndex: 29 }} />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      left: 0,
+                      zIndex: 30,
+                      width: isMobile ? '100%' : 220,
+                      maxHeight: 320,
+                      overflowY: 'auto',
+                      border: '1px solid #ECECEC',
+                      borderRadius: 16,
+                      background: '#FFFFFF',
+                      boxShadow: '0 12px 28px rgba(0,0,0,0.12)',
+                      padding: 6,
+                    }}
+                  >
+                    {V.homeLocOptions.map((l) => (
+                      <button
+                        key={l.label}
+                        onClick={l.pick}
+                        style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, borderRadius: 10, background: l.on ? '#F7F7F5' : 'transparent', padding: '10px 12px', cursor: 'pointer', fontSize: 14, fontWeight: l.on ? 700 : 500, color: '#171717' }}
+                      >
+                        {l.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            <div style={{ flex: '1.3 1 0', minWidth: 0, padding: isMobile ? '4px 4px' : '2px 20px' }}>
+              <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Search</span>
+              <input
+                type="search"
+                value={V.homeQuery}
+                onChange={V.setHomeQuery}
+                onKeyDown={V.homeSearchKeyDown}
+                placeholder="Caterers, photographers, venues…"
+                style={{ display: 'block', width: '100%', border: 0, background: 'transparent', padding: '2px 0 0', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+              />
             </div>
             <button
               onClick={V.runHomeSearch}
               style={{
-                marginTop: 16,
-                border: `1px solid ${CTA_ACCENT}55`,
+                flexShrink: 0,
+                border: 0,
                 borderRadius: 999,
-                background: 'transparent',
-                padding: '11px 20px',
+                background: ACCENT,
+                color: ACCENT_ON,
+                padding: isMobile ? '14px 22px' : '15px 30px',
                 cursor: 'pointer',
-                fontSize: 14,
+                fontFamily: DISPLAY,
+                fontSize: 14.5,
                 fontWeight: 700,
-                color: CTA_ACCENT,
               }}
             >
-              Explore all →
+              Search
             </button>
           </div>
+
+          <div style={{ marginTop: isMobile ? 20 : 10, textAlign: 'center' }}>
+            <span style={{ fontSize: 14, color: '#7A7A7A' }}>Not sure what you need yet? </span>
+            <button onClick={V.startPlanning} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+              Plan My Event →
+            </button>
+          </div>
+
+          <div style={{ padding: isMobile ? '48px 0 0' : '76px 0 0' }}>
+            <h2 style={{ margin: 0, fontSize: isMobile ? 24 : 32, lineHeight: 1.05, letterSpacing: '-0.02em', fontWeight: 800 }}>What are you planning?</h2>
+            <div style={{ marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {V.homePlanningTiles.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={t.pick}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    border: '1px solid #E4E4DF',
+                    borderRadius: 999,
+                    background: '#FFFFFF',
+                    padding: '10px 8px 10px 18px',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: '#171717',
+                  }}
+                >
+                  {t.label}
+                  {t.countLabel && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 22, height: 22, borderRadius: 999, background: '#F2F2F0', fontFamily: MONO, fontSize: 11, fontWeight: 700, color: '#5B5B5B' }}>
+                      {t.countLabel}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ padding: isMobile ? '44px 0 0' : '76px 0 0' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 24 : 32, lineHeight: 1.05, letterSpacing: '-0.02em', fontWeight: 800 }}>Which vendors are you looking for?</h2>
+              <button
+                onClick={V.goSuppliers}
+                style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717' }}
+              >
+                All vendors →
+              </button>
+            </div>
+            {V.catalogLoading && <div style={{ marginTop: 16, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
+            <div style={{ marginTop: 20, display: 'flex', gap: 18, overflowX: 'auto', paddingBottom: 6, WebkitOverflowScrolling: 'touch' }}>
+              {V.topCategoryTiles.map((c, i) => (
+                <button
+                  key={c.code}
+                  onClick={c.open}
+                  style={{ flex: '0 0 auto', width: 108, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left' }}
+                >
+                  <div style={{ width: 108, height: 108, borderRadius: 18, overflow: 'hidden', background: '#F7F7F5' }}>
+                    <img src={fallbackPhotoFor(c.code, i)} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2, color: '#171717' }}>{c.name}</div>
+                    <div style={{ marginTop: 2, fontFamily: MONO, fontSize: 10.5, color: '#9A9A9A' }}>{c.supplierLabel}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {V.homeSpotlightVendors.length > 0 && (
+            <div style={{ padding: isMobile ? '44px 0 0' : '76px 0 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <h2 style={{ margin: 0, fontSize: isMobile ? 24 : 32, lineHeight: 1.05, letterSpacing: '-0.02em', fontWeight: 800 }}>In the spotlight</h2>
+                <span style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 700, color: ACCENT_ON, background: ACCENT, borderRadius: 999, padding: '4px 10px' }}>
+                  Spotlight
+                </span>
+              </div>
+              <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
+                {V.homeSpotlightVendors.map((s) => (
+                  <div key={s.key} style={{ display: 'flex', flexDirection: 'column', border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden' }}>
+                    <button onClick={s.open} style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: 'pointer' }}>
+                      <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
+                        <img src={s.cover} alt={s.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        <span style={{ position: 'absolute', top: 10, left: 10, fontFamily: MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 700, color: ACCENT_ON, background: ACCENT, borderRadius: 999, padding: '4px 10px' }}>
+                          Spotlight
+                        </span>
+                      </div>
+                    </button>
+                    <div style={{ padding: isMobile ? '14px 14px 16px' : '16px 18px 18px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                          {s.categoryName} · {s.location}
+                        </div>
+                        <button
+                          onClick={s.toggleSaved}
+                          aria-label={s.isSaved ? 'Unsave' : 'Save'}
+                          style={{ flexShrink: 0, border: '1px solid #E4E4DF', borderRadius: 999, background: s.isSaved ? '#171717' : '#FFFFFF', color: s.isSaved ? '#FFFFFF' : '#171717', padding: '5px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
+                        >
+                          {s.isSaved ? '★ Saved' : '☆ Save'}
+                        </button>
+                      </div>
+                      <button onClick={s.open} style={{ marginTop: 4, alignSelf: 'flex-start', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: isMobile ? 16 : 18, fontWeight: 700, letterSpacing: '-0.01em', color: '#171717' }}>
+                        {s.name}
+                      </button>
+                      {s.blurb && <p style={{ margin: '6px 0 0', fontSize: 13, lineHeight: 1.5, color: '#5B5B5B' }}>{s.blurb}</p>}
+                      <div style={{ marginTop: 'auto', paddingTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                        <div>
+                          {s.startPriceLabel && <div style={{ fontFamily: MONO, fontSize: 10, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>From</div>}
+                          <div style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700 }}>{s.startPriceLabel || ' '}</div>
+                        </div>
+                        <button onClick={s.inquire} style={{ flexShrink: 0, border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '9px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+                          Inquire
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {V.claimBusinessTiles.length > 0 && (
             <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
@@ -4700,6 +4740,99 @@ export default function App() {
               )}
             </div>
           )}
+
+          <div
+            style={{
+              marginTop: isMobile ? 48 : 84,
+              borderRadius: 28,
+              background: '#171717',
+              color: '#FFFFFF',
+              padding: isMobile ? '32px 24px' : '52px 56px',
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'flex-start' : 'center',
+              justifyContent: 'space-between',
+              gap: isMobile ? 26 : 40,
+            }}
+          >
+            <div>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 26 : 34, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>Planning an Event?</h2>
+              <p style={{ margin: '10px 0 0', maxWidth: 420, fontSize: 15, lineHeight: 1.55, color: '#A8A8A8' }}>
+                Pick the event and we list the vendors it usually needs. Shortlist, then send one inquiry to each in a single step.
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flexShrink: 0 }}>
+              {[
+                { n: '01', label: 'Pick your event' },
+                { n: '02', label: 'Add the date, guests and area' },
+                { n: '03', label: 'Choose the vendors you need' },
+              ].map((s) => (
+                <div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 11, color: '#6E6E6E', fontWeight: 700 }}>{s.n}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>{s.label}</span>
+                </div>
+              ))}
+              <button
+                onClick={V.startPlanning}
+                style={{ alignSelf: 'flex-start', marginTop: 6, border: 0, borderRadius: 999, background: '#FFFFFF', color: '#171717', padding: '13px 24px', cursor: 'pointer', fontFamily: DISPLAY, fontSize: 14, fontWeight: 700 }}
+              >
+                Plan My Event →
+              </button>
+            </div>
+          </div>
+
+          {V.homeBlogTiles.length > 0 && (
+            <div style={{ padding: isMobile ? '48px 0 0' : '84px 0 0' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+                <h2 style={{ margin: 0, fontSize: isMobile ? 24 : 32, lineHeight: 1.05, letterSpacing: '-0.02em', fontWeight: 800 }}>From the blog</h2>
+                <button onClick={V.goBlog} style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717' }}>
+                  All articles →
+                </button>
+              </div>
+              <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
+                {V.homeBlogTiles.map((p) => (
+                  <button key={p.key} onClick={p.open} style={{ display: 'block', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: 'pointer' }}>
+                    <div style={{ width: '100%', aspectRatio: '4 / 3', borderRadius: 18, overflow: 'hidden', background: '#F7F7F5' }}>
+                      <img src={p.cover} alt={p.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    </div>
+                    <div style={{ marginTop: 12, fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                      {[p.categoryLabel, p.readLabel].filter(Boolean).join(' · ')}
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: 17, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3, color: '#171717' }}>{p.title}</div>
+                    {p.excerpt && <p style={{ margin: '6px 0 0', fontSize: 13.5, lineHeight: 1.5, color: '#5B5B5B' }}>{p.excerpt}</p>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div
+            style={{
+              marginTop: isMobile ? 48 : 84,
+              marginBottom: 20,
+              border: '1px solid #ECECEC',
+              borderRadius: 28,
+              background: '#F7F7F5',
+              padding: isMobile ? '28px 22px' : '40px 48px',
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'flex-start' : 'center',
+              justifyContent: 'space-between',
+              gap: 24,
+            }}
+          >
+            <h2 style={{ margin: 0, maxWidth: 480, fontSize: isMobile ? 21 : 26, lineHeight: 1.25, letterSpacing: '-0.015em', fontWeight: 800, color: '#171717' }}>
+              Right now, somewhere a planner is searching your category. Get seen, and let them come to you.
+            </h2>
+            <div style={{ display: 'flex', gap: 10, flexShrink: 0, flexWrap: 'wrap' }}>
+              <button onClick={V.goVendorOnboarding} style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 22px', cursor: 'pointer', fontFamily: DISPLAY, fontSize: 14, fontWeight: 700 }}>
+                Join Eventory →
+              </button>
+              <button onClick={V.goVendorSignIn} style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', color: '#171717', padding: '13px 22px', cursor: 'pointer', fontFamily: DISPLAY, fontSize: 14, fontWeight: 700 }}>
+                Vendor sign in
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -4822,6 +4955,79 @@ export default function App() {
             </span>
             Eventory does not process payments. You deal directly with each vendor.
           </div>
+        </div>
+      )}
+
+      {V.isBlog && (
+        <div style={{ padding: '34px 0 0' }}>
+          <button onClick={V.goHome} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#5B5B5B' }}>
+            ← Back
+          </button>
+          <h1 style={{ margin: '18px 0 0', fontFamily: DISPLAY, fontSize: isMobile ? 30 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>Blog</h1>
+          <p style={{ margin: '10px 0 0', maxWidth: 520, fontSize: 15, lineHeight: 1.55, color: '#5B5B5B' }}>
+            Planning guides and notes from the Eventory team.
+          </p>
+          {V.blogListTiles.length === 0 ? (
+            <p style={{ marginTop: 24, fontSize: 14, color: '#9A9A9A' }}>Nothing published yet — check back soon.</p>
+          ) : (
+            <div style={{ marginTop: 28, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))', gap: 24 }}>
+              {V.blogListTiles.map((p) => (
+                <button key={p.key} onClick={p.open} style={{ display: 'block', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: 'pointer' }}>
+                  <div style={{ width: '100%', aspectRatio: '4 / 3', borderRadius: 18, overflow: 'hidden', background: '#F7F7F5' }}>
+                    <img src={p.cover} alt={p.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </div>
+                  <div style={{ marginTop: 12, fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                    {[p.categoryLabel, p.readLabel].filter(Boolean).join(' · ')}
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3, color: '#171717' }}>{p.title}</div>
+                  {p.excerpt && <p style={{ margin: '6px 0 0', fontSize: 13.5, lineHeight: 1.5, color: '#5B5B5B' }}>{p.excerpt}</p>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {V.isBlogPost && (
+        <div style={{ padding: '34px 0 0' }}>
+          <button onClick={V.goBlog} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#5B5B5B' }}>
+            ← Back to Blog
+          </button>
+          {!V.openBlogPostView ? (
+            <p style={{ marginTop: 24, fontSize: 14, color: '#9A9A9A' }}>That article couldn't be found.</p>
+          ) : (
+            <div style={{ marginTop: 18, maxWidth: 680 }}>
+              <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                {[V.openBlogPostView.categoryLabel, V.openBlogPostView.readLabel].filter(Boolean).join(' · ')}
+              </div>
+              <h1 style={{ margin: '10px 0 0', fontFamily: DISPLAY, fontSize: isMobile ? 26 : 36, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 800 }}>
+                {V.openBlogPostView.title}
+              </h1>
+              {V.openBlogPostView.cover && (
+                <div style={{ marginTop: 22, width: '100%', aspectRatio: '16 / 9', borderRadius: 20, overflow: 'hidden', background: '#F7F7F5' }}>
+                  <img src={V.openBlogPostView.cover} alt={V.openBlogPostView.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </div>
+              )}
+              <div style={{ marginTop: 22 }}>
+                {V.openBlogPostView.blocks.map((block, i) =>
+                  block.type === 'ul' ? (
+                    <ul key={i} style={{ margin: '14px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {block.items.map((item, j) => (
+                        <li key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 15, lineHeight: 1.6, color: '#3A3A3A' }}>
+                          <span style={{ flexShrink: 0, color: '#16A34A', fontWeight: 800 }}>✓</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p key={i} style={{ margin: '14px 0 0', fontSize: 15.5, lineHeight: 1.7, color: '#3A3A3A' }}>
+                      {block.text}
+                    </p>
+                  )
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -8934,7 +9140,13 @@ export default function App() {
             <div style={{ marginTop: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                 <div style={{ fontSize: 14, color: '#5B5B5B' }}>{V.adminVendors.length} vendors (drafts included)</div>
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button
+                    onClick={V.goAdminBlog}
+                    style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: '#FFFFFF', color: '#171717', padding: '11px 20px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
+                  >
+                    Blog posts
+                  </button>
                   <button
                     onClick={V.goAdminBulkImport}
                     style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: '#FFFFFF', color: '#171717', padding: '11px 20px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
@@ -9247,6 +9459,134 @@ export default function App() {
                   </button>
                 </>
               )}
+            </div>
+          ) : V.adminSubScreen === 'blog' ? (
+            <div style={{ marginTop: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <button
+                  onClick={V.goAdminDashboard}
+                  style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+                >
+                  ← Dashboard
+                </button>
+                <button
+                  onClick={V.goAdminNewBlogPost}
+                  style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '11px 20px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
+                >
+                  + New post
+                </button>
+              </div>
+              <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 26 : 32, letterSpacing: '-0.02em', fontWeight: 800 }}>Blog posts</h1>
+              {V.adminBlogError && <div style={{ marginTop: 14, fontSize: 13, color: '#B3261E' }}>{V.adminBlogError}</div>}
+              {V.adminBlogLoading ? (
+                <div style={{ marginTop: 20, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>
+              ) : V.adminBlogPosts.length === 0 ? (
+                <p style={{ marginTop: 20, fontSize: 14, color: '#9A9A9A' }}>No posts yet.</p>
+              ) : (
+                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {V.adminBlogPosts.map((p) => (
+                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, borderTop: '1px solid #ECECEC', padding: '14px 2px', flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 15, fontWeight: 700 }}>{p.title}</span>
+                          <span
+                            style={{
+                              fontFamily: MONO,
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              letterSpacing: '0.04em',
+                              textTransform: 'uppercase',
+                              color: p.published ? '#1E7A32' : '#9A9A9A',
+                              border: `1px solid ${p.published ? '#1E7A32' : '#D7D7D2'}`,
+                              borderRadius: 999,
+                              padding: '2px 9px',
+                            }}
+                          >
+                            {p.published ? 'Published' : 'Draft'}
+                          </span>
+                        </div>
+                        <div style={{ marginTop: 2, fontFamily: MONO, fontSize: 12, color: '#9A9A9A' }}>/{p.slug}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          onClick={V.goAdminEditBlogPost(p.id)}
+                          style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', color: '#171717', padding: '9px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={V.deleteAdminBlogPost(p.id)}
+                          style={{ border: 0, background: 'transparent', color: '#B3261E', padding: '9px 4px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : V.adminSubScreen === 'blog-edit' ? (
+            <div style={{ marginTop: 24, maxWidth: 640 }}>
+              <button
+                onClick={V.goAdminBlog}
+                style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
+              >
+                ← Blog posts
+              </button>
+              <h1 style={{ margin: '18px 0 0', fontSize: isMobile ? 26 : 32, letterSpacing: '-0.02em', fontWeight: 800 }}>
+                {V.adminBlogEditId ? 'Edit post' : 'New post'}
+              </h1>
+              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Title</span>
+                  <input type="text" value={V.adminBlogTitle} onChange={V.setAdminBlogTitle} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 15 }} />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Slug (URL)</span>
+                  <input type="text" value={V.adminBlogSlug} onChange={V.setAdminBlogSlug} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: MONO, fontSize: 14 }} />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Excerpt</span>
+                  <textarea value={V.adminBlogExcerpt} onChange={V.setAdminBlogExcerpt} rows={2} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, resize: 'vertical' }} />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Body</span>
+                  <textarea value={V.adminBlogBody} onChange={V.setAdminBlogBody} rows={10} style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14, lineHeight: 1.5, resize: 'vertical' }} />
+                </label>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <label style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Category label</span>
+                    <input type="text" value={V.adminBlogCategoryLabel} onChange={V.setAdminBlogCategoryLabel} placeholder="e.g. Planning guide" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                  </label>
+                  <label style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Read minutes</span>
+                    <input type="text" inputMode="numeric" value={V.adminBlogReadMinutes} onChange={V.setAdminBlogReadMinutes} placeholder="5" style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '11px 14px', fontFamily: SANS, fontSize: 14 }} />
+                  </label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {V.adminBlogCoverUrl && (
+                    <img src={V.adminBlogCoverUrl} alt="Cover" style={{ width: 56, height: 42, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                  )}
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>Cover photo</span>
+                    <input type="file" accept="image/*" onChange={V.uploadAdminBlogCover} style={{ fontSize: 12 }} />
+                  </label>
+                  {V.adminUploadingBlogCover && <span style={{ fontSize: 12, color: '#8A8A8A' }}>Uploading…</span>}
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={V.adminBlogPublished} onChange={V.toggleAdminBlogPublished} />
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>Published</span>
+                </label>
+                {V.adminBlogSaveError && <div style={{ fontSize: 12, color: '#B3261E' }}>{V.adminBlogSaveError}</div>}
+                <button
+                  onClick={V.saveAdminBlogPost}
+                  disabled={V.adminBlogSaveDisabled}
+                  style={{ alignSelf: 'flex-start', border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: V.adminBlogSaveDisabled ? 0.4 : 1 }}
+                >
+                  {V.adminBlogSaving ? 'Saving…' : 'Save post'}
+                </button>
+              </div>
             </div>
           ) : (
             <div style={{ marginTop: 24 }}>

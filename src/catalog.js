@@ -140,6 +140,7 @@ function reshapeLeanVendor(v) {
     country: v.country,
     startingPrice: v.starting_price === null || v.starting_price === undefined ? null : Number(v.starting_price),
     minProductPrice: v.min_price === null || v.min_price === undefined ? null : Number(v.min_price),
+    spotlightStatus: v.spotlight_status || 'none',
     searchText: (v.search_text || '').toLowerCase(),
     firstProduct: v.first_name
       ? {
@@ -1283,5 +1284,100 @@ export async function submitSourcingRequest({ name, phone, email, description, c
     email: email || null,
     description,
   });
+  if (error) throw error;
+}
+
+function reshapeBlogPost(p) {
+  return {
+    id: p.id,
+    title: p.title,
+    slug: p.slug,
+    excerpt: p.excerpt || '',
+    body: p.body || '',
+    coverImageUrl: p.cover_image_url || '',
+    categoryLabel: p.category_label || '',
+    readMinutes: p.read_minutes === null || p.read_minutes === undefined ? null : Number(p.read_minutes),
+    published: !!p.published,
+    createdAt: p.created_at,
+  };
+}
+
+// Public-facing — published posts only, newest first. Used by the homepage
+// "From the blog" section.
+export async function fetchBlogPosts(limit) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  let query = supabase
+    .from('blog_posts')
+    .select('*')
+    .eq('published', true)
+    .order('sort_order')
+    .order('created_at', { ascending: false });
+  if (limit) query = query.limit(limit);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data || []).map(reshapeBlogPost);
+}
+
+// Admin-only — every post regardless of published state, for the admin
+// blog manager list.
+export async function adminListBlogPosts() {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase.from('blog_posts').select('*').order('sort_order').order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map(reshapeBlogPost);
+}
+
+export async function adminCreateBlogPost(post) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { data, error } = await supabase
+    .from('blog_posts')
+    .insert({
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt || '',
+      body: post.body || '',
+      cover_image_url: post.coverImageUrl || null,
+      category_label: post.categoryLabel || '',
+      read_minutes: post.readMinutes || null,
+      published: !!post.published,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return reshapeBlogPost(data);
+}
+
+export async function adminUpdateBlogPost(id, post) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase
+    .from('blog_posts')
+    .update({
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt || '',
+      body: post.body || '',
+      cover_image_url: post.coverImageUrl || null,
+      category_label: post.categoryLabel || '',
+      read_minutes: post.readMinutes || null,
+      published: !!post.published,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function adminDeleteBlogPost(id) {
+  if (!supabaseConfigured) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+  const { error } = await supabase.from('blog_posts').delete().eq('id', id);
   if (error) throw error;
 }
