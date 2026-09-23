@@ -839,9 +839,6 @@ const initialState = {
   sourcingSubmitting: false,
   sourcingError: null,
   supplierTab: 'services',
-  svcQuery: '',
-  svcGroup: 'All',
-  svcVisible: 8,
   navMenuOpen: false,
   promoPlanOpen: false,
   promoPlanSent: false,
@@ -1521,18 +1518,6 @@ export default function App() {
     return photos.length ? photos : [supCoverFallback];
   })();
 
-  const svcGroups = Array.from(new Set(packageProducts.map((p) => p.group)));
-  const svcGroupFilter = st.svcGroup || 'All';
-  const svcQueryLower = (st.svcQuery || '').trim().toLowerCase();
-  const svcFiltered = packageProducts.filter(
-    (p) =>
-      (svcGroupFilter === 'All' || p.group === svcGroupFilter) &&
-      (!svcQueryLower ||
-        p.name.toLowerCase().indexOf(svcQueryLower) >= 0 ||
-        p.description.toLowerCase().indexOf(svcQueryLower) >= 0)
-  );
-  const svcVisibleCount = st.svcVisible || 8;
-  const svcVisible = svcFiltered.slice(0, svcVisibleCount);
   const hasPolicies = (sup.policies || []).length > 0;
   const hasMenu = (sup.menuItems || []).length > 0;
 
@@ -1888,7 +1873,7 @@ export default function App() {
       .slice(0, 4)
       .map((s, i) => {
         const open = () =>
-          patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 });
+          patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 });
         return {
           key: s.id,
           cover: s.coverUrl || fallbackPhotoFor(s.code, i),
@@ -1989,7 +1974,7 @@ export default function App() {
         toggleSaved: () => toggleSaveVendor(s.id),
         share: () => shareVendor(s.id),
         justCopied: st.copiedVendorId === s.id,
-        open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+        open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
       })),
 
     dirActiveCat: st.dirCat === 'ALL' ? null : CATS.find((c) => c[0] === st.dirCat) || null,
@@ -2033,7 +2018,7 @@ export default function App() {
       toggleSaved: () => toggleSaveVendor(s.id),
       share: () => shareVendor(s.id),
       justCopied: st.copiedVendorId === s.id,
-      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+      open: () => patch({ screen: 'supplier', supId: s.id, supplierTab: 'services', reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
     })),
     dirShowSeeAll: dirFiltered.length > (st.dirVisible || 6),
     dirSeeAllLabel: 'See all ' + dirFiltered.length + ' vendors',
@@ -2300,9 +2285,6 @@ export default function App() {
               screen: 'supplier',
               supId: s.id,
               supplierTab: 'services',
-              svcQuery: '',
-              svcGroup: 'All',
-              svcVisible: 8,
               reviewFormOpen: false,
               reviewSent: false,
               supCarouselIndex: 0,
@@ -2362,67 +2344,18 @@ export default function App() {
       }
     },
 
-    svcQuery: st.svcQuery || '',
-    setSvcQuery: (e) => patch({ svcQuery: e.target.value, svcVisible: 8 }),
-    svcHasGroups: svcGroups.length > 1,
-    svcGroupFilters: ['All'].concat(svcGroups).map((g) => ({
-      label: g,
-      ...chip(svcGroupFilter === g),
-      pick: () => patch({ svcGroup: g, svcVisible: 8 }),
-    })),
-    svcResultLabel:
-      svcFiltered.length +
-      (svcFiltered.length === 1 ? ' service' : ' services') +
-      (svcFiltered.length !== packageProducts.length ? ' of ' + packageProducts.length : ''),
-    svcShowMore: svcFiltered.length > svcVisible.length,
-    svcRemainingLabel: 'Show ' + Math.min(8, svcFiltered.length - svcVisible.length) + ' more',
-    loadMoreSvc: () => patch((s) => ({ svcVisible: (s.svcVisible || 8) + 8 })),
-    supplierProducts: svcVisible.map((p, i) => ({
+    supplierProducts: packageProducts.map((p, i) => ({
       key: p.id,
       photo: p.photoUrl || fallbackPhotoFor(sup.code, i),
       name: p.name,
       // Vendors sometimes paste an entire caption (contact info, add-ons,
       // a whole bulleted checklist, repeated boilerplate) into the package
-      // description — a card teaser shows only the first prose sentence
-      // (never a stray bullet fragment out of context), clamped so one
-      // long-winded package doesn't blow out the grid's row height.
-      // "View full details" opens the full, structured version in a modal.
+      // description — a compact teaser shows only the first prose sentence
+      // (never a stray bullet fragment out of context) rather than the raw
+      // wall of text, matching the vendor profile's one-line package rows.
       description: descriptionTeaser(p.description),
-      descriptionLong: (p.description || '').length > 220,
-      // Opening details also scopes the (already-selectable) add-on state to
-      // this package, so a buyer can pick add-ons right in the modal instead
-      // of a separate hop into the inquiry form to do the same thing.
-      openDetails: () => patch({ openPackageId: p.id, waService: p.name, waAddons: [] }),
-      inclusions: p.inclusions || [],
-      addonsLabel: (p.addons || []).length > 0 ? (p.addons || []).length + ' add-on' + ((p.addons || []).length === 1 ? '' : 's') + ' available' : '',
       priceLabel: priceLabel(p),
-      saved: (st.saved || []).indexOf(p.id) >= 0,
-      saveLabel: (st.saved || []).indexOf(p.id) >= 0 ? '★ Saved' : '☆ Save',
-      toggleSave: () => toggleSave(p.id),
-      shareLabel: st.copiedPid === p.id ? 'Copied!' : 'Share',
-      share: () => shareProduct(p.id),
     })),
-    // The single package shown in the details modal, looked up from the
-    // full product list (not the paginated/search-filtered display list)
-    // so it still resolves correctly regardless of what's currently visible.
-    openPackage: (() => {
-      if (!st.openPackageId) return null;
-      const p = product(st.openPackageId);
-      if (!p) return null;
-      const idx = productsOf(sup).findIndex((x) => x.id === p.id);
-      return {
-        photo: p.photoUrl || fallbackPhotoFor(sup.code, Math.max(idx, 0)),
-        name: p.name,
-        descriptionBlocks: parseDescriptionBlocks(p.description),
-        inclusions: p.inclusions || [],
-        hasAddons: (p.addons || []).length > 0,
-        priceLabel: priceLabel(p),
-        saved: (st.saved || []).indexOf(p.id) >= 0,
-        saveLabel: (st.saved || []).indexOf(p.id) >= 0 ? '★ Saved' : '☆ Save',
-        toggleSave: () => toggleSave(p.id),
-      };
-    })(),
-    closePackageDetails: () => patch({ openPackageId: null }),
 
     // Rentals tab — individual inventory items (chairs, tables, tents…)
     // priced per unit with a minimum order quantity, as opposed to Packages'
@@ -2612,7 +2545,7 @@ export default function App() {
           supplierName: s ? s.name : '',
           priceLabel: priceLabel(p),
           openSupplier: () =>
-            patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+            patch({ screen: 'supplier', supId: p.supId, supplierTab: 'services', reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
           remove: () => toggleSave(pid),
           share: () => shareProduct(pid),
           shareLabel: st.copiedPid === pid ? 'Copied!' : 'Share',
@@ -2631,7 +2564,7 @@ export default function App() {
           name: s.name,
           categoryName: catName(s.code),
           open: () =>
-            patch({ screen: 'supplier', supId: vid, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+            patch({ screen: 'supplier', supId: vid, supplierTab: 'services', reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
           unsave: () => toggleSaveVendor(vid),
         };
       })
@@ -2842,7 +2775,7 @@ export default function App() {
     },
     goVdPublicProfile: () =>
       st.vdVendor &&
-      patch({ screen: 'supplier', supId: st.vdVendor.id, supplierTab: 'services', svcQuery: '', svcGroup: 'All', svcVisible: 8, reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
+      patch({ screen: 'supplier', supId: st.vdVendor.id, supplierTab: 'services', reviewFormOpen: false, reviewSent: false, supCarouselIndex: 0 }),
     vdSignOut: async () => {
       if (supabase) await supabase.auth.signOut();
       patch({ signedIn: false, screen: 'home', authConfirmPending: false, authError: null, vdVendor: null });
@@ -5719,7 +5652,10 @@ export default function App() {
                         <span style={{ fontFamily: MONO, fontSize: 13, color: '#171717', paddingTop: 4 }}>{p.priceLabel}</span>
                       </div>
                       <div style={{ flex: '0 0 auto', paddingRight: 8 }}>
-                        <button onClick={p.openDetails} style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '10px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717' }}>
+                        <button
+                          onClick={() => V.openWaModal(p.name)}
+                          style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '10px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717' }}
+                        >
                           Ask about this
                         </button>
                       </div>
@@ -10440,175 +10376,6 @@ export default function App() {
             </button>
               </>
             )}
-          </div>
-        </div>
-      )}
-
-      {V.openPackage && (
-        <div
-          onClick={V.closePackageDetails}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 50,
-            background: 'rgba(23,23,23,0.55)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: isMobile ? 12 : 24,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '100%',
-              maxWidth: 520,
-              maxHeight: '88vh',
-              overflowY: 'auto',
-              background: '#FFFFFF',
-              borderRadius: 28,
-            }}
-          >
-            <div style={{ position: 'relative' }}>
-              <img
-                src={V.openPackage.photo}
-                alt={V.openPackage.name}
-                style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block', borderRadius: '28px 28px 0 0' }}
-              />
-              <button
-                onClick={V.closePackageDetails}
-                aria-label="Close"
-                style={{
-                  position: 'absolute',
-                  top: 14,
-                  right: 14,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 34,
-                  height: 34,
-                  border: 0,
-                  borderRadius: 999,
-                  background: 'rgba(23,23,23,0.65)',
-                  color: '#FFFFFF',
-                  cursor: 'pointer',
-                  fontSize: 16,
-                  lineHeight: 1,
-                }}
-              >
-                ✕
-              </button>
-            </div>
-            <div style={{ padding: isMobile ? 20 : 28 }}>
-              <h2 style={{ margin: 0, fontSize: isMobile ? 20 : 24, lineHeight: 1.2, letterSpacing: '-0.02em', fontWeight: 800 }}>
-                {V.openPackage.name}
-              </h2>
-              <div style={{ marginTop: 10, fontFamily: MONO, fontSize: 18, fontWeight: 700 }}>{V.openPackage.priceLabel}</div>
-              {V.openPackage.descriptionBlocks.map((block, i) =>
-                block.type === 'ul' ? (
-                  <ul key={i} style={{ margin: '14px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {block.items.map((item, j) => (
-                      <li key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>
-                        <span style={{ flexShrink: 0, color: '#16A34A', fontWeight: 800 }}>✓</span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p key={i} style={{ margin: '14px 0 0', fontSize: 14.5, lineHeight: 1.6, color: '#4A4A4A' }}>
-                    {block.text}
-                  </p>
-                )
-              )}
-              {V.openPackage.inclusions.length > 0 && (
-                <ul style={{ margin: '16px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {V.openPackage.inclusions.map((inc) => (
-                    <li key={inc} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>
-                      <span style={{ flexShrink: 0, color: '#16A34A', fontWeight: 800 }}>✓</span>
-                      {inc}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {V.openPackage.hasAddons && (
-                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {V.waAddonGroups.map((g) => (
-                    <div key={g.key}>
-                      {g.label && (
-                        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                          {g.label}
-                        </div>
-                      )}
-                      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {g.items.map((a) => (
-                          <button
-                            key={a.key}
-                            onClick={a.toggle}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              border: a.selected ? `1px solid ${ACCENT}` : '1px solid #E4E4DF',
-                              borderRadius: 999,
-                              background: a.selected ? `${ACCENT}17` : 'transparent',
-                              color: a.selected ? ACCENT : '#171717',
-                              padding: '6px 14px',
-                              cursor: 'pointer',
-                              fontSize: 12.5,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {a.label}
-                            <span style={{ fontFamily: MONO, fontSize: 11, opacity: 0.8 }}>{a.priceLabel}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{ fontSize: 12, color: '#9A9A9A' }}>Tap to select — they'll come with you into your inquiry.</div>
-                </div>
-              )}
-              <div style={{ marginTop: 22, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => {
-                    const name = V.openPackage.name;
-                    V.closePackageDetails();
-                    V.openWaModal(name);
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    border: 0,
-                    borderRadius: 999,
-                    background: ACCENT,
-                    color: ACCENT_ON,
-                    padding: '12px 20px',
-                    cursor: 'pointer',
-                    fontFamily: DISPLAY,
-                    fontSize: 14,
-                    fontWeight: 600,
-                  }}
-                >
-                  {V.sup.waButtonLabel}
-                </button>
-                <button
-                  onClick={V.openPackage.toggleSave}
-                  style={{
-                    border: '1px solid #D7D7D2',
-                    borderRadius: 999,
-                    background: V.openPackage.saved ? '#171717' : 'transparent',
-                    color: V.openPackage.saved ? '#FFFFFF' : '#171717',
-                    padding: '12px 18px',
-                    cursor: 'pointer',
-                    fontSize: 14,
-                    fontWeight: 700,
-                  }}
-                >
-                  {V.openPackage.saveLabel}
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
