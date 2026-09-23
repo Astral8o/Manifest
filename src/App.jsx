@@ -4629,11 +4629,8 @@ export default function App() {
                         {s.name}
                       </button>
                       {s.blurb && <p style={{ margin: '6px 0 0', fontSize: 13, lineHeight: 1.5, color: '#5B5B5B' }}>{s.blurb}</p>}
-                      <div style={{ marginTop: 'auto', paddingTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                        <div>
-                          {s.startPriceLabel && <div style={{ fontFamily: MONO, fontSize: 10, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>From</div>}
-                          <div style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700 }}>{s.startPriceLabel || ' '}</div>
-                        </div>
+                      <div style={{ marginTop: 'auto', paddingTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                        <div style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700 }}>{s.startPriceLabel || ' '}</div>
                         <button onClick={s.inquire} style={{ flexShrink: 0, border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '9px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
                           Inquire
                         </button>
