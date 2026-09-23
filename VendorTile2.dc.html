@@ -11,7 +11,7 @@
 </helmet>
 <div style="display:flex;flex-direction:column;height:100%;border:1px solid var(--line-hairline);border-radius:24px;background:var(--surface);overflow:hidden;font-family:var(--font-sans);color:var(--ink);">
   <div style="position:relative;aspect-ratio:4/3;background:var(--ink);overflow:hidden;">
-    <img onClick="{{ v.open }}" src="{{ v.img }}" alt="{{ v.name }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;cursor:pointer;">
+    <img onClick="{{ v.open }}" src="{{ v.img }}" alt="{{ v.name }}" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;cursor:pointer;">
     <div style="position:absolute;top:12px;right:12px;">
       <sc-if value="{{ v.saved }}" hint-placeholder-val="{{ false }}">
         <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="accent" size="sm" onClick="{{ v.save }}" hint-size="80px,36px">Saved</x-import>

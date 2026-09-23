@@ -10,7 +10,7 @@
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
   });
 
-  var VENDOR_COLS = 'id, slug, owner_user_id, name, category_id, location, events, from_label, reply_label, tagline, about, instagram, facebook, photos, tier, published';
+  var VENDOR_COLS = 'id, slug, owner_user_id, name, category_id, also_categories, location, areas_served, events, from_label, reply_label, tagline, about, instagram, facebook, website, specialties, photos, tier, published, updated_at';
 
   function fail(error) {
     var e = new Error(friendly(error));
@@ -34,6 +34,7 @@
       location: r.location || '', events: r.events || [], from: r.from_label || 'Price on request',
       reply: r.reply_label || '', imgs: (r.photos || []).slice(), tagline: r.tagline || '', about: r.about || '',
       ig: r.instagram || '', fb: r.facebook || '', tier: r.tier || 'basic', email: '',
+      also: r.also_categories || [], website: r.website || '', areas: r.areas_served || [], specialties: r.specialties || [],
       packages: (pkgs || []).map(function (p) {
         return { name: p.name, price: p.price_label || '', desc: p.description || '', img: p.img_url || null };
       }),
@@ -82,25 +83,40 @@
 
   var PENDING_PHOTOS = 'eventory_pending_photos_v1';
 
+  // Maps the raw public rows (as embedded by the server, or fetched below)
+  // onto the shapes the page's design components expect.
+  function fromRaw(raw) {
+    return {
+      raw: raw,
+      vendors: raw.vendors.map(function (r) { return mapVendor(r, r.packages); }),
+      posts: raw.posts.map(function (p) {
+        return { id: p.id, tag: p.section || p.tag, date: fmtPostDate(p.published_on), read: p.read_label, img: p.img_path,
+          title: p.title, excerpt: p.excerpt, vendors: p.vendor_slugs || [], body: p.body || [] };
+      }),
+    };
+  }
+
   var EVDB = {
     client: client,
+    // Public data the server rendered this page with (see api/render.js).
+    boot: window.__EV_BOOT || null,
+    fromRaw: fromRaw,
 
     loadPublic: async function () {
+      if (EVDB.boot && EVDB.boot.data) return fromRaw(EVDB.boot.data);
       var res = await Promise.all([
         client.from('vendors').select(VENDOR_COLS).eq('published', true).order('created_at'),
         client.from('packages').select('vendor_id, name, price_label, description, img_url, sort_order').order('sort_order'),
         client.from('blog_posts').select('*').eq('published', true).order('published_on', { ascending: false }),
+        client.from('categories').select('*').order('sort_order'),
+        client.from('event_types').select('*').order('sort_order'),
+        client.from('locations').select('slug, name, island').order('name'),
       ]);
       for (var i = 0; i < res.length; i++) if (res[i].error) fail(res[i].error);
       var byVendor = {};
       res[1].data.forEach(function (p) { (byVendor[p.vendor_id] = byVendor[p.vendor_id] || []).push(p); });
-      return {
-        vendors: res[0].data.map(function (r) { return mapVendor(r, byVendor[r.id]); }),
-        posts: res[2].data.map(function (p) {
-          return { id: p.id, tag: p.tag, date: fmtPostDate(p.published_on), read: p.read_label, img: p.img_path,
-            title: p.title, excerpt: p.excerpt, vendors: p.vendor_slugs || [], body: p.body || [] };
-        }),
-      };
+      res[0].data.forEach(function (v) { v.packages = byVendor[v.id] || []; });
+      return fromRaw({ vendors: res[0].data, posts: res[2].data, categories: res[3].data, events: res[4].data, locations: res[5].data });
     },
 
     // Own listing, including an unpublished one the public list leaves out.
