@@ -1944,20 +1944,18 @@ export default function App() {
       };
     })(),
 
-    topCategoryTiles: (() => {
-      const all = CATS.map((c) => ({
-        c,
-        n:
-          SUPPLIERS.filter((s) => (s.codes || [s.code]).includes(c[0])).length +
-          unclaimedBusinesses.filter((b) => b.categoryCode === c[0]).length,
-      }))
-        .sort((a, b) => b.n - a.n)
-        .map((x) => catTile(x.c));
-      return st.catExpanded ? all : all.slice(0, 8);
-    })(),
-    catHasMore: CATS.length > 8,
-    catExpanded: !!st.catExpanded,
-    toggleCatExpanded: () => patch((s) => ({ catExpanded: !s.catExpanded })),
+    // Every category, most vendors first — shown in the homepage's
+    // horizontally-scrolling row, so unlike the old wrapping grid this
+    // doesn't need a cap-plus-"show more" toggle to stay a reasonable
+    // height. All 18 are reachable, just by scrolling right.
+    topCategoryTiles: CATS.map((c) => ({
+      c,
+      n:
+        SUPPLIERS.filter((s) => (s.codes || [s.code]).includes(c[0])).length +
+        unclaimedBusinesses.filter((b) => b.categoryCode === c[0]).length,
+    }))
+      .sort((a, b) => b.n - a.n)
+      .map((x) => catTile(x.c)),
 
     // "Claim Your Business" — real businesses found via web search, not yet
     // listed on Eventory. Claiming just routes into the normal vendor
