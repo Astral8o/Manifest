@@ -1210,14 +1210,6 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [st.screen]);
 
-  useEffect(() => {
-    if (st.screen !== 'supplier') return;
-    const id = setInterval(() => {
-      patch((s) => ({ supCarouselIndex: (s.supCarouselIndex || 0) + 1 }));
-    }, 4000);
-    return () => clearInterval(id);
-  }, [st.screen, st.supId]);
-
   const isPoppingRef = useRef(false);
   const isFirstScreenRef = useRef(true);
 
@@ -2049,14 +2041,8 @@ export default function App() {
 
     supDetailLoading,
     sup: {
-      logo: sup.logoUrl || avatarUrl(sup.name),
-      cover: supCoverFallback,
-      carouselPhotos: supCarouselPhotos,
-      carouselIndex: (st.supCarouselIndex || 0) % supCarouselPhotos.length,
       isSaved: (st.savedVendors || []).indexOf(sup.id) >= 0,
       toggleSaved: () => toggleSaveVendor(sup.id),
-      share: () => shareVendor(sup.id),
-      justCopied: st.copiedVendorId === sup.id,
       name: sup.name,
       code: sup.code,
       description: sup.bio,
@@ -2107,9 +2093,34 @@ export default function App() {
       policies: (sup.policies || []).map((p) => ({ key: p.title, label: p.title, text: p.body })),
       menuItems: sup.menuItems || [],
     },
-    aboutLong: (sup.desc || '').length > 320,
-    aboutExpanded: !!st.aboutExpanded,
-    toggleAboutExpanded: () => patch((s) => ({ aboutExpanded: !s.aboutExpanded })),
+    // Vendor profile page furniture — position within whatever the buyer's
+    // current Discover Vendors filters produce (falling back to the full
+    // list when this vendor doesn't match them, e.g. reached from Saved or
+    // a shared link rather than by browsing), and the gallery's main/thumb
+    // state (supCarouselIndex, reused from the old auto-rotating carousel —
+    // now purely click-driven, no interval).
+    pf: (() => {
+      const list = dirFiltered.some((s) => s.id === sup.id) ? dirFiltered : SUPPLIERS;
+      const idx = Math.max(list.findIndex((s) => s.id === sup.id), 0);
+      const pad = (n) => String(n).padStart(2, '0');
+      const step = (delta) => () => {
+        if (!list.length) return;
+        const next = list[(idx + delta + list.length) % list.length];
+        patch({ supId: next.id, supCarouselIndex: 0 });
+      };
+      return {
+        isSpotlight: sup.spotlightStatus === 'active',
+        posLabel: list.length ? pad(idx + 1) + ' / ' + pad(list.length) : '',
+        prev: step(-1),
+        next: step(1),
+        mainImg: supCarouselPhotos[(st.supCarouselIndex || 0) % supCarouselPhotos.length],
+        thumbs: supCarouselPhotos.map((src, i) => ({
+          src,
+          opacity: i === (st.supCarouselIndex || 0) % supCarouselPhotos.length ? 1 : 0.55,
+          pick: () => patch({ supCarouselIndex: i }),
+        })),
+      };
+    })(),
 
     openWaModal: (preselectService) => {
       if (!st.signedIn) {
@@ -2275,8 +2286,10 @@ export default function App() {
           key: s.id,
           cover: s.coverUrl || fallbackPhotoFor(s.code, i),
           name: s.name,
+          categoryName: catName(s.code),
           location: s.city,
           rating: s.rating,
+          isSpotlight: s.spotlightStatus === 'active',
           startPriceLabel: s.priceOnRequest ? 'Price on request' : startPrice(s) === null ? '' : 'From ' + money(startPrice(s)),
           isSaved: (st.savedVendors || []).indexOf(s.id) >= 0,
           toggleSaved: () => toggleSaveVendor(s.id),
@@ -5604,547 +5617,124 @@ export default function App() {
 
       {V.isSupplier && (
         <div style={{ padding: '34px 0 0' }}>
-          <button
-            onClick={V.backToCategory}
-            style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
-          >
-            ← {V.sup.categoryName}
-          </button>
-          <div style={{ marginTop: 22, border: '1px solid #ECECEC', borderRadius: 24, overflow: 'hidden' }}>
-            <div style={{ position: 'relative', height: isMobile ? 220 : 340 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  width: '100%',
-                  height: '100%',
-                  transform: `translateX(-${V.sup.carouselIndex * 100}%)`,
-                  transition: 'transform 0.7s ease',
-                }}
-              >
-                {V.sup.carouselPhotos.map((src, i) => (
-                  <img
-                    key={i}
-                    src={src}
-                    alt={V.sup.name + ' photo ' + (i + 1)}
-                    loading={i === 0 ? undefined : 'lazy'}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', flex: '0 0 100%' }}
-                  />
-                ))}
-              </div>
-              {V.sup.carouselPhotos.length > 1 && (
-                <div style={{ position: 'absolute', bottom: 14, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 6 }}>
-                  {V.sup.carouselPhotos.map((_, i) => (
-                    <span
-                      key={i}
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: 999,
-                        background: i === V.sup.carouselIndex ? '#FFFFFF' : 'rgba(255,255,255,0.45)',
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            <div style={{ position: 'relative', background: '#FFFFFF', padding: isMobile ? '20px 20px 24px' : '28px 28px 32px' }}>
-              <img
-                src={V.sup.logo}
-                alt={V.sup.name + ' logo'}
-                style={{ position: 'absolute', top: -32, left: isMobile ? 20 : 28, width: 64, height: 64, borderRadius: 999, border: '4px solid #FFFFFF', background: '#171717', display: 'block' }}
-              />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <button
-                      onClick={V.sup.share}
-                      aria-label="Share vendor"
-                      title={V.sup.justCopied ? 'Link copied' : 'Share vendor'}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 38,
-                        height: 38,
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 999,
-                        background: '#FFFFFF',
-                        color: '#171717',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {V.sup.justCopied ? (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      ) : (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="18" cy="5" r="3" />
-                          <circle cx="6" cy="12" r="3" />
-                          <circle cx="18" cy="19" r="3" />
-                          <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
-                          <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
-                        </svg>
-                      )}
-                    </button>
-                    {V.sup.social.map((s) => (
-                      <a
-                        key={s.key}
-                        href={s.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={s.label}
-                        title={s.label}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: 38,
-                          height: 38,
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 999,
-                          background: '#FFFFFF',
-                          color: '#171717',
-                          textDecoration: 'none',
-                        }}
-                      >
-                        {s.key === 'instagram' && (
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-                          </svg>
-                        )}
-                        {s.key === 'facebook' && (
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-                          </svg>
-                        )}
-                        {s.key === 'tiktok' && (
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-                          </svg>
-                        )}
-                      </a>
-                    ))}
-                  </div>
-                <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                    <h1 style={{ margin: 0, fontSize: isMobile ? 26 : 40, lineHeight: 1.05, letterSpacing: '-0.03em', fontWeight: 800 }}>{V.sup.name}</h1>
-                    {V.sup.verified && (
-                      <span
-                        title="Verified vendor"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 5,
-                          border: '1px solid #171717',
-                          borderRadius: 999,
-                          background: '#171717',
-                          color: '#FFFFFF',
-                          padding: '4px 11px',
-                          fontSize: 12,
-                          fontWeight: 700,
-                        }}
-                      >
-                        ✓ Verified
-                      </span>
-                    )}
-                  </div>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 7,
-                      flexShrink: 0,
-                      border: '1px solid #E4E4DF',
-                      borderRadius: 999,
-                      background: '#F7F7F5',
-                      padding: '7px 14px',
-                      fontFamily: MONO,
-                      fontSize: 11,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      fontWeight: 700,
-                      color: '#5B5B5B',
-                    }}
-                  >
-                    <span style={{ width: 7, height: 7, borderRadius: 999, background: '#1E7A32', flexShrink: 0 }} />
-                    Taking bookings
-                  </span>
-                </div>
-                <div style={{ marginTop: 8, fontFamily: MONO, fontSize: 12, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A' }}>
-                  {V.sup.city}
-                  {V.sup.region ? ' · ' + V.sup.region : ''}
-                  {V.sup.categoryName ? ' · ' + V.sup.categoryName : ''}
-                </div>
-                {(V.sup.ratingLabel || V.sup.startPriceLabel || V.sup.responseLabel) && (
-                  <div style={{ marginTop: 6, fontSize: 13, color: '#5B5B5B' }}>
-                    {[V.sup.ratingLabel && '★ ' + V.sup.ratingLabel, V.sup.startPriceLabel, V.sup.responseLabel].filter(Boolean).join('  ·  ')}
-                  </div>
-                )}
-                <p style={{ margin: '14px 0 0', maxWidth: 620, fontSize: 16, lineHeight: 1.55, color: '#4A4A4A' }}>{V.sup.description}</p>
-                {V.sup.contactPerson && (
-                  <div style={{ marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-                    {V.sup.contactPhotoUrl ? (
-                      <img src={V.sup.contactPhotoUrl} alt={V.sup.contactPerson} style={{ width: 36, height: 36, borderRadius: 999, objectFit: 'cover' }} />
-                    ) : (
-                      <span style={{ width: 36, height: 36, borderRadius: 999, background: '#F7F7F5', border: '1px solid #E4E4DF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#9A9A9A' }}>
-                        {V.sup.contactPerson.trim().charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                    <span style={{ fontSize: 13.5, color: '#5B5B5B' }}>
-                      Your contact — <span style={{ fontWeight: 700, color: '#171717' }}>{V.sup.contactPerson}</span>
-                    </span>
-                  </div>
-                )}
-                {V.sup.tags.length > 0 && (
-                  <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {V.sup.tags.map((t) => (
-                      <span
-                        key={t}
-                        style={{
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 999,
-                          padding: '6px 14px',
-                          fontSize: 12.5,
-                          fontWeight: 600,
-                          color: '#171717',
-                        }}
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {V.sup.galleryPreview.length > 0 && (
-                  <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: `repeat(${V.sup.galleryPreview.length}, 1fr)`, gap: 10 }}>
-                    {V.sup.galleryPreview.map((src, i) => (
-                      <img
-                        key={i}
-                        src={src}
-                        alt={V.sup.name + ' gallery photo ' + (i + 1)}
-                        loading="lazy"
-                        style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: 14, display: 'block' }}
-                      />
-                    ))}
-                  </div>
-                )}
-                <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                  <button
-                    onClick={() => V.openWaModal()}
-                    style={{
-                      flex: '2 1 200px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      border: 0,
-                      borderRadius: 999,
-                      background: ACCENT,
-                      color: ACCENT_ON,
-                      padding: '15px 22px',
-                      cursor: 'pointer',
-                      fontFamily: DISPLAY,
-                      fontSize: 14.5,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {V.sup.waButtonLabel}
-                  </button>
-                  <button
-                    onClick={V.sup.toggleSaved}
-                    style={{
-                      flex: '1 1 120px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      border: '1px solid #D7D7D2',
-                      borderRadius: 999,
-                      background: V.sup.isSaved ? '#171717' : 'transparent',
-                      color: V.sup.isSaved ? '#FFFFFF' : '#171717',
-                      padding: '15px 20px',
-                      cursor: 'pointer',
-                      fontFamily: DISPLAY,
-                      fontSize: 14.5,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {V.sup.isSaved ? '★ Saved' : '☆ Save'}
-                  </button>
-                </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+            <button
+              onClick={V.goSuppliers}
+              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600, color: '#5B5B5B' }}
+            >
+              ← Back to results
+            </button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontFamily: MONO, fontSize: 12, color: '#7A7A7A' }}>{V.pf.posLabel}</span>
+              <button onClick={V.pf.prev} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: 'transparent', padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#171717' }}>
+                ← Prev
+              </button>
+              <button onClick={V.pf.next} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: 'transparent', padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#171717' }}>
+                Next →
+              </button>
             </div>
           </div>
 
-          <div style={{ marginTop: 20 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, borderBottom: '1px solid #ECECEC', paddingBottom: 16 }}>
-                {V.supplierTabs.map((t) => (
-                  <button
-                    key={t.key}
-                    onClick={t.go}
-                    style={
-                      t.highlight
-                        ? {
-                            border: `1px solid ${ACCENT}`,
-                            borderRadius: 999,
-                            background: t.active ? ACCENT : `${ACCENT}17`,
-                            color: t.active ? '#FFFFFF' : ACCENT,
-                            padding: '9px 16px',
-                            cursor: 'pointer',
-                            fontSize: 13,
-                            fontWeight: 800,
-                          }
-                        : {
-                            border: `1px solid ${t.active ? '#171717' : '#D7D7D2'}`,
-                            borderRadius: 999,
-                            background: t.active ? '#171717' : 'transparent',
-                            color: t.active ? '#FFFFFF' : '#171717',
-                            padding: '9px 16px',
-                            cursor: 'pointer',
-                            fontSize: 13,
-                            fontWeight: 700,
-                          }
-                    }
-                  >
-                    {t.label}
-                  </button>
+          <div style={{ marginTop: 22, display: 'grid', gap: 10 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+              <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', whiteSpace: 'nowrap' }}>
+                {V.sup.categoryName} · {V.sup.city}
+              </span>
+              {V.pf.isSpotlight && (
+                <span style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 700, color: ACCENT_ON, background: ACCENT, borderRadius: 999, padding: '4px 10px' }}>
+                  Spotlight
+                </span>
+              )}
+            </div>
+            <h1 style={{ margin: 0, fontSize: isMobile ? 30 : 'clamp(32px, 4vw, 46px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05 }}>{V.sup.name}</h1>
+            {V.sup.description && <p style={{ margin: 0, fontSize: 17, lineHeight: 1.5, color: '#4A4A4A', maxWidth: 620 }}>{V.sup.description}</p>}
+          </div>
+
+          <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,3fr) minmax(0,1fr)', gap: 10, height: isMobile ? 260 : 'clamp(240px, 36vw, 460px)' }}>
+            <div style={{ position: 'relative', minHeight: 0, borderRadius: 24, overflow: 'hidden', background: '#171717' }}>
+              <img src={V.pf.mainImg} alt={V.sup.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            </div>
+            {!isMobile && (
+              <div style={{ display: 'grid', gridTemplateRows: 'repeat(3, minmax(0,1fr))', gap: 10, minHeight: 0 }}>
+                {V.pf.thumbs.map((t, i) => (
+                  <div key={i} onClick={t.pick} style={{ position: 'relative', minHeight: 0, borderRadius: 16, overflow: 'hidden', background: '#171717', cursor: 'pointer' }}>
+                    <img src={t.src} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: t.opacity }} />
+                  </div>
                 ))}
               </div>
+            )}
+          </div>
+          {isMobile && V.pf.thumbs.length > 1 && (
+            <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: `repeat(${V.pf.thumbs.length}, 1fr)`, gap: 10, height: 72 }}>
+              {V.pf.thumbs.map((t, i) => (
+                <div key={i} onClick={t.pick} style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', background: '#171717', cursor: 'pointer' }}>
+                  <img src={t.src} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: t.opacity }} />
+                </div>
+              ))}
+            </div>
+          )}
 
-              {V.supplierTab === 'about' && (
-                <div style={{ marginTop: 24 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12 }}>
-                    {V.sup.facts.map((f) => (
-                      <div key={f.label} style={{ borderRadius: 16, background: '#F7F7F5', padding: '14px 16px' }}>
-                        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                          {f.label}
-                        </div>
-                        <div style={{ marginTop: 6, fontSize: 15, fontWeight: 700 }}>{f.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #ECECEC' }}>
-                    <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                      About {V.sup.name}
-                    </div>
-                    <p
-                      style={
-                        V.aboutExpanded || !V.aboutLong
-                          ? { margin: '8px 0 0', maxWidth: 620, fontSize: 15, lineHeight: 1.6, color: '#4A4A4A', whiteSpace: 'pre-line' }
-                          : { margin: '8px 0 0', maxWidth: 620, fontSize: 15, lineHeight: 1.6, color: '#4A4A4A', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }
-                      }
-                    >
-                      {V.sup.about}
-                    </p>
-                    {V.aboutLong && (
+          <div style={{ marginTop: isMobile ? 32 : 48, display: 'flex', flexWrap: 'wrap', gap: isMobile ? 32 : 48, alignItems: 'flex-start' }}>
+            <div style={{ flex: '999 1 420px', minWidth: 0, display: 'grid' }}>
+              {V.sup.about && (
+                <div style={{ display: 'grid', gap: 12, paddingBottom: 28 }}>
+                  <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>About</h2>
+                  <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: '#4A4A4A', maxWidth: 620 }}>{V.sup.about}</p>
+                </div>
+              )}
+
+              {V.sup.tags.length > 0 && (
+                <div style={{ display: 'grid', gap: 14, padding: '28px 0', borderTop: '1px solid #ECECEC' }}>
+                  <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>Event types</h2>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                    {V.sup.tags.map((tag) => (
                       <button
-                        onClick={V.toggleAboutExpanded}
-                        style={{ marginTop: 6, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13.5, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                        key={tag}
+                        onClick={() => patch({ screen: 'suppliers', dirQuery: tag, dirCat: 'ALL', dirCats: [], dirLoc: 0, dirVisible: 6, dirPlanLabel: '' })}
+                        style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: '#FFFFFF', padding: '9px 16px', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: '#171717' }}
                       >
-                        {V.aboutExpanded ? 'Show less' : 'Read more'}
+                        {tag}
                       </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {V.supplierTab === 'services' && (
-                <div style={{ marginTop: 24 }}>
-                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Packages</h2>
-                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
-                  <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-                    <input
-                      type="search"
-                      value={V.svcQuery}
-                      onChange={V.setSvcQuery}
-                      placeholder="Search services"
-                      style={{
-                        flex: '1 1 220px',
-                        border: '1px solid #E4E4DF',
-                        borderRadius: 999,
-                        background: '#F7F7F5',
-                        padding: '11px 16px',
-                        fontFamily: SANS,
-                        fontSize: 14,
-                        color: '#171717',
-                      }}
-                    />
-                    <span style={{ fontFamily: MONO, fontSize: 11, color: '#9A9A9A', flexShrink: 0 }}>{V.svcResultLabel}</span>
-                  </div>
-                  {V.svcHasGroups && (
-                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {V.svcGroupFilters.map((f) => (
-                        <button
-                          key={f.label}
-                          onClick={f.pick}
-                          style={{
-                            border: `1px solid ${f.border}`,
-                            borderRadius: 999,
-                            background: f.bg,
-                            color: f.fg,
-                            padding: '7px 14px',
-                            cursor: 'pointer',
-                            fontSize: 13,
-                            fontWeight: 600,
-                          }}
-                        >
-                          {f.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
-                    {V.supplierProducts.map((p) => (
-                      <div
-                        key={p.key}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          border: '1px solid #ECECEC',
-                          borderRadius: 20,
-                          overflow: 'hidden',
-                          background: '#FFFFFF',
-                        }}
-                      >
-                        <button
-                          onClick={p.openDetails}
-                          style={{ border: 0, padding: 0, margin: 0, cursor: 'pointer', display: 'block', width: '100%' }}
-                        >
-                          <img
-                            src={p.photo}
-                            alt={p.name}
-                            loading="lazy"
-                            style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }}
-                          />
-                        </button>
-                        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', flex: 1 }}>
-                          <button
-                            onClick={p.openDetails}
-                            style={{ alignSelf: 'flex-start', border: 0, background: 'transparent', padding: 0, margin: 0, cursor: 'pointer', textAlign: 'left', fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', color: '#171717' }}
-                          >
-                            {p.name}
-                          </button>
-                          <div
-                            style={{
-                              marginTop: 6,
-                              fontSize: 14,
-                              lineHeight: 1.5,
-                              color: '#5B5B5B',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 3,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            {p.description}
-                          </div>
-                          {p.descriptionLong && (
-                            <button
-                              onClick={p.openDetails}
-                              style={{ alignSelf: 'flex-start', marginTop: 4, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717', textDecoration: 'underline', textUnderlineOffset: '2px' }}
-                            >
-                              View full details →
-                            </button>
-                          )}
-                          {p.inclusions.length > 0 && (
-                            <ul style={{ margin: '12px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {p.inclusions.map((inc) => (
-                                <li key={inc} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13.5, lineHeight: 1.5, color: '#4A4A4A' }}>
-                                  <span style={{ flexShrink: 0, color: '#16A34A', fontWeight: 800 }}>✓</span>
-                                  {inc}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                          {p.addonsLabel && (
-                            <button
-                              onClick={p.openDetails}
-                              style={{ alignSelf: 'flex-start', marginTop: 10, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: '#9A9A9A' }}
-                            >
-                              {p.addonsLabel} →
-                            </button>
-                          )}
-                          <div style={{ marginTop: 14, fontFamily: MONO, fontSize: 17, fontWeight: 700 }}>{p.priceLabel}</div>
-                          <div style={{ marginTop: 'auto', paddingTop: 16, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <button
-                              onClick={p.toggleSave}
-                              aria-label={p.saveLabel}
-                              style={{
-                                border: '1px solid #D7D7D2',
-                                borderRadius: 999,
-                                background: p.saved ? '#171717' : 'transparent',
-                                color: p.saved ? '#FFFFFF' : '#171717',
-                                padding: '9px 14px',
-                                cursor: 'pointer',
-                                fontSize: 13,
-                                fontWeight: 700,
-                              }}
-                            >
-                              {p.saveLabel}
-                            </button>
-                            <button
-                              onClick={p.share}
-                              style={{
-                                border: '1px solid #D7D7D2',
-                                borderRadius: 999,
-                                background: 'transparent',
-                                color: '#171717',
-                                padding: '9px 14px',
-                                cursor: 'pointer',
-                                fontSize: 13,
-                                fontWeight: 700,
-                              }}
-                            >
-                              {p.shareLabel}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
                     ))}
                   </div>
-                  {!V.supDetailLoading && V.supplierProducts.length === 0 && (
-                    <div style={{ padding: '28px 2px', fontSize: 14, color: '#9A9A9A' }}>No packages match your search.</div>
-                  )}
-                  {V.svcShowMore && (
-                    <button
-                      onClick={V.loadMoreSvc}
-                      style={{
-                        marginTop: 16,
-                        border: '1px solid #D7D7D2',
-                        borderRadius: 999,
-                        background: 'transparent',
-                        padding: '11px 20px',
-                        cursor: 'pointer',
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: '#171717',
-                      }}
-                    >
-                      {V.svcRemainingLabel}
-                    </button>
-                  )}
                 </div>
               )}
 
-              {V.supplierTab === 'rentals' && (
-                <div style={{ marginTop: 24 }}>
-                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Rentals</h2>
+              {V.supplierProducts.length > 0 && (
+                <div style={{ display: 'grid', gap: 16, paddingTop: 28, borderTop: '1px solid #ECECEC' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>Packages</h2>
+                    <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>
+                      {V.supplierProducts.length} PACKAGE{V.supplierProducts.length === 1 ? '' : 'S'}
+                    </span>
+                  </div>
+                  {V.supplierProducts.map((p) => (
+                    <div key={p.key} style={{ display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'center', border: '1px solid #ECECEC', borderRadius: 24, padding: 12 }}>
+                      <div style={{ position: 'relative', flex: '0 0 112px', height: 112, borderRadius: 16, overflow: 'hidden', background: '#171717' }}>
+                        <img src={p.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      </div>
+                      <div style={{ flex: '1 1 220px', minWidth: 0, display: 'grid', gap: 4 }}>
+                        <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.01em' }}>{p.name}</div>
+                        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: '#4A4A4A' }}>{p.description}</p>
+                        <span style={{ fontFamily: MONO, fontSize: 13, color: '#171717', paddingTop: 4 }}>{p.priceLabel}</span>
+                      </div>
+                      <div style={{ flex: '0 0 auto', paddingRight: 8 }}>
+                        <button onClick={p.openDetails} style={{ border: '1px solid #D7D7D2', borderRadius: 999, background: 'transparent', padding: '10px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#171717' }}>
+                          Ask about this
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {V.rentalTiles.length > 0 && (
+                <div style={{ paddingTop: 28, borderTop: '1px solid #ECECEC' }}>
+                  <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>Rentals</h2>
                   <p style={{ margin: '6px 0 0', fontSize: 14, color: '#5B5B5B' }}>Set a quantity on anything you need, then request them all in one go.</p>
-                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
-                  <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+                  <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
                     {V.rentalTiles.map((r) => (
-                      <div
-                        key={r.key}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 12,
-                          border: '1px solid #ECECEC',
-                          borderRadius: 18,
-                          padding: 12,
-                          background: r.qty > 0 ? '#FFF7F3' : '#FFFFFF',
-                        }}
-                      >
+                      <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: 12, border: '1px solid #ECECEC', borderRadius: 18, padding: 12, background: r.qty > 0 ? '#FFF7F3' : '#FFFFFF' }}>
                         <img src={r.photo} alt={r.name} loading="lazy" style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', color: '#171717', lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{r.name}</div>
@@ -6152,26 +5742,11 @@ export default function App() {
                           {r.minQtyLabel && <div style={{ marginTop: 2, fontSize: 11.5, color: '#9A9A9A' }}>{r.minQtyLabel}</div>}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                          <button
-                            onClick={r.decrement}
-                            disabled={r.qty === 0}
-                            aria-label={'Fewer ' + r.name}
-                            style={{ width: 30, height: 30, border: '1px solid #D7D7D2', borderRadius: 999, background: '#FFFFFF', cursor: r.qty === 0 ? 'default' : 'pointer', fontSize: 16, fontWeight: 700, color: r.qty === 0 ? '#D7D7D2' : '#171717', lineHeight: 1 }}
-                          >
+                          <button onClick={r.decrement} disabled={r.qty === 0} aria-label={'Fewer ' + r.name} style={{ width: 30, height: 30, border: '1px solid #D7D7D2', borderRadius: 999, background: '#FFFFFF', cursor: r.qty === 0 ? 'default' : 'pointer', fontSize: 16, fontWeight: 700, color: r.qty === 0 ? '#D7D7D2' : '#171717', lineHeight: 1 }}>
                             −
                           </button>
-                          <input
-                            type="number"
-                            min={0}
-                            value={r.qty}
-                            onChange={r.setQty}
-                            style={{ width: 44, textAlign: 'center', border: '1px solid #E4E4DF', borderRadius: 10, padding: '6px 4px', fontFamily: MONO, fontSize: 14, fontWeight: 700 }}
-                          />
-                          <button
-                            onClick={r.increment}
-                            aria-label={'More ' + r.name}
-                            style={{ width: 30, height: 30, border: '1px solid #D7D7D2', borderRadius: 999, background: '#FFFFFF', cursor: 'pointer', fontSize: 16, fontWeight: 700, color: '#171717', lineHeight: 1 }}
-                          >
+                          <input type="number" min={0} value={r.qty} onChange={r.setQty} style={{ width: 44, textAlign: 'center', border: '1px solid #E4E4DF', borderRadius: 10, padding: '6px 4px', fontFamily: MONO, fontSize: 14, fontWeight: 700 }} />
+                          <button onClick={r.increment} aria-label={'More ' + r.name} style={{ width: 30, height: 30, border: '1px solid #D7D7D2', borderRadius: 999, background: '#FFFFFF', cursor: 'pointer', fontSize: 16, fontWeight: 700, color: '#171717', lineHeight: 1 }}>
                             +
                           </button>
                         </div>
@@ -6191,16 +5766,10 @@ export default function App() {
                         ))}
                       </div>
                       <div style={{ marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                        <button
-                          onClick={V.goRequestRentals}
-                          style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '13px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
-                        >
+                        <button onClick={V.goRequestRentals} style={{ border: 0, borderRadius: 999, background: ACCENT, color: '#FFFFFF', padding: '13px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>
                           Request these rentals →
                         </button>
-                        <button
-                          onClick={V.clearRentalCart}
-                          style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '13px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
-                        >
+                        <button onClick={V.clearRentalCart} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '13px 4px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
                           Clear
                         </button>
                       </div>
@@ -6209,63 +5778,12 @@ export default function App() {
                 </div>
               )}
 
-              {V.supplierTab === 'gallery' && (
-                <div style={{ marginTop: 24 }}>
-                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Gallery</h2>
-                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
-                  {!V.supDetailLoading && V.sup.gallery.length === 0 && (
-                    <div style={{ marginTop: 14, border: '1px dashed #D7D7D2', borderRadius: 24, padding: '32px 24px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 15, color: '#5B5B5B' }}>No photos added yet.</div>
-                    </div>
-                  )}
-                  <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 28 }}>
-                    {V.sup.gallery.map((g) => (
-                      <div key={g.key}>
-                        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                          {g.eventType}
-                        </div>
-                        <div
-                          style={{
-                            marginTop: 10,
-                            display: 'grid',
-                            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(180px, 1fr))',
-                            gap: 10,
-                          }}
-                        >
-                          {g.photos.map((photo, i) => (
-                            <img
-                              key={photo + i}
-                              src={photo}
-                              alt={g.eventType + ' photo'}
-                              loading="lazy"
-                              style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: 14, objectFit: 'cover', display: 'block' }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {V.supplierTab === 'menu' && (
-                <div style={{ marginTop: 24 }}>
-                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Menu</h2>
-                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
+              {V.sup.menuItems.length > 0 && (
+                <div style={{ paddingTop: 28, borderTop: '1px solid #ECECEC' }}>
+                  <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>Menu</h2>
                   <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {V.sup.menuItems.map((name) => (
-                      <span
-                        key={name}
-                        style={{
-                          border: '1px solid #E4E4DF',
-                          borderRadius: 999,
-                          background: '#F7F7F5',
-                          padding: '8px 16px',
-                          fontSize: 13.5,
-                          fontWeight: 600,
-                          color: '#171717',
-                        }}
-                      >
+                      <span key={name} style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: '#F7F7F5', padding: '8px 16px', fontSize: 13.5, fontWeight: 600, color: '#171717' }}>
                         {name}
                       </span>
                     ))}
@@ -6273,10 +5791,9 @@ export default function App() {
                 </div>
               )}
 
-              {V.supplierTab === 'reviews' && (
-                <div style={{ marginTop: 24 }}>
-                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Reviews</h2>
-                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
+              <div style={{ paddingTop: 28, borderTop: '1px solid #ECECEC' }}>
+                <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>Reviews</h2>
+                {V.sup.reviews.length > 0 && (
                   <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {V.sup.reviews.map((r) => (
                       <div key={r.key} style={{ borderTop: '1px solid #ECECEC', padding: '18px 2px' }}>
@@ -6288,134 +5805,90 @@ export default function App() {
                       </div>
                     ))}
                   </div>
-
-                  <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px solid #ECECEC' }}>
-                    {V.reviewSent ? (
-                      <>
-                        <div style={{ fontSize: 16, fontWeight: 700 }}>Thanks for your review</div>
-                        <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
-                          We appreciate you taking the time to share your experience.
-                        </p>
-                      </>
-                    ) : V.reviewFormOpen ? (
-                      <>
-                        <div style={{ fontSize: 16, fontWeight: 700 }}>Write a review</div>
-                        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
-                          <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                              Your name
-                            </span>
-                            <input
-                              type="text"
-                              placeholder="Your name"
-                              value={V.reviewAuthor}
-                              onChange={V.setReviewAuthor}
-                              style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
-                            />
-                          </label>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                              Rating
-                            </span>
-                            <div style={{ display: 'flex', gap: 4 }}>
-                              {[1, 2, 3, 4, 5].map((n) => (
-                                <button
-                                  key={n}
-                                  onClick={() => V.setReviewStars(n)}
-                                  style={{
-                                    border: 0,
-                                    background: 'transparent',
-                                    padding: 0,
-                                    cursor: 'pointer',
-                                    fontSize: 26,
-                                    lineHeight: 1,
-                                    color: n <= V.reviewStars ? '#DDA915' : '#D8D8D2',
-                                  }}
-                                >
-                                  ★
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
-                              Your review
-                            </span>
-                            <textarea
-                              placeholder="Share what it was like working with them."
-                              value={V.reviewBody}
-                              onChange={V.setReviewBody}
-                              style={{
-                                minHeight: 100,
-                                border: '1px solid #E4E4DF',
-                                borderRadius: 14,
-                                background: '#F7F7F5',
-                                padding: 14,
-                                fontFamily: SANS,
-                                fontSize: 15,
-                                lineHeight: 1.5,
-                                color: '#171717',
-                                resize: 'vertical',
-                              }}
-                            />
-                          </label>
-                          <label style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }} aria-hidden="true">
-                            Company
-                            <input type="text" tabIndex={-1} autoComplete="off" value={V.reviewCompany} onChange={V.setReviewCompany} />
-                          </label>
-                          {V.reviewError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.reviewError}</div>}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                            <button
-                              onClick={V.cancelReviewForm}
-                              style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '12px 4px', cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600 }}
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              onClick={V.submitReview}
-                              style={{
-                                border: 0,
-                                borderRadius: 999,
-                                background: '#171717',
-                                color: '#FFFFFF',
-                                padding: '13px 24px',
-                                cursor: 'pointer',
-                                fontSize: 14,
-                                fontWeight: 700,
-                                opacity: V.reviewSending ? 0.6 : 1,
-                              }}
-                            >
-                              {V.reviewSending ? 'Submitting…' : 'Submit review'}
-                            </button>
+                )}
+                <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #ECECEC' }}>
+                  {V.reviewSent ? (
+                    <>
+                      <div style={{ fontSize: 16, fontWeight: 700 }}>Thanks for your review</div>
+                      <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: '#5B5B5B' }}>
+                        We appreciate you taking the time to share your experience.
+                      </p>
+                    </>
+                  ) : V.reviewFormOpen ? (
+                    <>
+                      <div style={{ fontSize: 16, fontWeight: 700 }}>Write a review</div>
+                      <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                            Your name
+                          </span>
+                          <input
+                            type="text"
+                            placeholder="Your name"
+                            value={V.reviewAuthor}
+                            onChange={V.setReviewAuthor}
+                            style={{ border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: '12px 14px', fontFamily: SANS, fontSize: 15, color: '#171717' }}
+                          />
+                        </label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                            Rating
+                          </span>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <button
+                                key={n}
+                                onClick={() => V.setReviewStars(n)}
+                                style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 26, lineHeight: 1, color: n <= V.reviewStars ? '#DDA915' : '#D8D8D2' }}
+                              >
+                                ★
+                              </button>
+                            ))}
                           </div>
                         </div>
-                      </>
-                    ) : (
-                      <button
-                        onClick={V.openReviewForm}
-                        style={{
-                          border: '1px solid #171717',
-                          borderRadius: 999,
-                          background: 'transparent',
-                          color: '#171717',
-                          padding: '13px 24px',
-                          cursor: 'pointer',
-                          fontFamily: SANS,
-                          fontSize: 14,
-                          fontWeight: 700,
-                        }}
-                      >
-                        Write a review
-                      </button>
-                    )}
-                  </div>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                            Your review
+                          </span>
+                          <textarea
+                            placeholder="Share what it was like working with them."
+                            value={V.reviewBody}
+                            onChange={V.setReviewBody}
+                            style={{ minHeight: 100, border: '1px solid #E4E4DF', borderRadius: 14, background: '#F7F7F5', padding: 14, fontFamily: SANS, fontSize: 15, lineHeight: 1.5, color: '#171717', resize: 'vertical' }}
+                          />
+                        </label>
+                        <label style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }} aria-hidden="true">
+                          Company
+                          <input type="text" tabIndex={-1} autoComplete="off" value={V.reviewCompany} onChange={V.setReviewCompany} />
+                        </label>
+                        {V.reviewError && <div style={{ fontSize: 13, color: '#B3261E' }}>{V.reviewError}</div>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                          <button onClick={V.cancelReviewForm} style={{ border: 0, background: 'transparent', color: '#5B5B5B', padding: '12px 4px', cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600 }}>
+                            Cancel
+                          </button>
+                          <button
+                            onClick={V.submitReview}
+                            style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '13px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: V.reviewSending ? 0.6 : 1 }}
+                          >
+                            {V.reviewSending ? 'Submitting…' : 'Submit review'}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      onClick={V.openReviewForm}
+                      style={{ border: '1px solid #171717', borderRadius: 999, background: 'transparent', color: '#171717', padding: '13px 24px', cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 700 }}
+                    >
+                      Write a review
+                    </button>
+                  )}
                 </div>
-              )}
+              </div>
 
-              {V.supplierTab === 'faq' && (
-                <div style={{ marginTop: 24 }}>
-                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>FAQ</h2>
-                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
+              {V.sup.faqs.length > 0 && (
+                <div style={{ paddingTop: 28, borderTop: '1px solid #ECECEC' }}>
+                  <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>FAQ</h2>
                   <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {V.sup.faqs.map((f) => {
                       const open = V.openFaqKey === f.key;
@@ -6423,28 +5896,12 @@ export default function App() {
                         <div key={f.key} style={{ borderTop: '1px solid #ECECEC' }}>
                           <button
                             onClick={() => V.toggleFaq(f.key)}
-                            style={{
-                              width: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: 16,
-                              border: 0,
-                              background: 'transparent',
-                              padding: '18px 2px',
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                              fontSize: 15,
-                              fontWeight: 700,
-                              color: '#171717',
-                            }}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, border: 0, background: 'transparent', padding: '18px 2px', cursor: 'pointer', textAlign: 'left', fontSize: 15, fontWeight: 700, color: '#171717' }}
                           >
                             {f.q}
                             <span style={{ flexShrink: 0, fontSize: 18, color: '#9A9A9A' }}>{open ? '−' : '+'}</span>
                           </button>
-                          {open && (
-                            <p style={{ margin: '0 2px 18px', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>{f.a}</p>
-                          )}
+                          {open && <p style={{ margin: '0 2px 18px', fontSize: 14, lineHeight: 1.55, color: '#4A4A4A' }}>{f.a}</p>}
                         </div>
                       );
                     })}
@@ -6452,10 +5909,9 @@ export default function App() {
                 </div>
               )}
 
-              {V.supplierTab === 'policies' && (
-                <div style={{ marginTop: 24 }}>
-                  <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Policies</h2>
-                  {V.supDetailLoading && <div style={{ marginTop: 14, fontSize: 14, color: '#9A9A9A' }}>Loading…</div>}
+              {V.sup.policies.length > 0 && (
+                <div style={{ paddingTop: 28, borderTop: '1px solid #ECECEC' }}>
+                  <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>Policies</h2>
                   <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {V.sup.policies.map((p) => (
                       <div key={p.key} style={{ borderTop: '1px solid #ECECEC', padding: '18px 2px' }}>
@@ -6467,133 +5923,88 @@ export default function App() {
                 </div>
               )}
             </div>
+
+            <aside style={{ flex: '1 1 300px', minWidth: 0, position: isMobile ? 'static' : 'sticky', top: 88 }}>
+              <div style={{ background: '#FFFFFF', border: '1px solid #ECECEC', borderRadius: 24, padding: 24, display: 'grid', gap: 18 }}>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9A9A9A' }}>Starting from</span>
+                  <span style={{ fontFamily: MONO, fontSize: 24, lineHeight: 1.1, color: '#171717' }}>{(V.sup.startPriceLabel || '').replace(/^From /, '') || 'Ask for pricing'}</span>
+                </div>
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <button
+                    onClick={() => V.openWaModal()}
+                    style={{ border: 0, borderRadius: 999, background: ACCENT, color: ACCENT_ON, padding: '15px 20px', cursor: 'pointer', fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, width: '100%' }}
+                  >
+                    Send an inquiry
+                  </button>
+                  <button
+                    onClick={V.sup.toggleSaved}
+                    style={{
+                      border: V.sup.isSaved ? 0 : '1px solid #D7D7D2',
+                      borderRadius: 999,
+                      background: V.sup.isSaved ? '#171717' : 'transparent',
+                      color: V.sup.isSaved ? '#FFFFFF' : '#171717',
+                      padding: '15px 20px',
+                      cursor: 'pointer',
+                      fontFamily: DISPLAY,
+                      fontSize: 15,
+                      fontWeight: 700,
+                      width: '100%',
+                    }}
+                  >
+                    {V.sup.isSaved ? 'Saved to Your Eventory' : 'Save to Your Eventory'}
+                  </button>
+                </div>
+                {V.sup.social.length > 0 && (
+                  <div style={{ display: 'grid', gap: 8, paddingTop: 16, borderTop: '1px solid #ECECEC' }}>
+                    {V.sup.social.map((s) => (
+                      <a key={s.key} href={s.href} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 14, fontWeight: 600, textDecoration: 'none', color: '#171717' }}>
+                        <span>{s.label}</span>
+                        <span style={{ fontFamily: MONO, fontSize: 12, color: '#5B5B5B' }}>↗</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </aside>
           </div>
 
           {V.similarSuppliers.length > 0 && (
-            <div style={{ marginTop: isMobile ? 40 : 56 }}>
-              <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.02em', fontWeight: 800 }}>Similar Vendors</h2>
-              <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
+            <div style={{ marginTop: isMobile ? 40 : 56, display: 'grid', gap: 20, borderTop: '1px solid #ECECEC', paddingTop: 34 }}>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 24 : 'clamp(24px, 2.6vw, 30px)', fontWeight: 800, letterSpacing: '-0.03em' }}>
+                More {V.sup.categoryName.toLowerCase()} vendors
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
                 {V.similarSuppliers.map((s) => (
-                  <div
-                    key={s.key}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      border: '1px solid #ECECEC',
-                      borderRadius: 20,
-                      background: '#FFFFFF',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <button
-                      onClick={s.open}
-                      style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: 'pointer' }}
-                    >
+                  <div key={s.key} style={{ display: 'flex', flexDirection: 'column', border: '1px solid #ECECEC', borderRadius: 20, background: '#FFFFFF', overflow: 'hidden' }}>
+                    <button onClick={s.open} style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: 'pointer' }}>
                       <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', background: '#F7F7F5' }}>
                         <img src={s.cover} alt={s.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                        {s.rating && (
-                          <span
-                            style={{
-                              position: 'absolute',
-                              top: 10,
-                              right: 10,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              border: 0,
-                              borderRadius: 999,
-                              background: 'rgba(23,23,23,0.72)',
-                              color: '#FFFFFF',
-                              padding: '4px 10px',
-                              fontFamily: MONO,
-                              fontSize: 11,
-                              fontWeight: 600,
-                            }}
-                          >
-                            ★ {s.rating}
+                        {s.isSpotlight && (
+                          <span style={{ position: 'absolute', top: 10, left: 10, fontFamily: MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 700, color: ACCENT_ON, background: ACCENT, borderRadius: 999, padding: '4px 10px' }}>
+                            Spotlight
                           </span>
                         )}
                       </div>
                       <div style={{ padding: isMobile ? '14px 14px 0' : '16px 18px 0' }}>
-                        <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 700, letterSpacing: '-0.01em' }}>{s.name}</div>
-                        {s.startPriceLabel && (
-                          <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}>{s.startPriceLabel}</div>
-                        )}
+                        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A9A9A', fontWeight: 700 }}>
+                          {s.categoryName} · {s.location}
+                        </div>
+                        <div style={{ marginTop: 4, fontSize: isMobile ? 15 : 17, fontWeight: 700, letterSpacing: '-0.01em' }}>{s.name}</div>
                       </div>
                     </button>
-                    <div
-                      style={{
-                        marginTop: 12,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 8,
-                        borderTop: '1px solid #F2F2F0',
-                        padding: isMobile ? '10px 14px 14px' : '10px 18px 16px',
-                      }}
-                    >
-                      <button
-                        onClick={s.open}
-                        style={{ display: 'flex', alignItems: 'center', gap: 5, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: '#6E6E6E' }}
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                          <circle cx="12" cy="10" r="3" />
-                        </svg>
-                        {s.location}
-                      </button>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ padding: isMobile ? '10px 14px 16px' : '10px 18px 18px', marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                      <div style={{ fontFamily: MONO, fontSize: 13, color: '#5B5B5B' }}>{s.startPriceLabel}</div>
+                      <div style={{ display: 'flex', gap: 6 }}>
                         <button
                           onClick={s.toggleSaved}
                           aria-label={s.isSaved ? 'Unsave vendor' : 'Save vendor'}
-                          title={s.isSaved ? 'Unsave vendor' : 'Save vendor'}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 30,
-                            height: 30,
-                            border: '1px solid #E4E4DF',
-                            borderRadius: 999,
-                            background: s.isSaved ? '#171717' : '#FFFFFF',
-                            color: s.isSaved ? '#FFFFFF' : '#171717',
-                            cursor: 'pointer',
-                          }}
+                          style={{ border: '1px solid #E4E4DF', borderRadius: 999, background: s.isSaved ? '#171717' : '#FFFFFF', color: s.isSaved ? '#FFFFFF' : '#171717', padding: '8px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
                         >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill={s.isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                          </svg>
+                          {s.isSaved ? '★' : '☆'}
                         </button>
-                        <button
-                          onClick={s.share}
-                          aria-label="Share vendor"
-                          title={s.justCopied ? 'Link copied' : 'Share vendor'}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 30,
-                            height: 30,
-                            border: '1px solid #E4E4DF',
-                            borderRadius: 999,
-                            background: '#FFFFFF',
-                            color: '#171717',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {s.justCopied ? (
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          ) : (
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="18" cy="5" r="3" />
-                              <circle cx="6" cy="12" r="3" />
-                              <circle cx="18" cy="19" r="3" />
-                              <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
-                              <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
-                            </svg>
-                          )}
+                        <button onClick={s.open} style={{ border: 0, borderRadius: 999, background: '#171717', color: '#FFFFFF', padding: '8px 16px', cursor: 'pointer', fontSize: 12.5, fontWeight: 700 }}>
+                          Inquire
                         </button>
                       </div>
                     </div>
@@ -6604,6 +6015,7 @@ export default function App() {
           )}
         </div>
       )}
+
 
       {V.isUnclaimedVendor && (
         <div style={{ padding: '34px 0 0' }}>
