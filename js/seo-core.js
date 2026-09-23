@@ -208,7 +208,9 @@
 
   function page(ix, r, query) {
     var m = { type: r.type, status: 200, robots: 'index,follow', breadcrumbs: [], faqs: [], vendors: [], articles: [], related: [], jsonld: [] };
-    var hasQuery = query && Object.keys(query).some(function (k) { return query[k]; });
+    // Only Eventory's own filters make a different listing; tracking and
+    // other parameters (utm_*, fbclid, gclid...) are handled by the canonical.
+    var hasQuery = !!(query && (query.q || query.loc));
     var place, c, e, l, n, list;
     switch (r.type) {
       case 'home':
