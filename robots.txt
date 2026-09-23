@@ -1,4 +1,9 @@
+# Eventory: public vendor, category, event and magazine pages are open to all
+# search engines and AI search/answer crawlers. Personal and transactional
+# screens (inbox, account, sign-in, inquiry forms) are served with
+# "noindex" instead of being blocked here, so crawlers can see that rule.
 User-agent: *
 Allow: /
+Disallow: /api/
 
 Sitemap: https://www.eventorytt.com/sitemap.xml
