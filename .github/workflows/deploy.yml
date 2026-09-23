@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: mkdir site && cp index.html CNAME site/
+      - run: mkdir site && cp index.html CNAME og-image.jpg robots.txt sitemap.xml site/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
