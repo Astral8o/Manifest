@@ -1290,25 +1290,24 @@
    "tagline": "Get listed on Eventory at no cost.",
    "price_ttd": null,
    "billing_period": null,
-   "inquiry_limit": 4,
+   "inquiry_limit": null,
    "includes_label": null,
    "features": [
     "Public vendor profile",
     "Discovery through Eventory",
-    "Up to 4 inquiries"
+    "Unlimited inquiries"
    ],
    "sort_order": 0
   },
   {
    "id": "spotlight",
    "name": "Spotlight",
-   "tagline": "Get more visibility. Get unlimited inquiries.",
+   "tagline": "Get more visibility on Eventory.",
    "price_ttd": 175,
    "billing_period": "month",
    "inquiry_limit": null,
    "includes_label": null,
    "features": [
-    "Unlimited inquiries",
     "Email marketing",
     "Featured placement on Eventory",
     "Social media features: Eventory features your business on its channels",

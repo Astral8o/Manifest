@@ -2168,7 +2168,7 @@ main { overflow-wrap: break-word; }
                         <span style="font-size:14px;font-weight:600;text-align:right;">{{ rv.v }}</span>
                       </div>
                     </sc-for>
-                    <p style="margin:0;font-size:13px;line-height:1.5;color:var(--fg-3);">Your no-cost listing includes up to {{ jn.limit }} inquiries. Upgrade to Spotlight any time for unlimited inquiries and additional visibility.</p>
+                    <p style="margin:0;font-size:13px;line-height:1.5;color:var(--fg-3);">{{ jn.planNote }}</p>
                   </div>
                 </div>
               </sc-if>
@@ -2413,7 +2413,7 @@ main { overflow-wrap: break-word; }
           <div style="display:grid;gap:10px;">
             <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Eyebrow" tone="accent" hint-size="160px,14px">Plans</x-import>
             <h2 style="margin:0;font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.02;">More inquiries. More people seeing you.</h2>
-            <p style="margin:0;font-size:15px;line-height:1.5;color:var(--fg-2);max-width:620px;">Spotlight gives you unlimited inquiries and more visibility on Eventory. Spotlight+ adds advertising with Eventory. Choosing a plan sends a request to the Eventory team, who will contact you to set up billing.</p>
+            <p style="margin:0;font-size:15px;line-height:1.5;color:var(--fg-2);max-width:620px;">Spotlight gives you more visibility on Eventory. Spotlight+ adds advertising with Eventory. Choosing a plan sends a request to the Eventory team, who will contact you to set up billing.</p>
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:20px;align-items:stretch;max-width:1200px;">
             <sc-for list="{{ ib.tiers }}" as="t" hint-placeholder-count="3">
@@ -2554,8 +2554,8 @@ const PID = {};
 // cover a page served without data. Prices and features are never
 // duplicated anywhere else in the page.
 const PLAN = {
-  basic: { id: 'basic', name: 'No-Cost Listing', tagline: 'Get listed on Eventory at no cost.', price_ttd: null, billing_period: null, inquiry_limit: 4, includes_label: null, features: ['Public vendor profile', 'Discovery through Eventory', 'Up to 4 inquiries'] },
-  spotlight: { id: 'spotlight', name: 'Spotlight', tagline: 'Get more visibility. Get unlimited inquiries.', price_ttd: 175, billing_period: 'month', inquiry_limit: null, includes_label: null, features: ['Unlimited inquiries', 'Email marketing', 'Featured placement on Eventory', 'Social media features: Eventory features your business on its channels', 'Eventory Magazine features'] },
+  basic: { id: 'basic', name: 'No-Cost Listing', tagline: 'Get listed on Eventory at no cost.', price_ttd: null, billing_period: null, inquiry_limit: null, includes_label: null, features: ['Public vendor profile', 'Discovery through Eventory', 'Unlimited inquiries'] },
+  spotlight: { id: 'spotlight', name: 'Spotlight', tagline: 'Get more visibility on Eventory.', price_ttd: 175, billing_period: 'month', inquiry_limit: null, includes_label: null, features: ['Email marketing', 'Featured placement on Eventory', 'Social media features: Eventory features your business on its channels', 'Eventory Magazine features'] },
   spotlight_plus: { id: 'spotlight_plus', name: 'Spotlight+', tagline: 'Go beyond visibility. Advertise with Eventory.', price_ttd: 300, billing_period: 'month', inquiry_limit: null, includes_label: 'Everything in Spotlight, plus:', features: ['Eventory website advertising on relevant pages', 'Social media advertising: promotional posts, reels and campaigns', 'Sponsored placements in relevant Eventory Magazine content'] },
 };
 const PLAN_ORDER = ['basic', 'spotlight', 'spotlight_plus'];
@@ -2706,7 +2706,8 @@ class Component extends DCLogic {
     const d = this.state.join.d; const img = d.photos[0] || CAT[d.cat]?.img || P.hero;
     return { id: 'c' + Date.now().toString(36), email: d.email.trim().toLowerCase(), name: d.name.trim(), cat: d.cat || 'planning', location: d.location, events: d.events, from: d.from || 'Price on request', reply: '', imgs: d.photos.length ? [...d.photos, ...Array(3).fill(img)].slice(0, 3) : [img, img, img], tagline: d.tagline, about: d.tagline, ig: d.ig ? (d.ig.startsWith('@') ? d.ig : '@' + d.ig) : '@' + d.name.toLowerCase().replace(/[^a-z0-9]/g, ''), fb: d.fb || d.name.toLowerCase().replace(/[^a-z0-9]/g, ''), pkgTitle: d.pkgTitle.trim(), packages: (d.pkgs.some(p => p.name.trim()) ? d.pkgs.filter(p => p.name.trim()) : [{ name: 'Standard package', price: '', desc: '' }]).map(p => ({ name: p.name.trim() || 'Standard package', price: p.price.trim() || d.from || 'Price on request', desc: p.desc.trim() || d.tagline, img })) };
   }
-  limit() { return PLAN.basic.inquiry_limit || 4; }
+  // The No-Cost Listing's inquiry limit, or null when it's unlimited.
+  limit() { return PLAN.basic.inquiry_limit ?? null; }
   tier(id) { return (VID[id] && VID[id].tier) || 'basic'; }
   go(view, extra = {}) { this.setState(s => ({ view, history: [...s.history, { view: s.view, vendorId: s.vendorId }].slice(-20), ...extra })); window.scrollTo(0, 0); }
   back() { const h = this.state.history; if (!h.length) return this.go('home'); this.setState({ history: h.slice(0, -1) }); window.history.back(); window.scrollTo(0, 0); }
@@ -2991,7 +2992,10 @@ class Component extends DCLogic {
         addPkg: () => this.setJoinD('pkgs', [...d.pkgs, { name: '', price: '', desc: '' }]),
         preview: { ...pv, open: () => {}, save: () => {}, inquire: () => {} },
         review: [{ k: 'Business', v: d.name }, { k: 'Category', v: CAT[d.cat] ? CAT[d.cat].label : '—' }, { k: 'Based in', v: d.location || '—' }, { k: 'Events', v: d.events.map(x => EV[x].short).join(', ') || '—' }, { k: 'Email', v: d.email }],
-        points: ['No-cost listing with a public profile', 'Up to ' + lim + ' inquiries, straight to your inbox', 'Upgrade to Spotlight any time for unlimited inquiries'],
+        points: lim ? ['No-cost listing with a public profile', 'Up to ' + lim + ' inquiries, straight to your inbox', 'Upgrade to Spotlight any time for unlimited inquiries']
+          : ['No-cost listing with a public profile', 'Unlimited inquiries, straight to your inbox', 'Upgrade to Spotlight any time for more visibility'],
+        planNote: lim ? 'Your no-cost listing includes up to ' + lim + ' inquiries. Upgrade to Spotlight any time for unlimited inquiries and additional visibility.'
+          : 'Your no-cost listing includes unlimited inquiries. Upgrade to Spotlight any time for additional visibility on Eventory.',
         back: () => this.setJoin({ step: step - 1, e: {} }),
         next: () => { if (step < 5) { if (this.joinValidate(step)) { this.setJoin({ step: step + 1 }); window.scrollTo(0, 0); } } else publish(); },
         nextLabel: step === 5 ? 'Publish my profile' : 'Continue →', nextVariant: step === 5 ? 'accent' : 'solid',
