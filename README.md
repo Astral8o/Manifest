@@ -59,9 +59,10 @@ from Supabase in the browser.
 - **Plans** live in `vendor_plans` (names, TTD prices, features, inquiry
   limit). The dashboard, plan comparison, upgrade prompts, database rules and
   inquiry emails all read from it; change a plan there, not in code.
-  - No-Cost Listing: up to 4 inquiries. The 5th and later are saved but held
-    (contact details hidden) until the vendor upgrades; upgrading opens them.
-  - Spotlight (TTD $175/month) and Spotlight+ (TTD $300/month): unlimited.
+  - Every plan includes unlimited inquiries. The No-Cost Listing is free;
+    Spotlight (TTD $175/month) and Spotlight+ (TTD $300/month) add
+    visibility and advertising. Setting `inquiry_limit` on a plan brings
+    back a cap: later inquiries are saved but held until the vendor upgrades.
 - **Upgrades** have no checkout: "Choose …" adds a row to
   `spotlight_requests` (status `pending`). After billing is arranged, set
   `vendors.tier` and mark the request `activated`.
