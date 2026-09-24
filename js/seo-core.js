@@ -216,8 +216,8 @@
     switch (r.type) {
       case 'home':
         m.path = '/';
-        m.title = 'Eventory: Find Event Vendors in Trinidad & Tobago';
-        m.h1 = 'Find the people behind your event.';
+        m.title = 'Eventory: Discover Event Vendors in Trinidad & Tobago';
+        m.h1 = 'Discover the people behind your event.';
         m.description = 'Discover and contact event vendors across Trinidad & Tobago: venues, caterers, photographers, decorators, DJs and more, for weddings, fetes, corporate events and every other kind of event.';
         m.vendors = (ix.data.vendors || []).slice();
         m.related = [
@@ -240,7 +240,7 @@
         m.path = path.category(ix, c.id);
         m.h1 = c.plural + ' in ' + REGION;
         m.title = c.plural + ' in ' + REGION + ' | Eventory';
-        m.description = clip(c.intro || ('Find ' + c.plural.toLowerCase() + ' for events in ' + REGION + ' on Eventory.'), 158);
+        m.description = clip(c.intro || ('Discover ' + c.plural.toLowerCase() + ' for events in ' + REGION + ' on Eventory.'), 158);
         m.intro = c.intro; m.faqs = c.faqs || []; m.vendors = list;
         if (list.length < MIN.category) m.robots = 'noindex,follow';
         m.breadcrumbs = crumbs([{ name: 'Vendors', path: path.vendors() }, { name: c.plural, path: m.path }]);
@@ -256,7 +256,7 @@
         m.path = path.event(ix, e.id);
         m.h1 = cap(e.noun) + ' vendors in ' + REGION;
         m.title = cap(e.noun) + ' Vendors in ' + REGION + ' | Eventory';
-        m.description = clip(e.intro || ('Find vendors for your ' + e.noun + ' in ' + REGION + ' on Eventory.'), 158);
+        m.description = clip(e.intro || ('Discover vendors for your ' + e.noun + ' in ' + REGION + ' on Eventory.'), 158);
         m.intro = e.intro; m.faqs = e.faqs || []; m.vendors = list;
         if (list.length < MIN.event) m.robots = 'noindex,follow';
         m.breadcrumbs = crumbs([{ name: 'Vendors', path: path.vendors() }, { name: e.label, path: m.path }]);
@@ -363,7 +363,7 @@
           return { label: ev ? cap(ix.ev[ev].noun) + ' ' + ix.cat[id].plural.replace(/^Event /, '') : ix.cat[id].plural, path: bestCatPath(ix, ev, id), count: ev ? vendorsFor(ix, { event: ev, cat: id }).length : vendorsFor(ix, { cat: id }).length };
         });
         m.related = [
-          { title: 'Find vendors', links: catLinks },
+          { title: 'Discover vendors', links: catLinks },
           { title: 'Plan by event', links: evIds.map(function (id) { return evLink(ix, id); }).filter(function (x) { return x.count; }) },
         ];
         m.articles = (ix.data.posts || []).filter(function (x) { return x.id !== p.id; }).slice(0, 3).map(postCard);
