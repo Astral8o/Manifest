@@ -22,10 +22,14 @@ Supabase project (`oiwjuvzsydhuhmetcuqk`).
 - `js/dc-runtime.js`, `js/eventory-ds.js`, `VendorTile2.dc.html`: design
   runtime and components from the export. Treat them as vendored; don't edit.
 - `js/vendor/`: React and supabase-js, served locally.
+- `admin/`: the admin page at `/admin/` (see below). Standalone; the public
+  pages never load it.
 - `assets/`: images and fonts.
 - `supabase/migrations/`: schema, row level security and triggers, in order.
 - `supabase/functions/notify-inquiry/`: emails the vendor when an inquiry
   arrives (Resend).
+- `supabase/functions/admin-vendor-login/`: creates or resets a vendor's
+  login from the admin page.
 
 ## URLs
 
@@ -71,6 +75,17 @@ from Supabase in the browser.
   in the SQL editor, review the drafts, then set `status = 'active'`.
   Impressions and clicks are GA4 `view_promotion` / `select_promotion`
   events (`promotion_id` = placement id).
+
+## Admin
+
+`/admin/` manages vendors (profile, photos, packages, plan, live/hidden,
+logins), plan requests (Activate moves the vendor to the plan), Spotlight+
+ad placements, Magazine posts and all inquiries. Sign in with an account
+whose confirmed email is in `public.admins`; add another admin with
+`insert into public.admins (email) values ('name@example.com');`.
+Everything goes through the `admin_*` database functions, which check
+`is_admin()`; no table permissions are widened. Saved changes reach the
+public pages within about five minutes (page cache).
 
 ## Supabase settings that live outside this repo
 
