@@ -12,6 +12,11 @@ const { loadData } = require('./_data.js');
 const BUILD = (process.env.VERCEL_GIT_COMMIT_SHA || String(Date.now())).slice(0, 12);
 const TEMPLATE = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8')
   .replace(/(<script src="\/js\/[^"?]+\.js)"/g, `$1?v=${BUILD}"`);
+// Shown for every page while site_settings.coming_soon is on (switch it in
+// /admin/). Visiting any page with ?preview=on sets a cookie that shows the
+// real site to that browser; ?preview=off clears it.
+const COMING_SOON = fs.readFileSync(path.join(__dirname, '..', 'coming-soon.html'), 'utf8');
+const PREVIEW_COOKIE = 'ev_preview';
 const esc = SEO.esc;
 
 // Head tags owned by this function; the template's copies are removed first.
@@ -78,6 +83,29 @@ module.exports = async (req, res) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     return res.end(TEMPLATE);
+  }
+  if (data.settings && data.settings.coming_soon === true) {
+    const cookies = req.headers.cookie || '';
+    let preview = new RegExp('(?:^|;\\s*)' + PREVIEW_COOKIE + '=1').test(cookies);
+    if (query.preview === 'on' || query.preview === 'off') {
+      preview = query.preview === 'on';
+      res.setHeader('Set-Cookie', `${PREVIEW_COOKIE}=${preview ? '1; Max-Age=2592000' : '; Max-Age=0'}; Path=/; Secure; SameSite=Lax`);
+      delete query.preview;
+    }
+    // Never cached at the edge while the switch is on: the answer depends
+    // on the cookie, and flipping the switch should take effect at once.
+    res.setHeader('Cache-Control', 'private, no-store');
+    if (!preview) {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('X-Robots-Tag', 'noindex');
+      return res.end(COMING_SOON);
+    }
+    const out = render(data, pathname, query);
+    res.statusCode = out.status;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('X-Robots-Tag', 'noindex');
+    return res.end(out.html);
   }
   const out = render(data, pathname, query);
   res.statusCode = out.status;

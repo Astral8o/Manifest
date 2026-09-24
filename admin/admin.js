@@ -10,7 +10,7 @@
   });
   var app = document.getElementById('app');
 
-  var TABS = [['overview', 'Overview'], ['vendors', 'Vendors'], ['requests', 'Plan requests'], ['ads', 'Advertising'], ['posts', 'Magazine'], ['inquiries', 'Inquiries']];
+  var TABS = [['overview', 'Overview'], ['vendors', 'Vendors'], ['requests', 'Plan requests'], ['ads', 'Advertising'], ['posts', 'Magazine'], ['inquiries', 'Inquiries'], ['waitlist', 'Waitlist']];
   var SECTIONS = ['Planning Guides', 'Vendor Guides', 'Event Types', 'Local Guides', 'Vendor Spotlights', 'Real Events'];
   var AD_TYPES = { home: 'Home page', category: 'Category pages', event: 'Event pages', location: 'Location pages', article: 'Magazine articles' };
   var AD_STATUS = ['draft', 'active', 'paused', 'ended'];
@@ -19,7 +19,7 @@
   var S = {
     phase: 'loading', user: null, tab: 'overview', err: '', note: '',
     ref: { cats: [], events: [], locs: [], plans: [] },
-    data: { overview: {}, vendors: [], requests: [], ads: [], posts: [], inquiries: [] },
+    data: { overview: {}, vendors: [], requests: [], ads: [], posts: [], inquiries: [], waitlist: [], settings: {} },
     edit: null, dirty: false, busy: false, secret: null,
     q: { vendors: '', vfilter: '', inquiries: '', ivendor: '' },
   };
@@ -110,8 +110,13 @@
     });
   }
   function loadAll() {
-    return Promise.all([rpc('admin_overview'), rpc('admin_vendors'), rpc('admin_requests'), rpc('admin_ads'), rpc('admin_posts'), rpc('admin_inquiries', { p_limit: 500 })])
-      .then(function (r) { S.data = { overview: r[0], vendors: r[1], requests: r[2], ads: r[3], posts: r[4], inquiries: r[5] }; });
+    return Promise.all([rpc('admin_overview'), rpc('admin_vendors'), rpc('admin_requests'), rpc('admin_ads'), rpc('admin_posts'), rpc('admin_inquiries', { p_limit: 500 }),
+      rpc('admin_waitlist'), sb.from('site_settings').select('key,value')])
+      .then(function (r) {
+        if (r[7].error) throw new Error(r[7].error.message);
+        var settings = {}; r[7].data.forEach(function (x) { settings[x.key] = x.value; });
+        S.data = { overview: r[0], vendors: r[1], requests: r[2], ads: r[3], posts: r[4], inquiries: r[5], waitlist: r[6], settings: settings };
+      });
   }
   function refresh() { return loadAll().then(render, fail); }
 
@@ -165,7 +170,13 @@
     var o = S.data.overview;
     var stat = function (n, label, tab, hot) { return '<button class="stat' + (hot ? ' hot' : '') + '" data-act="tab" data-v="' + tab + '"><b>' + (n || 0) + '</b><span class="muted">' + label + '</span></button>'; };
     var pending = S.data.requests.filter(function (r) { return r.status === 'pending'; });
+    var soon = S.data.settings.coming_soon === true;
     return '<div class="spread"><h1>Overview</h1><button class="btn sm" data-act="reload">Refresh</button></div>' +
+      '<div class="card"><div class="spread"><h2>Website</h2>' + (soon ? '<span class="pill warn">Coming soon page is showing</span>' : '<span class="pill live">Live to everyone</span>') + '</div>' +
+      '<p class="muted">' + (soon ? 'Visitors see the coming-soon page with the "Notify me" form. ' + S.data.waitlist.length + ' on the waitlist so far.' : 'Visitors see the full Eventory site.') + '</p>' +
+      '<div class="row"><button class="btn ' + (soon ? 'accent' : 'bad') + '" data-act="toggleSoon">' + (soon ? 'Launch: show the full site' : 'Switch to the coming-soon page') + '</button>' +
+      (soon ? '<a class="btn" href="/?preview=on" target="_blank" rel="noopener">Preview the full site ↗</a>' : '') + '</div>' +
+      (soon ? '<span class="muted">Preview shows the real site in this browser only. To turn it off, visit eventorytt.com/?preview=off.</span>' : '') + '</div>' +
       '<div class="stats">' + stat(o.vendors, 'vendors (' + (o.published || 0) + ' live)', 'vendors') + stat(o.pending_requests, 'plan requests waiting', 'requests', o.pending_requests) +
       stat(o.spotlight, 'on Spotlight', 'vendors') + stat(o.spotlight_plus, 'on Spotlight+', 'vendors') + stat(o.inquiries_30d, 'inquiries, last 30 days', 'inquiries') +
       stat(o.held, 'inquiries held at the limit', 'inquiries') + stat(o.active_ads, 'active ad placements', 'ads') + stat(o.posts, 'Magazine posts', 'posts') + '</div>' +
@@ -375,6 +386,17 @@
       (list.length ? '<div class="list">' + list.map(inqItem).join('') + '</div>' : '<div class="empty">No inquiries' + (qq || S.q.ivendor ? ' match.' : ' yet.') + '</div>');
   }
 
+  function viewWaitlist() {
+    var w = S.data.waitlist; var vendors = w.filter(function (x) { return x.role === 'vendor'; }).length;
+    return '<div class="spread"><h1>Waitlist</h1>' + (w.length ? '<button class="btn sm" data-act="copyWaitlist">Copy all emails</button>' : '') + '</div>' +
+      '<p class="muted">People who asked to be told when Eventory launches: ' + (w.length - vendors) + ' planners, ' + vendors + ' vendors.</p>' +
+      (w.length ? '<div class="list">' + w.map(function (x) {
+        return '<div class="item"><div class="grow"><b>' + esc(x.email) + '</b><span class="muted">Joined ' + fmtWhen(x.created_at) + '</span></div>' +
+          '<span class="pill' + (x.role === 'vendor' ? ' plus' : '') + '">' + (x.role === 'vendor' ? 'Vendor' : 'Planner') + '</span>' +
+          '<button class="btn sm quiet" data-act="wlRemove" data-v="' + x.id + '">Remove</button></div>';
+      }).join('') + '</div>' : '<div class="empty">Nobody yet. Sign-ups from the coming-soon page show up here.</div>');
+  }
+
   function render() {
     var a = document.activeElement; var focusId = a && a.id; var caret = a && a.selectionStart;
     var h;
@@ -384,7 +406,7 @@
     else if (S.phase === 'denied') h = '<main>' + viewDenied() + '</main>';
     else {
       var body = S.edit ? { vendor: viewVendorEdit, ad: viewAdEdit, post: viewPostEdit }[S.edit.kind]()
-        : { overview: viewOverview, vendors: viewVendors, requests: viewRequests, ads: viewAds, posts: viewPosts, inquiries: viewInquiries }[S.tab]();
+        : { overview: viewOverview, vendors: viewVendors, requests: viewRequests, ads: viewAds, posts: viewPosts, inquiries: viewInquiries, waitlist: viewWaitlist }[S.tab]();
       h = topbar() + '<main>' + body + '</main>';
     }
     app.innerHTML = h;
@@ -469,6 +491,17 @@
       });
     },
     close: function () { close(); },
+    toggleSoon: function () {
+      var on = S.data.settings.coming_soon !== true;
+      if (!confirm(on ? 'Replace the whole public site with the coming-soon page?' : 'Launch? Everyone will see the full Eventory site.')) return;
+      rpc('admin_set_setting', { p_key: 'coming_soon', p_value: on }).then(refresh)
+        .then(function () { toast(on ? 'Coming-soon page is on (takes up to a minute)' : 'Launched! The full site shows within a few minutes'); }).catch(fail);
+    },
+    copyWaitlist: function () {
+      var list = S.data.waitlist.map(function (x) { return x.email; }).join(', ');
+      (navigator.clipboard ? navigator.clipboard.writeText(list) : Promise.reject()).then(function () { toast('Copied ' + S.data.waitlist.length + ' emails'); }, function () { prompt('Copy the emails:', list); });
+    },
+    wlRemove: function (el) { if (!confirm('Remove this email from the waitlist?')) return; rpc('admin_delete_waitlist', { p_id: el.dataset.v }).then(refresh).catch(fail); },
     newVendor: function () { open('vendor', blankVendor()); },
     editVendor: function (el) { editVendor(el.dataset.v); },
     saveVendor: saveVendor,
