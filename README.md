@@ -76,11 +76,20 @@ from Supabase in the browser.
   Impressions and clicks are GA4 `view_promotion` / `select_promotion`
   events (`promotion_id` = placement id).
 
+## Coming-soon mode
+
+While `site_settings.coming_soon` is `true`, every public page serves
+`coming-soon.html` (with a "Notify me" form that saves to `waitlist`).
+Switch it from the admin Overview ("Launch: show the full site"). To see the
+real site while it's on, visit any page with `?preview=on` (a cookie for
+that browser; `?preview=off` clears it). `/admin/` always works.
+
 ## Admin
 
 `/admin/` manages vendors (profile, photos, packages, plan, live/hidden,
 logins), plan requests (Activate moves the vendor to the plan), Spotlight+
-ad placements, Magazine posts and all inquiries. Sign in with an account
+ad placements, Magazine posts, all inquiries, the launch waitlist and the
+coming-soon switch. Sign in with an account
 whose confirmed email is in `public.admins`; add another admin with
 `insert into public.admins (email) values ('name@example.com');`.
 Everything goes through the `admin_*` database functions, which check
