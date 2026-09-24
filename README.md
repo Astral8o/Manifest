@@ -50,6 +50,28 @@ a canonical to the clean page.
 (e.g. `npx serve .` then open `/app.html`) also works: the page loads its data
 from Supabase in the browser.
 
+## Plans and advertising
+
+- **Plans** live in `vendor_plans` (names, TTD prices, features, inquiry
+  limit). The dashboard, plan comparison, upgrade prompts, database rules and
+  inquiry emails all read from it; change a plan there, not in code.
+  - No-Cost Listing: up to 4 inquiries. The 5th and later are saved but held
+    (contact details hidden) until the vendor upgrades; upgrading opens them.
+  - Spotlight (TTD $175/month) and Spotlight+ (TTD $300/month): unlimited.
+- **Upgrades** have no checkout: "Choose …" adds a row to
+  `spotlight_requests` (status `pending`). After billing is arranged, set
+  `vendors.tier` and mark the request `activated`.
+- **Spotlight+ website advertising** uses `ad_placements`. Each row is one
+  placement (`home`, `category`, `event`, `location` or `article`) with
+  category/event/location targeting, status and optional dates. Pages only
+  show placements whose targets match the page, labelled "Sponsored", with
+  `rel="sponsored"` links and never in structured data. Placements stop
+  showing automatically if the vendor leaves Spotlight+.
+  To start a vendor: `select create_default_ad_placements('<vendor uuid>');`
+  in the SQL editor, review the drafts, then set `status = 'active'`.
+  Impressions and clicks are GA4 `view_promotion` / `select_promotion`
+  events (`promotion_id` = placement id).
+
 ## Supabase settings that live outside this repo
 
 - **Edge function secrets** (Project Settings → Edge Functions):

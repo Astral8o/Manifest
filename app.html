@@ -1413,6 +1413,19 @@ a:hover{color:var(--accent)}
             </sc-for>
           </div>
         </div>
+        <sc-if value="{{ ad.show }}" hint-placeholder-val="{{ false }}">
+          <aside data-screen-label="Sponsored" aria-label="Sponsored" style="display:grid;gap:16px;border:1px solid var(--line-hairline);border-radius:24px;padding:clamp(18px,2.5vw,26px);background:var(--surface-band);">
+            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;">
+              <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-5);">Sponsored</span>
+              <span style="font-size:13px;color:var(--fg-3);">{{ ad.note }}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:20px;">
+              <sc-for list="{{ ad.items }}" as="v" hint-placeholder-count="2">
+                <dc-import name="VendorTile2" v="{{ v }}" hint-size="100%,440px"></dc-import>
+              </sc-for>
+            </div>
+          </aside>
+        </sc-if>
 
         <div style="background:var(--ink);border-radius:24px;padding:clamp(24px,4vw,48px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:28px;align-items:center;">
           <div style="display:grid;gap:14px;">
@@ -1505,6 +1518,19 @@ a:hover{color:var(--accent)}
             <dc-import name="VendorTile2" v="{{ v }}" hint-size="100%,440px"></dc-import>
           </sc-for>
         </div>
+        <sc-if value="{{ ad.show }}" hint-placeholder-val="{{ false }}">
+          <aside data-screen-label="Sponsored" aria-label="Sponsored" style="display:grid;gap:16px;border:1px solid var(--line-hairline);border-radius:24px;padding:clamp(18px,2.5vw,26px);background:var(--surface-band);">
+            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;">
+              <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-5);">Sponsored</span>
+              <span style="font-size:13px;color:var(--fg-3);">{{ ad.note }}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:20px;">
+              <sc-for list="{{ ad.items }}" as="v" hint-placeholder-count="2">
+                <dc-import name="VendorTile2" v="{{ v }}" hint-size="100%,440px"></dc-import>
+              </sc-for>
+            </div>
+          </aside>
+        </sc-if>
         <sc-if value="{{ br.empty }}" hint-placeholder-val="{{ false }}">
           <div style="background:var(--surface-band);border-radius:24px;padding:40px 28px;display:grid;gap:14px;justify-items:start;">
             <h2 style="margin:0;font-size:30px;font-weight:800;letter-spacing:-0.03em;">Nothing here fits?</h2>
@@ -1867,6 +1893,19 @@ a:hover{color:var(--accent)}
             <p style="margin:0;font-size:17px;line-height:1.7;color:var(--fg-2);text-wrap:pretty;">{{ para }}</p>
           </sc-for>
         </div>
+        <sc-if value="{{ ad.show }}" hint-placeholder-val="{{ false }}">
+          <aside data-screen-label="Sponsored" aria-label="Sponsored" style="display:grid;gap:16px;border:1px solid var(--line-hairline);border-radius:24px;padding:clamp(18px,2.5vw,26px);background:var(--surface-band);">
+            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;">
+              <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-5);">Sponsored</span>
+              <span style="font-size:13px;color:var(--fg-3);">{{ ad.note }}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:20px;">
+              <sc-for list="{{ ad.items }}" as="v" hint-placeholder-count="2">
+                <dc-import name="VendorTile2" v="{{ v }}" hint-size="100%,440px"></dc-import>
+              </sc-for>
+            </div>
+          </aside>
+        </sc-if>
         <sc-if value="{{ post.hasVendors }}" hint-placeholder-val="{{ true }}">
         <div style="display:grid;gap:20px;border-top:1px solid var(--line-hairline);padding-top:32px;">
           <h2 style="margin:0;font-size:clamp(24px,2.6vw,30px);font-weight:800;letter-spacing:-0.03em;">Vendors in this article</h2>
@@ -2078,7 +2117,7 @@ a:hover{color:var(--accent)}
                         <span style="font-size:14px;font-weight:600;text-align:right;">{{ rv.v }}</span>
                       </div>
                     </sc-for>
-                    <p style="margin:0;font-size:13px;line-height:1.5;color:var(--fg-3);">Your basic profile is free and includes {{ jn.limit }} inquiries. You can move to Spotlight any time.</p>
+                    <p style="margin:0;font-size:13px;line-height:1.5;color:var(--fg-3);">Your no-cost listing includes up to {{ jn.limit }} inquiries. Upgrade to Spotlight any time for unlimited inquiries and additional visibility.</p>
                   </div>
                 </div>
               </sc-if>
@@ -2147,7 +2186,7 @@ a:hover{color:var(--accent)}
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;">
             <div style="width:260px;max-width:100%;">
-              <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" as="select" label="Testing as" value="{{ ib.vid }}" sc-camel-on-change="{{ ib.onVendor }}" hint-size="100%,72px">
+              <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" as="select" label="Listing" value="{{ ib.vid }}" sc-camel-on-change="{{ ib.onVendor }}" hint-size="100%,72px">
                 <sc-for list="{{ ib.vendorOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
               </x-import>
             </div>
@@ -2167,6 +2206,7 @@ a:hover{color:var(--accent)}
           <div style="border:1px solid var(--line-hairline);border-radius:24px;padding:20px 22px;display:grid;gap:10px;">
             <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:var(--fg-6);">INQUIRIES</span>
             <span style="font-family:var(--font-mono);font-size:20px;">{{ ib.usageLabel }}</span>
+            <span style="font-size:13px;color:var(--fg-3);">{{ ib.usageNote }}</span>
             <div style="display:flex;gap:4px;align-items:center;">
               <sc-for list="{{ ib.meter }}" as="m" hint-placeholder-count="4">
                 <div style="flex:1;height:6px;border-radius:999px;background:{{ m.bg }};"></div>
@@ -2174,8 +2214,8 @@ a:hover{color:var(--accent)}
             </div>
           </div>
           <div style="border:1px solid var(--line-hairline);border-radius:24px;padding:20px 22px;display:grid;gap:8px;">
-            <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:var(--fg-6);">EMAIL FORWARDING</span>
-            <span style="font-size:20px;font-weight:700;letter-spacing:-0.01em;">Not connected yet</span>
+            <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:var(--fg-6);">INQUIRY EMAILS</span>
+            <span style="font-size:20px;font-weight:700;letter-spacing:-0.01em;">To your business email</span>
             <span style="font-size:13px;color:var(--fg-3);">{{ ib.emailNote }}</span>
           </div>
         </div>
@@ -2183,17 +2223,20 @@ a:hover{color:var(--accent)}
         <sc-if value="{{ ib.atLimit }}" hint-placeholder-val="{{ false }}">
           <div style="background:var(--ink);border-radius:24px;padding:clamp(22px,3vw,32px);display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;align-items:center;">
             <div style="display:grid;gap:10px;max-width:640px;">
-              <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Eyebrow" tone="onDark" hint-size="160px,14px">Notification · inquiry limit reached</x-import>
-              <div style="font-size:clamp(22px,2.4vw,28px);font-weight:800;letter-spacing:-0.03em;line-height:1.15;color:var(--ink-on);">You've used all {{ ib.limit }} inquiries on your basic profile.</div>
+              <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Eyebrow" tone="onDark" hint-size="160px,14px">No-cost listing · {{ ib.usageLabel }}</x-import>
+              <div style="font-size:clamp(22px,2.4vw,28px);font-weight:800;letter-spacing:-0.03em;line-height:1.15;color:var(--ink-on);">{{ ib.limitTitle }}</div>
               <p style="margin:0;font-size:15px;line-height:1.5;color:var(--fg-on-dark);">{{ ib.limitBody }}</p>
             </div>
-            <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="onDark" size="lg" sc-camel-on-click="{{ ib.toTiers }}" hint-size="180px,50px">See Spotlight →</x-import>
+            <div style="display:grid;gap:10px;justify-items:start;">
+              <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="onDark" size="lg" sc-camel-on-click="{{ ib.chooseSpotlight }}" hint-size="260px,50px">{{ ib.spotlightCta }}</x-import>
+              <span style="font-size:13px;color:var(--fg-on-dark);">Want advertising exposure too? <a role="button" tabindex="0" sc-camel-on-click="{{ ib.toTiers }}" style="color:var(--ink-on);font-weight:700;text-decoration:underline;cursor:pointer;">{{ ib.plusCta }}</a></span>
+            </div>
           </div>
         </sc-if>
         <sc-if value="{{ ib.nearLimit }}" hint-placeholder-val="{{ false }}">
           <div style="background:var(--surface-band);border-radius:16px;padding:16px 20px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;">
             <span style="font-size:15px;font-weight:600;">{{ ib.nearText }}</span>
-            <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="subtle" size="sm" sc-camel-on-click="{{ ib.toTiers }}" hint-size="120px,36px">See Spotlight</x-import>
+            <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="subtle" size="sm" sc-camel-on-click="{{ ib.toTiers }}" hint-size="120px,36px">Compare plans</x-import>
           </div>
         </sc-if>
 
@@ -2267,9 +2310,9 @@ a:hover{color:var(--accent)}
                     </div>
                   </sc-for>
                 </div>
-                <p style="margin:0;font-size:15px;line-height:1.5;color:var(--fg-2);max-width:560px;">This inquiry arrived after your basic profile reached {{ ib.limit }}. It's saved, not lost. Their name, contact details and message open as soon as you move to Spotlight.</p>
+                <p style="margin:0;font-size:15px;line-height:1.5;color:var(--fg-2);max-width:560px;">{{ ib.heldNote }}</p>
                 <div>
-                  <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="accent" sc-camel-on-click="{{ ib.toTiers }}" hint-size="160px,40px">Open with Spotlight</x-import>
+                  <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="accent" sc-camel-on-click="{{ ib.toTiers }}" hint-size="160px,40px">Compare plans</x-import>
                 </div>
               </div>
             </sc-if>
@@ -2278,12 +2321,12 @@ a:hover{color:var(--accent)}
 
         <div id="spotlight-tiers" style="display:grid;gap:22px;border-top:1px solid var(--line-hairline);padding-top:34px;">
           <div style="display:grid;gap:10px;">
-            <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Eyebrow" tone="accent" hint-size="160px,14px">Eventory Spotlight</x-import>
+            <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Eyebrow" tone="accent" hint-size="160px,14px">Plans</x-import>
             <h2 style="margin:0;font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.02;">More inquiries. More people seeing you.</h2>
-            <p style="margin:0;font-size:15px;line-height:1.5;color:var(--fg-2);max-width:560px;">Billing isn't connected yet. Choosing a tier here switches this profile so the inbox can be tested.</p>
+            <p style="margin:0;font-size:15px;line-height:1.5;color:var(--fg-2);max-width:620px;">Spotlight gives you unlimited inquiries and more visibility on Eventory. Spotlight+ adds advertising with Eventory. Choosing a plan sends a request to the Eventory team, who will contact you to set up billing.</p>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px;align-items:stretch;max-width:980px;">
-            <sc-for list="{{ ib.tiers }}" as="t" hint-placeholder-count="2">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:20px;align-items:stretch;max-width:1200px;">
+            <sc-for list="{{ ib.tiers }}" as="t" hint-placeholder-count="3">
               <div style="border-radius:24px;padding:28px;display:flex;flex-direction:column;gap:18px;background:{{ t.bg }};color:{{ t.fg }};border:1px solid {{ t.bd }};box-shadow:{{ t.shadow }};">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
                   <span style="font-size:20px;font-weight:800;letter-spacing:-0.02em;">{{ t.name }}</span>
@@ -2291,24 +2334,27 @@ a:hover{color:var(--accent)}
                     <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.PromoBadge" hint-size="80px,24px">Current</x-import>
                   </sc-if>
                 </div>
-                <span style="font-family:var(--font-mono);font-size:40px;line-height:1;">{{ t.price }}</span>
-                <span style="font-size:14px;color:{{ t.muted }};">{{ t.lead }}</span>
+                <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
+                  <span style="font-family:var(--font-mono);font-size:36px;line-height:1;">{{ t.price }}</span>
+                  <span style="font-family:var(--font-mono);font-size:14px;color:{{ t.muted }};">{{ t.period }}</span>
+                </div>
+                <span style="font-size:15px;font-weight:700;">{{ t.lead }}</span>
+                <sc-if value="{{ t.hasIncludes }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size:14px;color:{{ t.muted }};">{{ t.includes }}</span>
+                </sc-if>
                 <div style="display:grid;gap:10px;">
                   <sc-for list="{{ t.features }}" as="f" hint-placeholder-count="4">
                     <div style="display:flex;gap:10px;align-items:center;font-size:15px;font-weight:600;"><span style="color:var(--accent-promo);">→</span>{{ f }}</div>
                   </sc-for>
                 </div>
                 <div style="margin-top:auto;padding-top:6px;">
-                  <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="{{ t.btnVariant }}" size="lg" full="{{ true }}" disabled="{{ t.current }}" sc-camel-on-click="{{ t.choose }}" hint-size="100%,50px">{{ t.btnLabel }}</x-import>
+                  <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="{{ t.btnVariant }}" size="lg" full="{{ true }}" disabled="{{ t.disabled }}" sc-camel-on-click="{{ t.choose }}" hint-size="100%,50px">{{ t.btnLabel }}</x-import>
                 </div>
               </div>
             </sc-for>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-            <sc-if value="{{ ib.canDowngrade }}" hint-placeholder-val="{{ false }}">
-              <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="quiet" dc-props="{{ quietBtn }}" sc-camel-on-click="{{ ib.downgrade }}" hint-size="180px,40px">Switch back to basic (testing)</x-import>
-            </sc-if>
-            <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="quiet" dc-props="{{ quietBtn }}" sc-camel-on-click="{{ ib.reset }}" hint-size="140px,40px">Reset demo data</x-import>
+            <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="quiet" dc-props="{{ quietBtn }}" sc-camel-on-click="{{ ib.reset }}" hint-size="140px,40px">Refresh inbox</x-import>
           </div>
         </div>
       </section>
@@ -2414,6 +2460,19 @@ const FIELD_PROPS = { style: { alignContent: 'start' }, inputStyle: { height: 50
 const SEARCH_PROPS = { style: { height: 50, boxSizing: 'border-box', padding: '4px 5px 4px 18px' } };
 const POSTS = [];
 const PID = {};
+// Vendor plans come from the database (vendor_plans); these defaults only
+// cover a page served without data. Prices and features are never
+// duplicated anywhere else in the page.
+const PLAN = {
+  basic: { id: 'basic', name: 'No-Cost Listing', tagline: 'Get listed on Eventory at no cost.', price_ttd: null, billing_period: null, inquiry_limit: 4, includes_label: null, features: ['Public vendor profile', 'Discovery through Eventory', 'Up to 4 inquiries'] },
+  spotlight: { id: 'spotlight', name: 'Spotlight', tagline: 'Get more visibility. Get unlimited inquiries.', price_ttd: 175, billing_period: 'month', inquiry_limit: null, includes_label: null, features: ['Unlimited inquiries', 'Email marketing', 'Featured placement on Eventory', 'Social media features: Eventory features your business on its channels', 'Eventory Magazine features'] },
+  spotlight_plus: { id: 'spotlight_plus', name: 'Spotlight+', tagline: 'Go beyond visibility. Advertise with Eventory.', price_ttd: 300, billing_period: 'month', inquiry_limit: null, includes_label: 'Everything in Spotlight, plus:', features: ['Eventory website advertising on relevant pages', 'Social media advertising: promotional posts, reels and campaigns', 'Sponsored placements in relevant Eventory Magazine content'] },
+};
+const PLAN_ORDER = ['basic', 'spotlight', 'spotlight_plus'];
+const planPrice = (p) => (p.price_ttd ? 'TTD $' + p.price_ttd : 'No cost');
+const planPeriod = (p) => (p.billing_period ? '/' + p.billing_period : '');
+const planPriceLine = (p) => p.name + ' · ' + planPrice(p) + planPeriod(p);
+const gaPromo = (name, list, type) => gaEvent(name, { items: list.map((x, i) => ({ item_id: x.slug || x.id, item_name: x.name, promotion_id: x.placementId, promotion_name: 'Spotlight+ ' + type + ' placement', creative_slot: type, index: i })) });
 // URLs, page copy, related links and indexing rules live in js/seo-core.js,
 // shared with the server renderer so both always agree.
 const SEO = window.EventorySEO; let SX = null;
@@ -2426,6 +2485,7 @@ const applyData = (d) => {
   }
   d.vendors.forEach(v => addVendor(withImgs(v)));
   POSTS.length = 0; d.posts.forEach(p => { p.img = window.__R(p.img); POSTS.push(p); PID[p.id] = p; });
+  (d.raw.plans || []).forEach(p => { PLAN[p.id] = p; });
   SX = SEO.build(d.raw);
 };
 // Screens that can't be opened cold from a URL fall back to a sensible one.
@@ -2509,6 +2569,8 @@ class Component extends DCLogic {
     const r = SEO.resolve(SX, location.pathname);
     const name = { vendor: 'view_vendor_profile', category: 'view_category_page', eventCategory: 'view_category_page', categoryLocation: 'view_category_page', event: 'view_event_page', location: 'view_location_page', post: 'view_article' }[r.type];
     if (name) gaEvent(name, { page_type: r.type, vendor_slug: r.slug, category_id: r.cat, event_type: r.event, location_slug: r.loc, article_id: r.id });
+    const sm = this.seoModel();
+    if (sm && sm.sponsored.length) gaPromo('view_promotion', sm.sponsored.map(x => ({ ...x.vendor, placementId: x.placementId })), sm.sponsored[0].placementType);
   }
   navTo(path) { if (!SX) return; const st = adjustRoute(SEO.appState(SX, SEO.resolve(SX, path.split('?')[0]))); this.go(st.view, st); }
   // Mirrors the Supabase session into the design's auth state, then loads
@@ -2521,8 +2583,8 @@ class Component extends DCLogic {
     if (mine) {
       addVendor(withImgs(mine));
       this.setAuth({ vendor: mine.id, planner: null });
-      const inquiries = await db.vendorInbox(mine.id).catch(() => []);
-      this.setState(st => ({ inquiries, inboxVendor: mine.id, list: st.list.includes(mine.id) ? st.list : [...st.list, mine.id], ...(st.wantInbox ? { view: 'inbox', wantInbox: false } : {}) }));
+      const [inquiries, tierRequest] = await Promise.all([db.vendorInbox(mine.id).catch(() => []), db.pendingTierRequest(mine.uuid).catch(() => null)]);
+      this.setState(st => ({ inquiries, tierRequest, inboxVendor: mine.id, list: st.list.includes(mine.id) ? st.list : [...st.list, mine.id], ...(st.wantInbox ? { view: 'inbox', wantInbox: false } : {}) }));
       return;
     }
     const planner = db.plannerFromUser(u);
@@ -2549,7 +2611,7 @@ class Component extends DCLogic {
     const d = this.state.join.d; const img = d.photos[0] || CAT[d.cat]?.img || P.hero;
     return { id: 'c' + Date.now().toString(36), email: d.email.trim().toLowerCase(), name: d.name.trim(), cat: d.cat || 'planning', location: d.location, events: d.events, from: d.from || 'Price on request', reply: '', imgs: d.photos.length ? [...d.photos, ...Array(3).fill(img)].slice(0, 3) : [img, img, img], tagline: d.tagline, about: d.tagline, ig: d.ig ? (d.ig.startsWith('@') ? d.ig : '@' + d.ig) : '@' + d.name.toLowerCase().replace(/[^a-z0-9]/g, ''), fb: d.fb || d.name.toLowerCase().replace(/[^a-z0-9]/g, ''), packages: [{ name: d.pkgName || 'Standard package', price: d.pkgPrice || d.from || 'Price on request', desc: d.pkgDesc || d.tagline, img }] };
   }
-  limit() { return Number(this.props.inquiryLimit ?? 4) || 4; }
+  limit() { return PLAN.basic.inquiry_limit || 4; }
   tier(id) { return (VID[id] && VID[id].tier) || 'basic'; }
   go(view, extra = {}) { this.setState(s => ({ view, history: [...s.history, { view: s.view, vendorId: s.vendorId }].slice(-20), ...extra })); window.scrollTo(0, 0); }
   back() { const h = this.state.history; if (!h.length) return this.go('home'); this.setState({ history: h.slice(0, -1) }); window.history.back(); window.scrollTo(0, 0); }
@@ -2598,8 +2660,17 @@ class Component extends DCLogic {
     return { ...v, img: v.imgs[0], catLabel: CAT[v.cat].label, isSpotlight: this.tier(v.id) !== 'basic', saved, notSaved: !saved,
       open: () => this.openVendor(v.id), save: () => this.toggleSave(v.id), inquire: () => this.startInquiry([v.id]) };
   }
-  sortSpot(list) { const r = { top: 0, spotlight: 1, basic: 2 }; return [...list].sort((a, b) => r[this.tier(a.id)] - r[this.tier(b.id)]); }
-  setTier(vid, t) { const v = VID[vid]; if (!v || this.state.auth.vendor !== vid) return; window.EVDB.requestTier(v.uuid, t).then(() => window.alert(t === 'basic' ? 'Thanks. We\u2019ll be in touch to move you back to the Basic profile.' : 'Thanks. We\u2019ll contact you at your business email to set up ' + (t === 'top' ? 'Top Tier Spotlight' : 'Spotlight') + '.'), e => window.alert(e.message)); }
+  sortSpot(list) { const r = { spotlight_plus: 0, spotlight: 0, basic: 1 }; return [...list].sort((a, b) => (r[this.tier(a.id)] ?? 1) - (r[this.tier(b.id)] ?? 1)); }
+  // No checkout: choosing a plan sends a request the Eventory team follows up.
+  setTier(vid, t) {
+    const v = VID[vid], p = PLAN[t]; if (!v || !p || this.state.auth.vendor !== vid) return;
+    window.EVDB.requestTier(v.uuid, t).then(() => {
+      this.setState({ tierRequest: { tier: t, status: 'pending' } });
+      gaEvent('plan_upgrade_request', { plan: t, vendor_slug: vid });
+      window.alert(t === 'basic' ? 'Thanks. We\u2019ve received your request to move to the No-Cost Listing. The Eventory team will be in touch.'
+        : 'Thanks. We\u2019ve received your request for ' + planPriceLine(p) + '. The Eventory team will contact you at your business email to set up billing.');
+    }, e => window.alert(e.message));
+  }
 
   renderVals() {
     const s = this.state, lim = this.limit(), f = s.form;
@@ -2818,7 +2889,7 @@ class Component extends DCLogic {
           pick: (e) => { const file = e.target.files && e.target.files[0]; if (!file) return; const rd = new FileReader(); rd.onload = () => { const photos = [...this.state.join.d.photos]; photos[n] = rd.result; this.setJoinD('photos', photos.filter(Boolean)); }; rd.readAsDataURL(file); } })),
         preview: { ...pv, open: () => {}, save: () => {}, inquire: () => {} },
         review: [{ k: 'Business', v: d.name }, { k: 'Category', v: CAT[d.cat] ? CAT[d.cat].label : '—' }, { k: 'Based in', v: d.location || '—' }, { k: 'Events', v: d.events.map(x => EV[x].short).join(', ') || '—' }, { k: 'Email', v: d.email }],
-        points: ['Free basic profile', 'Inquiries go straight to your inbox', 'Spotlight placement when you want more'],
+        points: ['No-cost listing with a public profile', 'Up to ' + lim + ' inquiries, straight to your inbox', 'Upgrade to Spotlight any time for unlimited inquiries'],
         back: () => this.setJoin({ step: step - 1, e: {} }),
         next: () => { if (step < 5) { if (this.joinValidate(step)) { this.setJoin({ step: step + 1 }); window.scrollTo(0, 0); } } else publish(); },
         nextLabel: step === 5 ? 'Publish my profile' : 'Continue →', nextVariant: step === 5 ? 'accent' : 'solid',
@@ -2849,6 +2920,16 @@ class Component extends DCLogic {
       out.sx.show = out.sx.groups.length > 0 || out.sx.hasFaqs || out.sx.hasArticles;
     }
 
+    {
+      const sm = (is.home || is.browse || is.post) ? this.seoModel() : null;
+      const items = (sm ? sm.sponsored : []).map(x => {
+        const v = VID[x.vendor.slug]; if (!v) return null;
+        const d = this.dec(v), tag = () => gaPromo('select_promotion', [{ ...x.vendor, placementId: x.placementId }], x.placementType);
+        return { ...d, open: () => { tag(); d.open(); }, inquire: () => { tag(); d.inquire(); } };
+      }).filter(Boolean);
+      out.ad = { show: items.length > 0, items, note: 'Paid placements from vendors on Eventory\u2019s Spotlight+ plan. They\u2019re separate from Eventory\u2019s listings and editorial.' };
+    }
+
     if (is.saved) {
       const vs = s.saved.map(id => VID[id]).filter(Boolean);
       out.sv = { vendors: vs.map(v => this.dec(v)), has: vs.length > 0, empty: vs.length === 0, countLabel: vs.length + (vs.length === 1 ? ' VENDOR SAVED' : ' VENDORS SAVED'),
@@ -2856,7 +2937,8 @@ class Component extends DCLogic {
     }
 
     if (is.inbox) {
-      const vid = s.inboxVendor; const v = VID[vid]; const t = this.tier(vid); const basic = t === 'basic';
+      const vid = s.inboxVendor; const v = VID[vid]; const t = this.tier(vid); const plan = PLAN[t] || PLAN.basic; const basic = plan.inquiry_limit != null;
+      const req = s.tierRequest && s.tierRequest.tier !== t && PLAN[s.tierRequest.tier] ? s.tierRequest : null;
       const mine = s.inquiries.filter(q => q.vendorId === vid).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       const total = mine.length; const heldN = basic ? mine.filter(q => q.held).length : 0;
       const selId = mine.some(q => q.id === s.inboxSel) ? s.inboxSel : (mine.find(q => !(basic && q.held)) || mine[0] || {}).id;
@@ -2866,16 +2948,21 @@ class Component extends DCLogic {
       const toTiers = () => { const el = document.getElementById('spotlight-tiers'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 20 }); };
       const hideHeldEvent = this.props.heldPreview === 'Hidden';
       out.ib = {
-        v, vid, limit: lim, vendorOpts: V.filter(x => x.id === vid).map(x => ({ value: x.id, label: x.name + (this.tier(x.id) !== 'basic' ? ' · Spotlight' : '') })),
+        v, vid, limit: lim, vendorOpts: V.filter(x => x.id === vid).map(x => ({ value: x.id, label: x.name + ' · ' + (PLAN[this.tier(x.id)] || PLAN.basic).name })),
         onVendor: () => {}, viewProfile: () => this.openVendor(vid), signedIn: !!s.auth.vendor, signOut: () => { window.EVDB.signOut(); this.setAuth({ vendor: null }); this.setState({ inquiries: [] }); this.go('home'); },
-        planLabel: basic ? 'Basic profile' : (t === 'top' ? 'Top Tier Spotlight' : 'Spotlight'),
-        planNote: basic ? 'Free. Up to ' + lim + ' inquiries.' : 'Unlimited inquiries.',
-        usageLabel: basic ? Math.min(total, lim) + ' of ' + lim + ' used' + (heldN ? ' · ' + heldN + ' held' : '') : total + ' received',
+        planLabel: plan.name + (plan.price_ttd ? ' · ' + planPrice(plan) + planPeriod(plan) : ''),
+        planNote: (basic ? 'Includes up to ' + lim + ' inquiries.' : plan.tagline) + (req ? ' ' + PLAN[req.tier].name + ' requested. The Eventory team will contact you.' : ''),
+        usageLabel: basic ? Math.min(total, lim) + ' of ' + lim + ' inquiries used' : 'Unlimited inquiries',
+        usageNote: basic ? (total < lim ? (lim - total) + (lim - total === 1 ? ' inquiry' : ' inquiries') + ' remaining' : (heldN ? heldN + (heldN === 1 ? ' inquiry' : ' inquiries') + ' waiting for an upgrade' : 'Limit reached')) : total + (total === 1 ? ' inquiry' : ' inquiries') + ' received',
         meter: basic ? Array.from({ length: lim }, (_, n) => ({ bg: n < total ? (total >= lim ? 'var(--accent)' : 'var(--ink)') : 'var(--line-chip)' })) : [{ bg: 'var(--accent-promo)' }],
-        emailNote: 'Inquiries are saved here while the inbox is tested. Copies will go to your business email once forwarding is on.',
+        emailNote: 'New inquiries are also sent to your business email, so you don\u2019t miss one.',
         atLimit: basic && total >= lim,
-        limitBody: heldN ? heldN + (heldN === 1 ? ' new inquiry is' : ' new inquiries are') + ' waiting for you. Your existing inquiries stay open. Spotlight opens everything that’s waiting and removes the limit.' : 'Your existing inquiries stay open. New ones will be held until you move to Spotlight, which removes the limit.',
-        nearLimit: basic && total === lim - 1, nearText: '1 inquiry left on your basic profile.',
+        limitTitle: 'You\u2019ve reached the ' + lim + '-inquiry limit for your no-cost listing.',
+        limitBody: 'Upgrade to Spotlight for unlimited inquiries and additional visibility on Eventory.' + (heldN ? ' ' + heldN + (heldN === 1 ? ' inquiry is' : ' inquiries are') + ' saved and will open when you upgrade.' : ' Your first ' + lim + ' inquiries stay open.'),
+        spotlightCta: 'Upgrade to ' + planPriceLine(PLAN.spotlight), plusCta: planPriceLine(PLAN.spotlight_plus),
+        chooseSpotlight: () => this.setTier(vid, 'spotlight'), choosePlus: () => this.setTier(vid, 'spotlight_plus'),
+        heldNote: 'This inquiry arrived after your no-cost listing reached its ' + lim + '-inquiry limit. It\u2019s saved, not lost: the planner\u2019s name, contact details and message open as soon as you upgrade to Spotlight.',
+        nearLimit: basic && total === lim - 1, nearText: '1 inquiry left on your no-cost listing. Spotlight includes unlimited inquiries.',
         toTiers,
         list: mine.map(q => { const h = basic && q.held; const on = q.id === selId; return {
           title: h ? 'Held inquiry' : q.name, when: ago(q.createdAt),
@@ -2894,13 +2981,14 @@ class Component extends DCLogic {
           mailto: 'mailto:' + selQ.email + '?subject=' + encodeURIComponent('Your Eventory inquiry — ' + v.name),
           toggleLabel: selQ.status === 'replied' ? 'Mark as new' : 'Mark as replied', toggleReplied: () => setStatus(selQ.id, selQ.status === 'replied' ? 'new' : 'replied'),
         } : {},
-        tiers: [
-          { id: 'spotlight', name: 'Spotlight', price: '$175', lead: 'For vendors who need more inquiries.', features: ['Unlimited inquiries', 'Email marketing', "Spotlight placement on Eventory's social media", 'Blog features'] },
-          { id: 'top', name: 'Top Tier Spotlight', price: '$300', lead: 'Everything in Spotlight, plus:', features: ['Advertising spotlight', "Advertising on Eventory's social media"] },
-        ].map(x => { const cur = t === x.id; const dark = x.id === 'top'; return { ...x, current: cur,
-          bg: dark ? 'var(--ink)' : 'var(--surface)', fg: dark ? 'var(--ink-on)' : 'var(--ink)', muted: dark ? 'var(--fg-on-dark)' : 'var(--fg-3)', bd: dark ? 'var(--ink)' : 'var(--line-hairline)',
-          shadow: dark ? '0 24px 48px -28px #FF5A36' : 'none', btnVariant: dark ? 'onDark' : 'accent', btnLabel: cur ? 'Current plan' : 'Choose ' + x.name, choose: () => this.setTier(vid, x.id) }; }),
-        canDowngrade: !basic, downgrade: () => this.setTier(vid, 'basic'),
+        // Plan comparison: No-Cost Listing, Spotlight, Spotlight+ (from vendor_plans).
+        tiers: PLAN_ORDER.map(id => PLAN[id]).filter(Boolean).map(x => {
+          const cur = t === x.id, requested = !!(req && req.tier === x.id), dark = x.id === 'spotlight_plus', free = !x.price_ttd;
+          return { id: x.id, name: x.name, price: planPrice(x), period: planPeriod(x), lead: x.tagline, includes: x.includes_label || '', hasIncludes: !!x.includes_label, features: x.features, current: cur,
+            bg: dark ? 'var(--ink)' : 'var(--surface)', fg: dark ? 'var(--ink-on)' : 'var(--ink)', muted: dark ? 'var(--fg-on-dark)' : 'var(--fg-3)', bd: dark ? 'var(--ink)' : 'var(--line-hairline)',
+            shadow: dark ? '0 24px 48px -28px #FF5A36' : 'none', btnVariant: dark ? 'onDark' : (free ? 'subtle' : 'accent'),
+            btnLabel: cur ? 'Current plan' : requested ? 'Requested' : free ? 'Switch to ' + x.name : 'Choose ' + x.name, disabled: cur || requested,
+            choose: () => this.setTier(vid, x.id) }; }),
         reset: () => { this.setState({ inboxSel: null }); this.syncSession(); },
       };
     }
