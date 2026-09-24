@@ -10,7 +10,7 @@
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
   });
 
-  var VENDOR_COLS = 'id, slug, owner_user_id, name, category_id, also_categories, location, areas_served, events, from_label, reply_label, tagline, about, instagram, facebook, website, specialties, photos, tier, published, updated_at';
+  var VENDOR_COLS = 'id, slug, owner_user_id, name, category_id, also_categories, location, areas_served, events, from_label, reply_label, tagline, about, instagram, facebook, website, specialties, photos, tier, packages_title, published, updated_at';
 
   function fail(error) {
     var e = new Error(friendly(error));
@@ -33,10 +33,10 @@
       id: r.slug, uuid: r.id, ownerId: r.owner_user_id, name: r.name, cat: r.category_id,
       location: r.location || '', events: r.events || [], from: r.from_label || 'Price on request',
       reply: r.reply_label || '', imgs: (r.photos || []).slice(), tagline: r.tagline || '', about: r.about || '',
-      ig: r.instagram || '', fb: r.facebook || '', tier: r.tier || 'basic', email: '',
+      ig: r.instagram || '', fb: r.facebook || '', tier: r.tier || 'basic', email: '', pkgTitle: r.packages_title || '',
       also: r.also_categories || [], website: r.website || '', areas: r.areas_served || [], specialties: r.specialties || [],
       packages: (pkgs || []).map(function (p) {
-        return { name: p.name, price: p.price_label || '', desc: p.description || '', img: p.img_url || null };
+        return { name: p.name, price: p.price_label || '', desc: p.description || '', img: p.img_url || null, imgUrl: p.img_url || '' };
       }),
     };
   }
@@ -169,7 +169,9 @@
         email: d.email.trim().toLowerCase(), password: d.password,
         options: { emailRedirectTo: location.origin, data: { role: 'vendor', name: d.name.trim(), listing: {
           name: d.name.trim(), cat: d.cat, location: d.location, events: d.events, tagline: d.tagline.trim(),
-          from: d.from.trim(), pkgName: d.pkgName.trim(), pkgPrice: (d.pkgPrice || '').trim(), pkgDesc: (d.pkgDesc || '').trim(),
+          from: d.from.trim(), pkgTitle: (d.pkgTitle || '').trim(),
+          packages: (d.pkgs || []).filter(function (p) { return p.name.trim(); })
+            .map(function (p) { return { name: p.name.trim(), price: (p.price || '').trim(), desc: (p.desc || '').trim() }; }),
           ig: (d.ig || '').trim(), fb: (d.fb || '').trim(), phone: (d.phone || '').trim() } } },
       });
       if (r.error) fail(r.error);
@@ -180,6 +182,16 @@
       }
       if (r.data.session) await EVDB.flushPendingPhotos(r.data.user);
       return { user: r.data.user, session: r.data.session };
+    },
+
+    // Replaces the vendor's whole package list (and optionally the section
+    // heading) in one database transaction.
+    savePackages: async function (vendorUuid, pkgs, title) {
+      var r = await client.rpc('set_my_packages', {
+        p_vendor: vendorUuid, p_title: title == null ? null : String(title),
+        p_packages: pkgs.map(function (p) { return { name: p.name, price: p.price || '', desc: p.desc || '', img: p.imgUrl || '' }; }),
+      });
+      if (r.error) fail(r.error);
     },
 
     flushPendingPhotos: async function (user) {
