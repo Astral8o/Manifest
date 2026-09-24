@@ -7,7 +7,11 @@ const path = require('path');
 const SEO = require('../js/seo-core.js');
 const { loadData } = require('./_data.js');
 
-const TEMPLATE = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8');
+// Version our scripts per deploy so a browser never pairs a new page with an
+// older cached /js/ file (they're cached for an hour).
+const BUILD = (process.env.VERCEL_GIT_COMMIT_SHA || String(Date.now())).slice(0, 12);
+const TEMPLATE = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8')
+  .replace(/(<script src="\/js\/[^"?]+\.js)"/g, `$1?v=${BUILD}"`);
 const esc = SEO.esc;
 
 // Head tags owned by this function; the template's copies are removed first.

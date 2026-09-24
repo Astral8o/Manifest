@@ -2570,7 +2570,7 @@ class Component extends DCLogic {
     const name = { vendor: 'view_vendor_profile', category: 'view_category_page', eventCategory: 'view_category_page', categoryLocation: 'view_category_page', event: 'view_event_page', location: 'view_location_page', post: 'view_article' }[r.type];
     if (name) gaEvent(name, { page_type: r.type, vendor_slug: r.slug, category_id: r.cat, event_type: r.event, location_slug: r.loc, article_id: r.id });
     const sm = this.seoModel();
-    if (sm && sm.sponsored.length) gaPromo('view_promotion', sm.sponsored.map(x => ({ ...x.vendor, placementId: x.placementId })), sm.sponsored[0].placementType);
+    if (sm && (sm.sponsored || []).length) gaPromo('view_promotion', sm.sponsored.map(x => ({ ...x.vendor, placementId: x.placementId })), sm.sponsored[0].placementType);
   }
   navTo(path) { if (!SX) return; const st = adjustRoute(SEO.appState(SX, SEO.resolve(SX, path.split('?')[0]))); this.go(st.view, st); }
   // Mirrors the Supabase session into the design's auth state, then loads
@@ -2910,11 +2910,11 @@ class Component extends DCLogic {
     {
       const sm = (is.browse || is.profile || is.post) ? this.seoModel() : null;
       const follow = (p) => (e) => { if (e && e.preventDefault) e.preventDefault(); this.navTo(p); };
-      const arts = sm && !is.post ? sm.articles : [];
+      const arts = sm && !is.post ? (sm.articles || []) : [];
       out.sx = sm ? {
         // The profile already shows its event types as chips; skip the duplicate group there.
-        groups: sm.related.filter(g => !(is.profile && g.title === 'Events they work on')).map(g => ({ title: g.title, links: g.links.map(l => ({ label: l.label, href: l.path, countLabel: l.count ? String(l.count) : '', go: follow(l.path) })) })),
-        faqs: sm.faqs, hasFaqs: sm.faqs.length > 0,
+        groups: (sm.related || []).filter(g => !(is.profile && g.title === 'Events they work on')).map(g => ({ title: g.title, links: g.links.map(l => ({ label: l.label, href: l.path, countLabel: l.count ? String(l.count) : '', go: follow(l.path) })) })),
+        faqs: sm.faqs || [], hasFaqs: !!(sm.faqs && sm.faqs.length),
         articles: arts.map(a => ({ title: a.title, excerpt: a.excerpt, tag: a.section, read: a.read, img: window.__R(a.img), href: a.path, open: follow(a.path) })), hasArticles: arts.length > 0,
       } : { groups: [], faqs: [], hasFaqs: false, articles: [], hasArticles: false };
       out.sx.show = out.sx.groups.length > 0 || out.sx.hasFaqs || out.sx.hasArticles;
@@ -2922,7 +2922,7 @@ class Component extends DCLogic {
 
     {
       const sm = (is.home || is.browse || is.post) ? this.seoModel() : null;
-      const items = (sm ? sm.sponsored : []).map(x => {
+      const items = ((sm && sm.sponsored) || []).map(x => {
         const v = VID[x.vendor.slug]; if (!v) return null;
         const d = this.dec(v), tag = () => gaPromo('select_promotion', [{ ...x.vendor, placementId: x.placementId }], x.placementType);
         return { ...d, open: () => { tag(); d.open(); }, inquire: () => { tag(); d.inquire(); } };
