@@ -38,7 +38,8 @@
     (data.events || []).forEach(function (e) { ix.ev[e.id] = e; if (e.seo_slug) ix.evSeo[e.seo_slug] = e; });
     (data.locations || []).forEach(function (l) { ix.loc[l.slug] = l; ix.locByName[l.name.toLowerCase()] = l; });
     ISLANDS.forEach(function (i) { ix.loc[i.slug] = { slug: i.slug, name: i.name, island: i.name, isIsland: true }; });
-    (data.vendors || []).forEach(function (v) { ix.vendor[v.slug] = v; });
+    ix.vendorById = {};
+    (data.vendors || []).forEach(function (v) { ix.vendor[v.slug] = v; ix.vendorById[v.id] = v; });
     (data.posts || []).forEach(function (p) { ix.post[p.id] = p; });
     SECTIONS.forEach(function (s) { ix.section[slugify(s)] = s; });
     ix.evSeoKeys = Object.keys(ix.evSeo).sort(function (a, b) { return b.length - a.length; });
@@ -380,8 +381,40 @@
     if (hasQuery && m.robots.indexOf('noindex') < 0) m.robots = 'noindex,follow';
     m.related = (m.related || []).filter(function (g) { return g.links && g.links.length; });
     m.canonical = m.path ? abs(m.canonical || m.path) : null;
+    m.sponsored = m.status === 200 ? sponsoredFor(ix, r) : [];
     m.jsonld = jsonld(ix, m);
     return m;
+  }
+
+  // ---- Sponsored placements (Spotlight+ website advertising) ----------------
+  // Only live placements of Spotlight+ vendors reach this code (the database
+  // policy filters them). A placement shows only where its type and targets
+  // match the page, so advertising stays relevant to what the planner is
+  // looking at. Kept separate from organic listings, editorial links and
+  // structured data.
+  var MAX_SPONSORED = 2;
+  function overlap(a, b) { a = a || []; b = b || []; return a.some(function (x) { return b.indexOf(x) >= 0; }); }
+  function sponsoredFor(ix, r) {
+    var ads = ix.data.ads || [];
+    if (!ads.length) return [];
+    var post = r.type === 'post' ? ix.post[r.id] : null;
+    var match = function (a) {
+      switch (r.type) {
+        case 'home': return a.placement_type === 'home';
+        case 'category': case 'categoryLocation': case 'eventCategory':
+          return a.placement_type === 'category' && (a.category_ids || []).indexOf(r.cat) >= 0 &&
+            (!r.event || !(a.event_type_ids || []).length || a.event_type_ids.indexOf(r.event) >= 0);
+        case 'event': return a.placement_type === 'event' && (a.event_type_ids || []).indexOf(r.event) >= 0;
+        case 'location': return a.placement_type === 'location' && (a.location_slugs || []).indexOf(r.loc) >= 0;
+        case 'post': return a.placement_type === 'article' && (overlap(a.category_ids, post.category_ids) || overlap(a.event_type_ids, post.event_type_ids));
+        default: return false;
+      }
+    };
+    var seen = {}, list = ads.filter(function (a) { return ix.vendorById[a.vendor_id] && match(a); }).filter(function (a) { return seen[a.vendor_id] ? false : (seen[a.vendor_id] = 1); });
+    // Share the slots fairly between eligible placements: rotate daily.
+    var day = Math.floor(Date.now() / 864e5), k = list.length ? day % list.length : 0;
+    list = list.slice(k).concat(list.slice(0, k)).slice(0, MAX_SPONSORED);
+    return list.map(function (a) { return { placementId: a.id, placementType: a.placement_type, headline: a.headline || '', vendor: ix.vendorById[a.vendor_id] }; });
   }
 
   // Categories booked alongside this one: the other categories that appear
@@ -495,6 +528,7 @@
     var vendorHeading = m.type === 'vendor' ? 'Similar vendors' : m.type === 'post' ? 'Vendors in this article' : 'Vendors';
     if (m.vendors.length && m.type !== 'home') h.push('<section><h2>' + vendorHeading + '</h2><ul>' + m.vendors.map(function (v) { var cv = vendorCard(ix, v); return '<li>' + a(cv.path, cv.name) + (cv.category ? ' · ' + esc(cap(cv.category)) : '') + (cv.place ? ' · ' + esc(cv.place) : '') + (cv.tagline ? '<br>' + esc(cv.tagline) : '') + '</li>'; }).join('') + '</ul></section>');
     m.related.forEach(function (g) { h.push('<section><h2>' + esc(g.title) + '</h2><ul>' + g.links.map(function (l) { return '<li>' + a(l.path, l.label) + (l.count ? ' (' + l.count + ')' : '') + '</li>'; }).join('') + '</ul></section>'); });
+    if (m.sponsored && m.sponsored.length) h.push('<aside aria-label="Sponsored"><h2>Sponsored</h2><p>Paid placements from Spotlight+ vendors, separate from Eventory\'s listings and editorial content.</p><ul>' + m.sponsored.map(function (sp) { var cv = vendorCard(ix, sp.vendor); return '<li><a href="' + esc(cv.path) + '" rel="sponsored">' + esc(cv.name) + '</a>' + (cv.category ? ' · ' + esc(cap(cv.category)) : '') + (cv.place ? ' · ' + esc(cv.place) : '') + (sp.headline ? '<br>' + esc(sp.headline) : '') + '</li>'; }).join('') + '</ul></aside>');
     if (m.faqs.length) h.push('<section><h2>Frequently asked questions</h2>' + m.faqs.map(function (f) { return '<h3>' + esc(f.q) + '</h3><p>' + esc(f.a) + '</p>'; }).join('') + '</section>');
     if (m.articles.length) h.push('<section><h2>' + (m.type === 'magazine' || m.type === 'section' ? 'Articles' : 'From Eventory Magazine') + '</h2><ul>' + m.articles.map(function (x) { return '<li>' + a(x.path, x.title) + ' · ' + esc(x.section) + '<br>' + esc(x.excerpt) + '</li>'; }).join('') + '</ul></section>');
     h.push('</main><footer><p>' + a('/join/', 'List your business on Eventory') + '</p></footer>');

@@ -111,12 +111,14 @@
         client.from('categories').select('*').order('sort_order'),
         client.from('event_types').select('*').order('sort_order'),
         client.from('locations').select('slug, name, island').order('name'),
+        client.from('ad_placements').select('id, vendor_id, placement_type, category_ids, event_type_ids, location_slugs, headline').order('created_at'),
+        client.from('vendor_plans').select('*').order('sort_order'),
       ]);
       for (var i = 0; i < res.length; i++) if (res[i].error) fail(res[i].error);
       var byVendor = {};
       res[1].data.forEach(function (p) { (byVendor[p.vendor_id] = byVendor[p.vendor_id] || []).push(p); });
       res[0].data.forEach(function (v) { v.packages = byVendor[v.id] || []; });
-      return fromRaw({ vendors: res[0].data, posts: res[2].data, categories: res[3].data, events: res[4].data, locations: res[5].data });
+      return fromRaw({ vendors: res[0].data, posts: res[2].data, categories: res[3].data, events: res[4].data, locations: res[5].data, ads: res[6].data, plans: res[7].data });
     },
 
     // Own listing, including an unpublished one the public list leaves out.
@@ -226,6 +228,13 @@
     requestTier: async function (vendorUuid, tier) {
       var r = await client.from('spotlight_requests').insert({ vendor_id: vendorUuid, tier: tier });
       if (r.error) fail(r.error);
+    },
+    // Most recent open plan-change request, so the dashboard can show it.
+    pendingTierRequest: async function (vendorUuid) {
+      var r = await client.from('spotlight_requests').select('tier, status, created_at').eq('vendor_id', vendorUuid)
+        .in('status', ['pending', 'contacted']).order('created_at', { ascending: false }).limit(1);
+      if (r.error) fail(r.error);
+      return r.data[0] || null;
     },
 
     savedList: async function () {

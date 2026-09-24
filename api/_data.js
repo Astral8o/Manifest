@@ -17,18 +17,21 @@ async function rest(query) {
 }
 
 async function fetchAll() {
-  const [categories, events, locations, vendors, packages, posts] = await Promise.all([
+  const [categories, events, locations, vendors, packages, posts, ads, plans] = await Promise.all([
     rest('categories?select=id,label,img_path,sort_order,seo_slug,combo_slug,singular,plural,intro,faqs&order=sort_order'),
     rest('event_types?select=id,label,short,needs,sort_order,seo_slug,noun,intro,faqs&order=sort_order'),
     rest('locations?select=slug,name,island&order=name'),
     rest(`vendors?select=${VENDOR_COLS}&published=eq.true&order=created_at`),
     rest('packages?select=vendor_id,name,price_label,description,img_url,sort_order&order=sort_order'),
     rest('blog_posts?select=id,section,tag,title,excerpt,body,img_path,published_on,updated_on,author,read_label,event_type_ids,category_ids,vendor_slugs,faqs&published=eq.true&order=published_on.desc'),
+    // Row level security returns only live placements of Spotlight+ vendors.
+    rest('ad_placements?select=id,vendor_id,placement_type,category_ids,event_type_ids,location_slugs,headline&order=created_at'),
+    rest('vendor_plans?select=*&order=sort_order'),
   ]);
   const byVendor = {};
   for (const p of packages) (byVendor[p.vendor_id] = byVendor[p.vendor_id] || []).push(p);
   for (const v of vendors) v.packages = byVendor[v.id] || [];
-  return { categories, events, locations, vendors, posts };
+  return { categories, events, locations, vendors, posts, ads, plans };
 }
 
 // Cached per function instance; the CDN cache in front (s-maxage) does the

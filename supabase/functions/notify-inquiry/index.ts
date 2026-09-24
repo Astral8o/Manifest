@@ -36,10 +36,15 @@ Deno.serve(async (req) => {
   if (!q) return new Response("Nothing to send", { status: 200 });
 
   const v = q.vendors as { name: string; email: string; tier: string };
-  const held = q.held && v.tier === "basic";
+  // Plan names, prices and the inquiry limit come from vendor_plans.
+  const { data: plans } = await sb.from("vendor_plans").select("id, name, price_ttd, billing_period, inquiry_limit");
+  const plan = (id: string) => (plans || []).find((p) => p.id === id);
+  const current = plan(v.tier), spotlight = plan("spotlight");
+  const held = q.held && current?.inquiry_limit != null;
   const event = q.event_type === "other" && q.event_other ? q.event_other : q.event_type;
   const details = held
-    ? `<p>You have a new inquiry waiting in your Eventory inbox. Your basic profile has reached its inquiry limit, so upgrade to Spotlight to open it.</p>`
+    ? `<p>A planner sent you a new inquiry on Eventory. Your no-cost listing includes up to ${current?.inquiry_limit} inquiries and you've reached that limit, so this one is saved in your inbox and opens when you upgrade.</p>` +
+      (spotlight ? `<p>Upgrade to ${esc(spotlight.name)} (TTD $${spotlight.price_ttd}/${esc(spotlight.billing_period)}) for unlimited inquiries and additional visibility on Eventory.</p>` : "")
     : `<p><strong>${esc(q.name)}</strong> sent an inquiry.</p>
        <p>Event: ${esc(event || "—")}<br/>Date: ${esc(q.event_date || "Not set")}<br/>Guests: ${esc(q.guests || "—")}<br/>
        Location: ${esc(q.location || "—")}<br/>Package: ${esc(q.package_name || "Not sure yet")}<br/>Budget: ${esc(q.budget || "—")}</p>
