@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://oiwjuvzsydhuhmetcuqk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_qYk_KouIw772oOXdIvr7uA_zwhPVmtF';
 const TTL_MS = 60 * 1000;
 
-const VENDOR_COLS = 'id,slug,name,category_id,also_categories,location,areas_served,events,from_label,reply_label,tagline,about,instagram,facebook,website,specialties,photos,tier,updated_at';
+const VENDOR_COLS = 'id,slug,name,category_id,also_categories,location,areas_served,events,from_label,reply_label,tagline,about,instagram,facebook,website,specialties,photos,tier,packages_title,updated_at';
 
 let cache = { at: 0, data: null, pending: null };
 

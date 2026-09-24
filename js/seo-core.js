@@ -513,7 +513,7 @@
       h.push('<p>' + esc(m.intro) + '</p>');
       h.push('<section><h2>At a glance</h2><dl>' + m.facts.map(function (f) { return '<dt>' + esc(f.k) + '</dt><dd>' + (f.href ? a(f.href, f.v) : esc(f.v)) + '</dd>'; }).join('') + '</dl></section>');
       if (v.about) h.push('<section><h2>About ' + esc(v.name) + '</h2><p>' + esc(v.about) + '</p></section>');
-      if ((v.packages || []).length) h.push('<section><h2>Packages and services</h2>' + v.packages.map(function (p) { return '<article><h3>' + esc(p.name) + '</h3>' + (p.price_label ? '<p>' + esc(p.price_label) + '</p>' : '') + (p.description ? '<p>' + esc(clip(p.description, 600)) + '</p>' : '') + '</article>'; }).join('') + '</section>');
+      if ((v.packages || []).length) h.push('<section><h2>' + esc(v.packages_title || 'Packages and services') + '</h2>' + v.packages.map(function (p) { return '<article><h3>' + esc(p.name) + '</h3>' + (p.price_label ? '<p>' + esc(p.price_label) + '</p>' : '') + (p.description ? '<p>' + esc(clip(p.description, 600)) + '</p>' : '') + '</article>'; }).join('') + '</section>');
       (v.photos || []).slice(0, 6).forEach(function (src, i) { h.push('<img src="' + esc(src) + '" alt="' + esc(v.name + ' photo ' + (i + 1)) + '" loading="lazy">'); });
       h.push('<section><h2>Contact ' + esc(v.name) + '</h2><p>Send ' + esc(v.name) + ' an inquiry through Eventory with your event date, type and location. They reply to you directly.</p>');
       var links = [v.website && a(/^https?:/.test(v.website) ? v.website : 'https://' + v.website, 'Website'), socialUrl('ig', v.instagram) && a(socialUrl('ig', v.instagram), 'Instagram ' + v.instagram), socialUrl('fb', v.facebook) && a(socialUrl('fb', v.facebook), 'Facebook')].filter(Boolean);

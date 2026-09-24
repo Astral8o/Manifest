@@ -1644,7 +1644,7 @@ main { overflow-wrap: break-word; }
             </div>
             <div style="display:grid;gap:16px;padding-top:28px;border-top:1px solid var(--line-hairline);">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-                <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;">Packages</h2>
+                <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;">{{ pf.pkgTitle }}</h2>
                 <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-5);">{{ pf.pkgCount }}</span>
               </div>
               <sc-for list="{{ pf.packages }}" as="p" hint-placeholder-count="3">
@@ -2117,10 +2117,26 @@ main { overflow-wrap: break-word; }
                 <div style="display:grid;gap:16px;">
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px;align-items:start;">
                     <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" label="Starting price" value="{{ jn.d.from }}" sc-camel-on-change="{{ jn.on.from }}" error="{{ jn.e.from }}" placeholder="e.g. TT$2,500" hint="Ranges are fine." hint-size="100%,76px"></x-import>
-                    <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" label="First package" value="{{ jn.d.pkgName }}" sc-camel-on-change="{{ jn.on.pkgName }}" error="{{ jn.e.pkgName }}" placeholder="e.g. Half-day coverage" hint-size="100%,76px"></x-import>
-                    <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" label="Package price" value="{{ jn.d.pkgPrice }}" sc-camel-on-change="{{ jn.on.pkgPrice }}" placeholder="e.g. TT$2,500–TT$4,000" hint-size="100%,76px"></x-import>
+                    <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" label="Section title (optional)" value="{{ jn.d.pkgTitle }}" sc-camel-on-change="{{ jn.on.pkgTitle }}" placeholder="Packages &amp; services" hint="e.g. Menu, Rentals, Services" hint-size="100%,76px"></x-import>
                   </div>
-                  <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" as="textarea" label="What's included" placeholder="Hours, people, what the client gets." value="{{ jn.d.pkgDesc }}" sc-camel-on-change="{{ jn.on.pkgDesc }}" hint-size="100%,140px"></x-import>
+                  <sc-for list="{{ jn.pkgs }}" as="p" hint-placeholder-count="1">
+                    <div style="display:grid;gap:14px;border:1px solid var(--line-hairline);border-radius:20px;padding:clamp(14px,2vw,20px);">
+                      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                        <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-5);">{{ p.label }}</span>
+                        <sc-if value="{{ p.canRemove }}" hint-placeholder-val="{{ false }}">
+                          <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="quiet" size="sm" dc-props="{{ quietBtn }}" sc-camel-on-click="{{ p.remove }}" hint-size="80px,36px">Remove</x-import>
+                        </sc-if>
+                      </div>
+                      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px;align-items:start;">
+                        <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" label="Package, service or product" value="{{ p.name }}" sc-camel-on-change="{{ p.onName }}" error="{{ p.err }}" placeholder="e.g. Half-day coverage" hint-size="100%,76px"></x-import>
+                        <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" label="Price" value="{{ p.price }}" sc-camel-on-change="{{ p.onPrice }}" placeholder="e.g. TT$2,500–TT$4,000" hint-size="100%,76px"></x-import>
+                      </div>
+                      <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" as="textarea" label="What's included" placeholder="Hours, people, what the client gets." value="{{ p.desc }}" sc-camel-on-change="{{ p.onDesc }}" hint-size="100%,140px"></x-import>
+                    </div>
+                  </sc-for>
+                  <div>
+                    <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="subtle" sc-camel-on-click="{{ jn.addPkg }}" hint-size="200px,43px">+ Add another</x-import>
+                  </div>
                 </div>
               </sc-if>
 
@@ -2354,6 +2370,45 @@ main { overflow-wrap: break-word; }
           </div>
         </div>
 
+        <sc-if value="{{ ib.pe.show }}" hint-placeholder-val="{{ false }}">
+          <div id="your-packages" style="display:grid;gap:18px;border-top:1px solid var(--line-hairline);padding-top:34px;">
+            <div style="display:grid;gap:10px;">
+              <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Eyebrow" tone="accent" hint-size="160px,14px">Your profile</x-import>
+              <h2 style="margin:0;font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.02;">Packages, services &amp; products</h2>
+              <p style="margin:0;font-size:15px;line-height:1.5;color:var(--fg-2);max-width:620px;">Add as many as you offer. Name each one your way and give it a price. Planners see them on your profile and can ask about a specific one.</p>
+            </div>
+            <div style="max-width:420px;">
+              <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" label="Section title on your profile" value="{{ ib.pe.title }}" sc-camel-on-change="{{ ib.pe.onTitle }}" placeholder="Packages &amp; services" hint="e.g. Menu, Rentals, Services" hint-size="100%,76px"></x-import>
+            </div>
+            <sc-for list="{{ ib.pe.items }}" as="p" hint-placeholder-count="2">
+              <div style="display:grid;gap:14px;border:1px solid var(--line-hairline);border-radius:20px;padding:clamp(14px,2vw,20px);max-width:900px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-5);">{{ p.label }}</span>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <sc-if value="{{ p.canUp }}" hint-placeholder-val="{{ false }}">
+                      <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="quiet" size="sm" dc-props="{{ quietBtn }}" sc-camel-on-click="{{ p.up }}" hint-size="70px,36px">Move up</x-import>
+                    </sc-if>
+                    <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="quiet" size="sm" dc-props="{{ quietBtn }}" sc-camel-on-click="{{ p.remove }}" hint-size="80px,36px">Remove</x-import>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px;align-items:start;">
+                  <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" label="Package, service or product" value="{{ p.name }}" sc-camel-on-change="{{ p.onName }}" error="{{ p.err }}" placeholder="e.g. Half-day coverage" hint-size="100%,76px"></x-import>
+                  <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" label="Price" value="{{ p.price }}" sc-camel-on-change="{{ p.onPrice }}" placeholder="e.g. TT$2,500–TT$4,000" hint-size="100%,76px"></x-import>
+                </div>
+                <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" as="textarea" label="What's included" placeholder="Hours, people, what the client gets." value="{{ p.desc }}" sc-camel-on-change="{{ p.onDesc }}" hint-size="100%,140px"></x-import>
+              </div>
+            </sc-for>
+            <sc-if value="{{ ib.pe.empty }}" hint-placeholder-val="{{ false }}">
+              <p style="margin:0;font-size:15px;color:var(--fg-3);">Nothing listed yet. Add your first package, service or product.</p>
+            </sc-if>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+              <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="subtle" sc-camel-on-click="{{ ib.pe.add }}" hint-size="160px,43px">+ Add another</x-import>
+              <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="solid" disabled="{{ ib.pe.saveDisabled }}" sc-camel-on-click="{{ ib.pe.save }}" hint-size="140px,43px">{{ ib.pe.saveLabel }}</x-import>
+              <span style="font-size:13px;color:var(--fg-3);">{{ ib.pe.note }}</span>
+            </div>
+          </div>
+        </sc-if>
+
         <div id="spotlight-tiers" style="display:grid;gap:22px;border-top:1px solid var(--line-hairline);padding-top:34px;">
           <div style="display:grid;gap:10px;">
             <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Eyebrow" tone="accent" hint-size="160px,14px">Plans</x-import>
@@ -2489,7 +2544,7 @@ const catImg = (c) => (CAT[c] && CAT[c].img) || (CAT_FALLBACK[c] ? window.__R(CA
 // Vendors without photos of their own show their category's image, like the design's samples.
 const withImgs = (v) => { const fb = catImg(v.cat); if (!v.imgs.length) v.imgs = [fb]; v.packages.forEach(p => { if (!p.img) p.img = v.imgs[0] || fb; }); return v; };
 const AREAS = ['Arima','Chaguanas','Chaguaramas','Couva','Diego Martin','La Romain','Maraval','Point Fortin','Port of Spain','Princes Town','San Fernando','Sangre Grande','Scarborough, Tobago','Siparia','St. Augustine','Trincity','Tunapuna'];
-const JOIN_BLANK = { name:'', email:'', password:'', phone:'', cat:'', location:'', events:[], tagline:'', from:'', pkgName:'', pkgPrice:'', pkgDesc:'', ig:'', fb:'', photos:[] };
+const JOIN_BLANK = { name:'', email:'', password:'', phone:'', cat:'', location:'', events:[], tagline:'', from:'', pkgTitle:'', pkgs:[{ name:'', price:'', desc:'' }], ig:'', fb:'', photos:[] };
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 const FIELD_PROPS = { style: { alignContent: 'start' }, inputStyle: { height: 50, boxSizing: 'border-box', lineHeight: '24px' } };
 const SEARCH_PROPS = { style: { height: 50, boxSizing: 'border-box', padding: '4px 5px 4px 18px' } };
@@ -2639,12 +2694,12 @@ class Component extends DCLogic {
     const d = this.state.join.d, e = {};
     if (step === 1) { if (!d.name.trim()) e.name = 'Add your business name'; if (!EMAIL_RE.test(d.email)) e.email = 'Add a valid email'; if (d.password.length < 8) e.password = 'At least 8 characters'; }
     if (step === 2) { if (!d.cat) e.cat = 'Pick a category'; if (!d.location) e.location = 'Pick where you are based'; if (!d.events.length) e.events = 'Pick at least one event type'; if (!d.tagline.trim()) e.tagline = 'Add one line about your business'; }
-    if (step === 3) { if (!d.from.trim()) e.from = 'Add a starting price'; if (!d.pkgName.trim()) e.pkgName = 'Name your first package'; }
+    if (step === 3) { if (!d.from.trim()) e.from = 'Add a starting price'; d.pkgs.forEach((p, n) => { if (!p.name.trim() && (n === 0 || p.price.trim() || p.desc.trim())) e['pkg' + n] = n === 0 ? 'Name your first package or service' : 'Add a name or remove this one'; }); }
     this.setJoin({ e }); return !Object.keys(e).length;
   }
   joinVendor() {
     const d = this.state.join.d; const img = d.photos[0] || CAT[d.cat]?.img || P.hero;
-    return { id: 'c' + Date.now().toString(36), email: d.email.trim().toLowerCase(), name: d.name.trim(), cat: d.cat || 'planning', location: d.location, events: d.events, from: d.from || 'Price on request', reply: '', imgs: d.photos.length ? [...d.photos, ...Array(3).fill(img)].slice(0, 3) : [img, img, img], tagline: d.tagline, about: d.tagline, ig: d.ig ? (d.ig.startsWith('@') ? d.ig : '@' + d.ig) : '@' + d.name.toLowerCase().replace(/[^a-z0-9]/g, ''), fb: d.fb || d.name.toLowerCase().replace(/[^a-z0-9]/g, ''), packages: [{ name: d.pkgName || 'Standard package', price: d.pkgPrice || d.from || 'Price on request', desc: d.pkgDesc || d.tagline, img }] };
+    return { id: 'c' + Date.now().toString(36), email: d.email.trim().toLowerCase(), name: d.name.trim(), cat: d.cat || 'planning', location: d.location, events: d.events, from: d.from || 'Price on request', reply: '', imgs: d.photos.length ? [...d.photos, ...Array(3).fill(img)].slice(0, 3) : [img, img, img], tagline: d.tagline, about: d.tagline, ig: d.ig ? (d.ig.startsWith('@') ? d.ig : '@' + d.ig) : '@' + d.name.toLowerCase().replace(/[^a-z0-9]/g, ''), fb: d.fb || d.name.toLowerCase().replace(/[^a-z0-9]/g, ''), pkgTitle: d.pkgTitle.trim(), packages: (d.pkgs.some(p => p.name.trim()) ? d.pkgs.filter(p => p.name.trim()) : [{ name: 'Standard package', price: '', desc: '' }]).map(p => ({ name: p.name.trim() || 'Standard package', price: p.price.trim() || d.from || 'Price on request', desc: p.desc.trim() || d.tagline, img })) };
   }
   limit() { return PLAN.basic.inquiry_limit || 4; }
   tier(id) { return (VID[id] && VID[id].tier) || 'basic'; }
@@ -2797,7 +2852,7 @@ class Component extends DCLogic {
         saveVariant: dv.saved ? 'solid' : 'subtle',
         socials: [{ name: 'Instagram', handle: v.ig, href: 'https://instagram.com/' + v.ig.replace('@', '') }, { name: 'Facebook', handle: '/' + v.fb, href: 'https://facebook.com/' + v.fb }].filter(x => x.handle && x.handle !== '/'),
         events: v.events.map(e => ({ label: EV[e].label, go: () => this.browseTo({ mode: 'event', event: e }) })),
-        packages: v.packages.map(p => ({ ...p, inquire: () => this.startInquiry([v.id], { pkg: p.name }) })), pkgCount: v.packages.length + ' PACKAGES',
+        packages: v.packages.map(p => ({ ...p, inquire: () => this.startInquiry([v.id], { pkg: p.name }) })), pkgCount: v.packages.length + (v.packages.length === 1 ? ' OPTION' : ' OPTIONS'), pkgTitle: v.pkgTitle || 'Packages & services',
         posLabel: String(i + 1).padStart(2, '0') + ' / ' + String(list.length).padStart(2, '0'), prev: step(-1), next: step(1), back: () => this.back(),
         similarTitle: simTitle, similar: this.sortSpot(similar).slice(0, 3).map(x => this.dec(x)),
         ...(() => { const pm = this.seoModel(); return { summary: pm && pm.intro || '', facts: pm && pm.facts ? pm.facts.map(x => ({ ...x, hasHref: !!x.href, noHref: !x.href })) : [], hasFacts: !!(pm && pm.facts && pm.facts.length) }; })(),
@@ -2922,6 +2977,13 @@ class Component extends DCLogic {
         events: EVENTS.map(ev => { const on = d.events.includes(ev.id); return { label: ev.label, on, pick: () => this.setJoinD('events', on ? d.events.filter(x => x !== ev.id) : [...d.events, ev.id]) }; }),
         slots: [0, 1, 2].map(n => ({ label: n === 0 ? 'Cover photo' : 'Photo', src: d.photos[n], has: !!d.photos[n], empty: !d.photos[n],
           pick: (e) => { const file = e.target.files && e.target.files[0]; if (!file) return; const rd = new FileReader(); rd.onload = () => { const photos = [...this.state.join.d.photos]; photos[n] = rd.result; this.setJoinD('photos', photos.filter(Boolean)); }; rd.readAsDataURL(file); } })),
+        pkgs: d.pkgs.map((p, n) => {
+          const set = (k) => (e) => { const v = e.target.value; this.setState(st => { const pk = st.join.d.pkgs.map((x, i) => i === n ? { ...x, [k]: v } : x); return { join: { ...st.join, d: { ...st.join.d, pkgs: pk }, e: { ...st.join.e, ['pkg' + n]: undefined } } }; }); };
+          return { ...p, label: 'Item ' + (n + 1), err: j.e['pkg' + n], canRemove: d.pkgs.length > 1,
+            onName: set('name'), onPrice: set('price'), onDesc: set('desc'),
+            remove: () => this.setState(st => ({ join: { ...st.join, d: { ...st.join.d, pkgs: st.join.d.pkgs.filter((_, i) => i !== n) }, e: {} } })) };
+        }),
+        addPkg: () => this.setJoinD('pkgs', [...d.pkgs, { name: '', price: '', desc: '' }]),
         preview: { ...pv, open: () => {}, save: () => {}, inquire: () => {} },
         review: [{ k: 'Business', v: d.name }, { k: 'Category', v: CAT[d.cat] ? CAT[d.cat].label : '—' }, { k: 'Based in', v: d.location || '—' }, { k: 'Events', v: d.events.map(x => EV[x].short).join(', ') || '—' }, { k: 'Email', v: d.email }],
         points: ['No-cost listing with a public profile', 'Up to ' + lim + ' inquiries, straight to your inbox', 'Upgrade to Spotlight any time for unlimited inquiries'],
@@ -2982,8 +3044,33 @@ class Component extends DCLogic {
       const setStatus = (id, status) => window.EVDB.setInquiryStatus(id, status).then(() => this.setState(st => ({ inquiries: st.inquiries.map(q => q.id === id ? { ...q, status } : q) })), e => window.alert(e.message));
       const toTiers = () => { const el = document.getElementById('spotlight-tiers'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 20 }); };
       const hideHeldEvent = this.props.heldPreview === 'Hidden';
+      // Package editor: a draft of the vendor's packages, kept until saved.
+      const canEdit = !!(v && v.uuid && s.auth.vendor === vid);
+      const pe = s.pkgEdit && s.pkgEdit.vid === vid ? s.pkgEdit
+        : { vid, title: (v && v.pkgTitle) || '', items: v ? v.packages.map(p => ({ name: p.name, price: p.price, desc: p.desc, imgUrl: p.imgUrl || '' })) : [], errs: {}, dirty: false, saving: false, note: '' };
+      const setPe = (fn) => this.setState(st => { const cur = st.pkgEdit && st.pkgEdit.vid === vid ? st.pkgEdit : pe; return { pkgEdit: { ...cur, ...fn(cur), dirty: true, note: '' } }; });
+      const setItem = (n, k) => (e) => { const val = e.target.value; setPe(c => ({ items: c.items.map((x, i) => i === n ? { ...x, [k]: val } : x), errs: { ...c.errs, [n]: undefined } })); };
+      const savePkgs = () => {
+        const cur = pe; const errs = {};
+        cur.items.forEach((p, n) => { if (!p.name.trim()) errs[n] = 'Add a name or remove this one'; });
+        if (Object.keys(errs).length) return this.setState({ pkgEdit: { ...cur, errs, note: 'Name every item before saving.' } });
+        const items = cur.items.map(p => ({ ...p, name: p.name.trim(), price: p.price.trim(), desc: p.desc.trim() }));
+        this.setState({ pkgEdit: { ...cur, saving: true, note: '' } });
+        window.EVDB.savePackages(v.uuid, items, cur.title.trim()).then(() => {
+          addVendor(withImgs({ ...VID[vid], pkgTitle: cur.title.trim(), packages: items.map(p => ({ name: p.name, price: p.price, desc: p.desc, img: p.imgUrl || null, imgUrl: p.imgUrl })) }));
+          this.setState({ pkgEdit: { ...cur, items, saving: false, dirty: false, errs: {}, note: 'Saved. Your profile is updated.' } });
+        }, err => this.setState({ pkgEdit: { ...cur, saving: false, note: 'Could not save: ' + err.message } }));
+      };
       out.ib = {
-        v, vid, limit: lim, vendorOpts: V.filter(x => x.id === vid).map(x => ({ value: x.id, label: x.name + ' · ' + (PLAN[this.tier(x.id)] || PLAN.basic).name })),
+        v, vid, limit: lim,
+        pe: { show: canEdit, title: pe.title, empty: !pe.items.length, note: pe.note,
+          onTitle: (e) => { const val = e.target.value; setPe(() => ({ title: val })); },
+          items: pe.items.map((p, n) => ({ ...p, label: 'Item ' + (n + 1), err: pe.errs[n], canUp: n > 0,
+            onName: setItem(n, 'name'), onPrice: setItem(n, 'price'), onDesc: setItem(n, 'desc'),
+            up: () => setPe(c => { const it = c.items.slice(); [it[n - 1], it[n]] = [it[n], it[n - 1]]; return { items: it, errs: {} }; }),
+            remove: () => setPe(c => ({ items: c.items.filter((_, i) => i !== n), errs: {} })) })),
+          add: () => setPe(c => ({ items: [...c.items, { name: '', price: '', desc: '', imgUrl: '' }] })),
+          save: savePkgs, saveDisabled: pe.saving || !pe.dirty, saveLabel: pe.saving ? 'Saving…' : 'Save changes' }, vendorOpts: V.filter(x => x.id === vid).map(x => ({ value: x.id, label: x.name + ' · ' + (PLAN[this.tier(x.id)] || PLAN.basic).name })),
         onVendor: () => {}, viewProfile: () => this.openVendor(vid), signedIn: !!s.auth.vendor, signOut: () => { window.EVDB.signOut(); this.setAuth({ vendor: null }); this.setState({ inquiries: [] }); this.go('home'); },
         planLabel: plan.name + (plan.price_ttd ? ' · ' + planPrice(plan) + planPeriod(plan) : ''),
         planNote: (basic ? 'Includes up to ' + lim + ' inquiries.' : plan.tagline) + (req ? ' ' + PLAN[req.tier].name + ' requested. The Eventory team will contact you.' : ''),
