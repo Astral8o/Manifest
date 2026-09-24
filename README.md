@@ -76,6 +76,21 @@ from Supabase in the browser.
   Impressions and clicks are GA4 `view_promotion` / `select_promotion`
   events (`promotion_id` = placement id).
 
+## Offline demo (`/demo/`)
+
+A copy of the site with sample (fake) vendors for showing Eventory to
+vendors in person, with no internet. Open `eventorytt.com/demo/` once while
+online and add it to the home screen; after that it runs offline. The
+"Demo" button has demo logins, a step-by-step pitch, "Approve as Eventory"
+for upgrades, and Reset. Nothing in the demo touches the real database.
+
+- `demo/snapshot.json`: the sample vendors, posts and plans.
+- `demo/demo-db.js`: offline stand-in for `js/eventory-data.js` (same API,
+  stored in the browser).
+- `demo/build.js`: run `node demo/build.js` after changing `app.html`,
+  `js/`, `assets/` or the snapshot; it regenerates `demo/index.html` and
+  the offline cache list in `demo/sw.js`.
+
 ## Coming-soon mode
 
 While `site_settings.coming_soon` is `true`, every public page serves
