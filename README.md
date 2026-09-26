@@ -60,7 +60,7 @@ from Supabase in the browser.
   limit). The dashboard, plan comparison, upgrade prompts, database rules and
   inquiry emails all read from it; change a plan there, not in code.
   - Every plan includes unlimited inquiries. The No-Cost Listing is free;
-    Spotlight (TTD $175/month) and Spotlight+ (TTD $300/month) add
+    Spotlight (TTD $175 one-time) and Spotlight+ (TTD $1,600 one-time) add
     visibility and advertising. Setting `inquiry_limit` on a plan brings
     back a cap: later inquiries are saved but held until the vendor upgrades.
 - **Upgrades** have no checkout: "Choose …" adds a row to

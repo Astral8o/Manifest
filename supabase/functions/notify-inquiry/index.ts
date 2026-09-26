@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
   const event = q.event_type === "other" && q.event_other ? q.event_other : q.event_type;
   const details = held
     ? `<p>A planner sent you a new inquiry on Eventory. Your no-cost listing includes up to ${current?.inquiry_limit} inquiries and you've reached that limit, so this one is saved in your inbox and opens when you upgrade.</p>` +
-      (spotlight ? `<p>Upgrade to ${esc(spotlight.name)} (TTD $${spotlight.price_ttd}/${esc(spotlight.billing_period)}) for unlimited inquiries and additional visibility on Eventory.</p>` : "")
+      (spotlight ? `<p>Upgrade to ${esc(spotlight.name)} (TTD $${spotlight.price_ttd}${spotlight.billing_period === "one-time" ? " one-time" : "/" + esc(spotlight.billing_period)}) for unlimited inquiries and additional visibility on Eventory.</p>` : "")
     : `<p><strong>${esc(q.name)}</strong> sent an inquiry.</p>
        <p>Event: ${esc(event || "—")}<br/>Date: ${esc(q.event_date || "Not set")}<br/>Guests: ${esc(q.guests || "—")}<br/>
        Location: ${esc(q.location || "—")}<br/>Package: ${esc(q.package_name || "Not sure yet")}<br/>Budget: ${esc(q.budget || "—")}</p>

@@ -2555,12 +2555,13 @@ const PID = {};
 // duplicated anywhere else in the page.
 const PLAN = {
   basic: { id: 'basic', name: 'No-Cost Listing', tagline: 'Get listed on Eventory at no cost.', price_ttd: null, billing_period: null, inquiry_limit: null, includes_label: null, features: ['Public vendor profile', 'Discovery through Eventory', 'Unlimited inquiries'] },
-  spotlight: { id: 'spotlight', name: 'Spotlight', tagline: 'Get more visibility on Eventory.', price_ttd: 175, billing_period: 'month', inquiry_limit: null, includes_label: null, features: ['Email marketing', 'Featured placement on Eventory', 'Social media features: Eventory features your business on its channels', 'Eventory Magazine features'] },
-  spotlight_plus: { id: 'spotlight_plus', name: 'Spotlight+', tagline: 'Go beyond visibility. Advertise with Eventory.', price_ttd: 300, billing_period: 'month', inquiry_limit: null, includes_label: 'Everything in Spotlight, plus:', features: ['Eventory website advertising on relevant pages', 'Social media advertising: promotional posts, reels and campaigns', 'Sponsored placements in relevant Eventory Magazine content'] },
+  spotlight: { id: 'spotlight', name: 'Spotlight', tagline: 'Get more visibility on Eventory.', price_ttd: 175, billing_period: 'one-time', inquiry_limit: null, includes_label: null, features: ['Email marketing', 'Featured placement on Eventory', 'Social media features: Eventory features your business on its channels', 'Eventory Magazine features'] },
+  spotlight_plus: { id: 'spotlight_plus', name: 'Spotlight+', tagline: 'Go beyond visibility. Advertise with Eventory.', price_ttd: 1600, billing_period: 'one-time', inquiry_limit: null, includes_label: 'Everything in Spotlight, plus:', features: ['Eventory website advertising on relevant pages', 'Social media advertising: promotional posts, reels and campaigns', 'Sponsored placements in relevant Eventory Magazine content'] },
 };
 const PLAN_ORDER = ['basic', 'spotlight', 'spotlight_plus'];
-const planPrice = (p) => (p.price_ttd ? 'TTD $' + p.price_ttd : 'No cost');
-const planPeriod = (p) => (p.billing_period ? '/' + p.billing_period : '');
+const planPrice = (p) => (p.price_ttd ? 'TTD $' + Number(p.price_ttd).toLocaleString('en-US') : 'No cost');
+// 'one-time' reads "TTD $175 one-time"; a recurring period reads "TTD $175/month".
+const planPeriod = (p) => (!p.billing_period ? '' : p.billing_period === 'one-time' ? ' one-time' : '/' + p.billing_period);
 const planPriceLine = (p) => p.name + ' · ' + planPrice(p) + planPeriod(p);
 const gaPromo = (name, list, type) => gaEvent(name, { items: list.map((x, i) => ({ item_id: x.slug || x.id, item_name: x.name, promotion_id: x.placementId, promotion_name: 'Spotlight+ ' + type + ' placement', creative_slot: type, index: i })) });
 // URLs, page copy, related links and indexing rules live in js/seo-core.js,

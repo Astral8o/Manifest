@@ -222,7 +222,7 @@
       (!isNew && d.published ? '<a class="btn sm" href="/vendors/' + esc(d.slug) + '/" target="_blank" rel="noopener">View profile ↗</a>' : '') + '</div>';
     h += '<div class="card"><h2>Status</h2><div class="grid2">' +
       '<label class="toggle"><input type="checkbox" data-bool="published"' + (d.published ? ' checked' : '') + '> Live on the site</label>' +
-      select('Plan', 'tier', d.tier, S.ref.plans.map(function (p) { return [p.id, p.name + (p.price_ttd ? ' · TTD $' + p.price_ttd + '/' + p.billing_period : '')]; }), 'Change this once billing is arranged.') + '</div></div>';
+      select('Plan', 'tier', d.tier, S.ref.plans.map(function (p) { return [p.id, p.name + (p.price_ttd ? ' · TTD $' + Number(p.price_ttd).toLocaleString('en-US') + (p.billing_period === 'one-time' ? ' one-time' : p.billing_period ? '/' + p.billing_period : '') : '')]; }), 'Change this once billing is arranged.') + '</div></div>';
     h += '<div class="card"><h2>Profile</h2><div class="grid2">' +
       field('Business name', 'name', d.name) +
       field('Web address', 'slug', d.slug, { ph: 'made from the name', hint: 'eventorytt.com/vendors/<b>' + esc(d.slug || '…') + '</b>/' + (isNew ? '' : '. Changing it breaks old links.') }) +
