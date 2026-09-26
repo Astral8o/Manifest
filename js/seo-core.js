@@ -64,6 +64,58 @@
     if (l && l.isIsland) return p.island === l.name;
     return p.townSlug === locSlug || (v.location || '') === locSlug;
   }
+  // Natural-language search: "birthday caterer", "decorator in Chaguanas",
+  // "lighting for a product launch". Picks out a category, an event type and
+  // a place from the words; whatever is left is matched against vendor text.
+  var CAT_WORDS = {
+    photography: 'photographer photography photo photos photoshoot pictures',
+    videography: 'videographer videography video videos film films filming drone',
+    catering: 'caterer catering cater food chef buffet',
+    decor: 'decorator decorators decor décor decoration decorations balloon balloons backdrop styling stylist',
+    venues: 'venue venues hall halls ballroom banquet',
+    entertainment: 'dj djs mc mcs band bands music musician entertainment entertainer sound',
+    cakes: 'cake cakes baker bakers bakery cupcake cupcakes dessert desserts',
+    florals: 'florist florists flower flowers floral florals bouquet bouquets',
+    rentals: 'rental rentals rent tent tents chair chairs table tables linen linens staging',
+    makeup: 'makeup make-up mua hair hairstylist hairdresser glam',
+    planning: 'planner planners planning coordinator coordinators coordination',
+    bar: 'bar bars bartender bartenders bartending drinks cocktail cocktails mixologist',
+  };
+  var EVENT_WORDS = {
+    weddings: 'wedding weddings bridal bride', birthdays: 'birthday birthdays', corporate: 'corporate company office staff business',
+    christenings: 'christening christenings baptism', sports: '5k 10k race races marathon sports run fun-run', launches: 'launch launches',
+    family: 'family', religious: 'religious church puja eid diwali', fetes: 'fete fetes', conferences: 'conference conferences seminar summit',
+    graduations: 'graduation graduations grad', community: 'community festival', private: 'private anniversary dinner',
+  };
+  var STOP = ' a an and at for from i in me my near need needed of on or our please the to we with looking find discover event events vendor vendors service services someone best good ';
+  function wordsOf(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9à-ÿ'-]+/g, ' ').trim().split(/\s+/).filter(Boolean); }
+  function lookup(table) {
+    var m = {}; Object.keys(table).forEach(function (id) { table[id].split(' ').forEach(function (w) { m[w] = id; }); }); return m;
+  }
+  var CAT_BY_WORD = lookup(CAT_WORDS), EVENT_BY_WORD = lookup(EVENT_WORDS);
+  function parseQuery(ix, q) {
+    var text = ' ' + wordsOf(q).join(' ') + ' ', out = { cat: '', event: '', loc: '', words: [] };
+    if (!text.trim()) return out;
+    // Places first, longest names first ("port of spain" before "spain").
+    var locs = (ix.data.locations || []).map(function (l) { return { slug: l.slug, name: wordsOf(l.name.replace(/, Tobago$/, '')).join(' ') }; })
+      .concat([{ slug: 'trinidad', name: 'trinidad' }, { slug: 'tobago', name: 'tobago' }])
+      .sort(function (a, b) { return b.name.length - a.name.length; });
+    for (var i = 0; i < locs.length; i++) {
+      if (locs[i].name && text.indexOf(' ' + locs[i].name + ' ') >= 0 && ix.loc[locs[i].slug]) { out.loc = locs[i].slug; text = text.replace(' ' + locs[i].name + ' ', ' '); break; }
+    }
+    if (/ product launch(es)? /.test(text)) { out.event = 'launches'; text = text.replace(/ product launch(es)? /, ' '); }
+    if (/ family days? /.test(text)) { out.event = 'family'; text = text.replace(/ family days? /, ' '); }
+    if (/ make ?up artists? /.test(text)) { out.cat = 'makeup'; text = text.replace(/ make ?up artists? /, ' '); }
+    text.trim().split(/\s+/).filter(Boolean).forEach(function (w) {
+      var sing = w.replace(/(ies)$/, 'y').replace(/([^s])s$/, '$1');
+      var c = CAT_BY_WORD[w] || CAT_BY_WORD[sing], e = EVENT_BY_WORD[w] || EVENT_BY_WORD[sing];
+      if (c && !out.cat && ix.cat[c]) return void (out.cat = c);
+      if (e && !out.event && ix.ev[e]) return void (out.event = e);
+      if (c || e || STOP.indexOf(' ' + w + ' ') >= 0) return;
+      out.words.push(sing.length >= 3 ? sing : w);
+    });
+    return out;
+  }
   function vendorsFor(ix, f) {
     return (ix.data.vendors || []).filter(function (v) {
       return (!f.cat || vendorCats(v).indexOf(f.cat) >= 0) && (!f.event || (v.events || []).indexOf(f.event) >= 0) && inLoc(ix, v, f.loc);
@@ -538,6 +590,6 @@
   return {
     SITE: SITE, MIN: MIN, SECTIONS: SECTIONS, build: build, resolve: resolve, appState: appState, pathForState: pathForState,
     page: page, path: path, vendorsFor: vendorsFor, inLoc: inLoc, vendorPlace: vendorPlace, placeLabel: placeLabel,
-    sitemapEntries: sitemapEntries, renderHtml: renderHtml, slugify: slugify, esc: esc, abs: abs,
+    sitemapEntries: sitemapEntries, renderHtml: renderHtml, slugify: slugify, esc: esc, abs: abs, parseQuery: parseQuery,
   };
 });

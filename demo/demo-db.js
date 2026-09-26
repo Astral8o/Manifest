@@ -4,7 +4,7 @@
 // The public data (fake vendors) is embedded by demo/build.js.
 (function () {
   var KEY = 'eventory_demo_v2';
-  var APP_KEYS = ['eventory_auth_v1', 'eventory_saved_v1', 'eventory_inquiries_v1', 'eventory_tiers_v1'];
+  var APP_KEYS = ['eventory_auth_v1', 'eventory_saved_v1', 'eventory_inquiries_v1', 'eventory_tiers_v1', 'eventory_events_v1', 'eventory_event_saves_v1', 'eventory_event_sent_v1'];
   var boot = window.__EV_BOOT;
   var base = boot.data;
   var PLAN = {}; base.plans.forEach(function (p) { PLAN[p.id] = p; });
@@ -92,7 +92,7 @@
     return { id: r.id, vendorId: slug, eventType: r.event_type || '', eventOther: r.event_other || '', date: r.event_date || '',
       guests: r.guests || '', location: r.location || '', pkg: r.package_name || '', budget: r.budget || '', message: r.message || '',
       name: r.name || '', email: r.email || '', phone: r.phone || '', contact: r.contact_pref || 'Email', createdAt: r.created_at,
-      status: r.status || 'new', held: !!r.held };
+      status: r.status || 'new', held: !!r.held, eventId: r.event_id || null };
   }
   function shrink(dataUrl, max) {
     return new Promise(function (resolve) {
@@ -162,12 +162,12 @@
     },
     flushPendingPhotos: async function () { return false; },
 
-    sendInquiries: async function (vendorUuids, f, plannerId) {
+    sendInquiries: async function (vendorUuids, f, plannerId, eventId) {
       await wait(500);
       vendorUuids.forEach(function (vid) {
         var v = rawById(vid), lim = (PLAN[v && v.tier] || {}).inquiry_limit;
         var count = S.inquiries.filter(function (q) { return q.vendor_id === vid; }).length;
-        S.inquiries.unshift({ id: uid(), vendor_id: vid, planner_user_id: plannerId || null, event_type: f.eventType || '', event_other: f.eventOther || '',
+        S.inquiries.unshift({ id: uid(), vendor_id: vid, planner_user_id: plannerId || null, event_id: (plannerId && eventId) || null, event_type: f.eventType || '', event_other: f.eventOther || '',
           event_date: f.date || null, guests: String(f.guests || ''), location: f.location || '', package_name: f.pkg || '', budget: f.budget || '',
           message: f.message || '', name: f.name.trim(), email: f.email.trim(), phone: f.phone || '', contact_pref: f.contact || 'Email',
           status: 'new', held: lim != null && count >= lim, created_at: new Date().toISOString() });
@@ -195,10 +195,32 @@
     pendingTierRequest: async function (vendorUuid) {
       return S.requests.filter(function (r) { return r.vendor_id === vendorUuid && (r.status === 'pending' || r.status === 'contacted'); })[0] || null;
     },
-    savedList: async function () { return S.saved[S.session] || []; },
-    setSaved: async function (userId, vendorUuid, on) {
+    savedList: async function () { return (S.saved[S.session] || []).filter(function (x) { return typeof x === 'string'; }); },
+    savedRows: async function () {
+      var ev = (S.eventSaves || {})[S.session] || [];
+      return (S.saved[S.session] || []).map(function (id) { return { vendor_id: id, event_id: null }; }).concat(ev);
+    },
+    setSaved: async function (userId, vendorUuid, on, eventId) {
+      if (eventId) {
+        S.eventSaves = S.eventSaves || {};
+        var e = S.eventSaves[userId] = (S.eventSaves[userId] || []).filter(function (x) { return !(x.vendor_id === vendorUuid && x.event_id === eventId); });
+        if (on) e.push({ vendor_id: vendorUuid, event_id: eventId });
+        return save();
+      }
       var l = S.saved[userId] = (S.saved[userId] || []).filter(function (x) { return x !== vendorUuid; });
       if (on) l.push(vendorUuid); save();
+    },
+    listEvents: async function () { return ((S.events || {})[S.session] || []).slice(); },
+    saveEvent: async function (userId, e) {
+      S.events = S.events || {};
+      var l = S.events[userId] = (S.events[userId] || []).filter(function (x) { return x.id !== e.id; });
+      l.push(Object.assign({}, e)); save();
+    },
+    deleteEvent: async function (id) {
+      Object.keys(S.events || {}).forEach(function (u) { S.events[u] = S.events[u].filter(function (x) { return x.id !== id; }); });
+      Object.keys(S.eventSaves || {}).forEach(function (u) { S.eventSaves[u] = S.eventSaves[u].filter(function (x) { return x.event_id !== id; }); });
+      S.inquiries.forEach(function (q) { if (q.event_id === id) q.event_id = null; });
+      save();
     },
   };
 

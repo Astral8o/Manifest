@@ -54,6 +54,24 @@ a canonical to the clean page.
 (e.g. `npx serve .` then open `/app.html`) also works: the page loads its data
 from Supabase in the browser.
 
+## Planners: My Events and search
+
+- **My Events** (`planner_events`): Plan My Event saves the plan as an event
+  (name, type, date, guests, area, needed categories). A planner can have
+  several. Kept on the device and, when signed in, in the account (events
+  made before signing in are moved into the account).
+- **Save to an event**: `saved_vendors.event_id` (null = saved without an
+  event). Planners with events get a "Save to…" sheet; on an event's own
+  page, Save saves to that event.
+- **Inquiries for an event**: `inquiries.event_id`, set from the inquiry
+  form's "For which event?" (prefills the event details). `inquiries.source`
+  records where an inquiry came from (`eventory` today; vendor-added and
+  booking-link inquiries later).
+- **Search** understands plain phrases ("birthday caterer", "decorator in
+  Chaguanas", "lighting for a product launch"): `SEO.parseQuery` picks out a
+  category, event type and place; other words match vendor text and
+  packages. If nothing matches everything, the closest matches are shown.
+
 ## Plans and advertising
 
 - **Plans** live in `vendor_plans` (names, TTD prices, features, inquiry
