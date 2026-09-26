@@ -1710,6 +1710,11 @@ main { overflow-wrap: break-word; }
                 <p style="margin:0;font-size:15px;line-height:1.5;color:var(--fg-2);">Rough numbers now save back-and-forth later.</p>
               </div>
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px;align-items:start;">
+                <sc-if value="{{ iqEv.has }}" hint-placeholder-val="{{ false }}">
+                  <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" as="select" label="For which event?" value="{{ iqEv.value }}" sc-camel-on-change="{{ iqEv.pick }}" hint-size="100%,72px">
+                    <sc-for list="{{ iqEv.opts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+                  </x-import>
+                </sc-if>
                 <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" as="select" label="Event type" value="{{ form.eventType }}" sc-camel-on-change="{{ on.eventType }}" error="{{ errors.eventType }}" hint-size="100%,72px">
                   <sc-for list="{{ eventOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
                 </x-import>
@@ -1837,6 +1842,7 @@ main { overflow-wrap: break-word; }
 
         <sc-if value="{{ pl.isStep2 }}" hint-placeholder-val="{{ false }}">
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px;align-items:start;max-width:900px;">
+            <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" label="Name your event (optional)" placeholder="e.g. Mom's 60th Birthday" value="{{ pl.name }}" sc-camel-on-change="{{ pl.onName }}" hint-size="100%,72px"></x-import>
             <sc-if value="{{ isOtherEvent }}" hint-placeholder-val="{{ false }}">
               <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Field" dc-props="{{ fieldProps }}" label="What's the event?" placeholder="e.g. Anniversary dinner" value="{{ form.eventOther }}" sc-camel-on-change="{{ on.eventOther }}" hint-size="100%,76px"></x-import>
             </sc-if>
@@ -1857,6 +1863,10 @@ main { overflow-wrap: break-word; }
         </sc-if>
 
         <sc-if value="{{ pl.isResults }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;background:var(--surface-band);border-radius:18px;padding:14px 18px;">
+            <span style="font-size:15px;font-weight:700;">✓ {{ pl.savedTo }}</span>
+            <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="subtle" size="sm" sc-camel-on-click="{{ pl.openEvent }}" hint-size="110px,36px">Open event</x-import>
+          </div>
           <div style="display:grid;gap:40px;">
             <sc-for list="{{ pl.groups }}" as="g" hint-placeholder-count="3">
               <div style="display:grid;gap:16px;">
@@ -2199,6 +2209,7 @@ main { overflow-wrap: break-word; }
     </sc-if>
 
     <sc-if value="{{ is.saved }}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{ sv.hub }}" hint-placeholder-val="{{ true }}">
       <section data-screen-label="Your Eventory" style="display:grid;gap:24px;padding-top:12px;">
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;">
           <div style="display:grid;gap:10px;">
@@ -2210,6 +2221,26 @@ main { overflow-wrap: break-word; }
             <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="accent" size="lg" sc-camel-on-click="{{ sv.send }}" hint-size="200px,50px">{{ sv.sendLabel }}</x-import>
           </sc-if>
         </div>
+        <sc-if value="{{ sv.hasEvents }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid;gap:14px;">
+            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;">
+              <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;">My Events</h2>
+              <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="subtle" size="sm" sc-camel-on-click="{{ sv.newEvent }}" hint-size="140px,36px">+ Plan a new event</x-import>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:12px;">
+              <sc-for list="{{ sv.events }}" as="e" hint-placeholder-count="2">
+                <div role="button" tabindex="0" sc-camel-on-click="{{ e.open }}" style="display:grid;gap:6px;border:1px solid var(--line-hairline);border-radius:20px;padding:18px;cursor:pointer;background:var(--surface);min-width:0;">
+                  <span style="font-size:18px;font-weight:800;letter-spacing:-0.01em;overflow-wrap:anywhere;">{{ e.name }}</span>
+                  <span style="font-size:14px;color:var(--fg-3);">{{ e.facts }}</span>
+                  <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--fg-5);padding-top:4px;">{{ e.counts }} →</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ sv.hasPlainTitle }}" hint-placeholder-val="{{ false }}">
+          <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;border-top:1px solid var(--line-hairline);padding-top:22px;">{{ sv.plainTitle }}</h2>
+        </sc-if>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:20px;">
           <sc-for list="{{ sv.vendors }}" as="v" hint-placeholder-count="0">
             <dc-import name="VendorTile2" v="{{ v }}" hint-size="100%,440px"></dc-import>
@@ -2226,6 +2257,68 @@ main { overflow-wrap: break-word; }
           </div>
         </sc-if>
       </section>
+      </sc-if>
+      <sc-if value="{{ ev.name }}" hint-placeholder-val="{{ false }}">
+      <section data-screen-label="Event" style="display:grid;gap:28px;padding-top:12px;">
+        <div style="display:grid;gap:12px;">
+          <div style="justify-self:start;"><x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="quiet" dc-props="{{ quietBtn }}" sc-camel-on-click="{{ ev.back }}" hint-size="120px,40px">← Your Eventory</x-import></div>
+          <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Eyebrow" hint-size="160px,14px">My Events</x-import>
+          <h1 style="margin:0;font-size:clamp(30px,4vw,46px);font-weight:800;letter-spacing:-0.03em;line-height:1.05;overflow-wrap:anywhere;">{{ ev.name }}</h1>
+          <p style="margin:0;font-size:15px;line-height:1.5;color:var(--fg-2);">{{ ev.facts }}</p>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding-top:4px;">
+            <sc-if value="{{ ev.canSend }}" hint-placeholder-val="{{ false }}">
+              <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="accent" sc-camel-on-click="{{ ev.send }}" hint-size="220px,43px">{{ ev.sendLabel }}</x-import>
+            </sc-if>
+            <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="subtle" sc-camel-on-click="{{ ev.edit }}" hint-size="120px,43px">Edit details</x-import>
+            <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="quiet" dc-props="{{ quietBtn }}" sc-camel-on-click="{{ ev.remove }}" hint-size="110px,43px">Delete event</x-import>
+          </div>
+        </div>
+        <sc-if value="{{ ev.hasNeeds }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid;gap:32px;">
+            <sc-for list="{{ ev.needs }}" as="g" hint-placeholder-count="2">
+              <div style="display:grid;gap:14px;border-top:1px solid var(--line-hairline);padding-top:18px;">
+                <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:10px;">
+                  <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em;">{{ g.label }}</h2>
+                  <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;color:var(--fg-5);">{{ g.count }}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:20px;">
+                  <sc-for list="{{ g.vendors }}" as="v" hint-placeholder-count="0">
+                    <dc-import name="VendorTile2" v="{{ v }}" hint-size="100%,440px"></dc-import>
+                  </sc-for>
+                </div>
+                <div style="justify-self:start;"><x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="subtle" size="sm" sc-camel-on-click="{{ g.discover }}" hint-size="180px,36px">{{ g.discoverLabel }}</x-import></div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ ev.hasOther }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid;gap:14px;border-top:1px solid var(--line-hairline);padding-top:18px;">
+            <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em;">Also saved</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:20px;">
+              <sc-for list="{{ ev.other }}" as="v" hint-placeholder-count="0">
+                <dc-import name="VendorTile2" v="{{ v }}" hint-size="100%,440px"></dc-import>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <div style="display:grid;gap:14px;border-top:1px solid var(--line-hairline);padding-top:18px;">
+          <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em;">Inquiries</h2>
+          <sc-for list="{{ ev.sent }}" as="q" hint-placeholder-count="0">
+            <div sc-camel-on-click="{{ q.open }}" style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:14px 18px;border:1px solid var(--line-hairline);border-radius:16px;cursor:pointer;">
+              <img src="{{ q.img }}" alt="" style="width:48px;height:48px;border-radius:999px;object-fit:cover;background:var(--ink);flex-shrink:0;">
+              <div style="flex:1 1 180px;min-width:0;display:grid;gap:2px;">
+                <span style="font-size:15px;font-weight:700;">{{ q.vendor }}</span>
+                <span style="font-size:13px;color:var(--fg-3);">{{ q.sub }}</span>
+              </div>
+              <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Tag" hint-size="80px,26px">{{ q.status }}</x-import>
+            </div>
+          </sc-for>
+          <sc-if value="{{ ev.noSent }}" hint-placeholder-val="{{ true }}">
+            <p style="margin:0;font-size:14px;color:var(--fg-3);">Save vendors to this event, then send them one inquiry with your event details already filled in.</p>
+          </sc-if>
+        </div>
+      </section>
+      </sc-if>
     </sc-if>
 
     <sc-if value="{{ is.inbox }}" hint-placeholder-val="{{ false }}">
@@ -2493,6 +2586,26 @@ main { overflow-wrap: break-word; }
         </sc-if>
       </section>
     </sc-if>
+    <sc-if value="{{ ss.show }}" hint-placeholder-val="{{ false }}">
+      <div sc-camel-on-click="{{ ss.done }}" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:60;"></div>
+      <div role="dialog" aria-label="Save to an event" style="position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,480px);z-index:61;background:var(--surface);border-radius:24px 24px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom));display:grid;gap:14px;box-shadow:0 -12px 40px rgba(0,0,0,0.18);max-height:85vh;overflow:auto;">
+        <div style="display:grid;gap:4px;">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-5);">Save to</span>
+          <span style="font-size:20px;font-weight:800;letter-spacing:-0.02em;overflow-wrap:anywhere;">{{ ss.name }}</span>
+        </div>
+        <div style="display:grid;gap:8px;">
+          <sc-for list="{{ ss.rows }}" as="r" hint-placeholder-count="3">
+            <button type="button" sc-camel-on-click="{{ r.pick }}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:left;min-height:52px;padding:12px 16px;border-radius:16px;border:1px solid var(--line-control);background:{{ r.bg }};color:{{ r.fg }};font:inherit;font-size:15px;font-weight:700;cursor:pointer;">
+              <span style="min-width:0;overflow-wrap:anywhere;">{{ r.label }}</span><span style="font-family:var(--font-mono);font-size:15px;">{{ r.mark }}</span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;">
+          <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" variant="quiet" dc-props="{{ quietBtn }}" sc-camel-on-click="{{ ss.newEvent }}" hint-size="140px,40px">+ New event</x-import>
+          <x-import component-from-global-scope="EventoryDesignSystem_d28b5d.Button" sc-camel-on-click="{{ ss.done }}" hint-size="100px,43px">Done</x-import>
+        </div>
+      </div>
+    </sc-if>
   </main>
 
   <footer style="max-width:1440px;margin:0 auto;padding:28px clamp(16px,3vw,28px) 40px;border-top:1px solid var(--line-hairline);display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;">
@@ -2601,10 +2714,11 @@ const locName = (l) => (SX && SX.loc[l] ? SX.loc[l].name : l);
 const gaEvent = (name, params) => { try { if (typeof window.gtag === 'function') window.gtag('event', name, params); } catch (e) {} };
 const NAV_BTN = { style: { border: '1px solid transparent', padding: '11px 12px' } };
 const QUIET_BTN = { style: { border: '1px solid transparent' } };
-const LS = { inq:'eventory_inquiries_v1', tiers:'eventory_tiers_v1', saved:'eventory_saved_v1' };
+const LS = { inq:'eventory_inquiries_v1', tiers:'eventory_tiers_v1', saved:'eventory_saved_v1', events:'eventory_events_v1', evSaves:'eventory_event_saves_v1', evSent:'eventory_event_sent_v1' };
+const newId = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, () => (Math.random() * 16 | 0).toString(16)));
 const load = (k, fb) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? fb; } catch (e) { return fb; } };
 const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
-const BLANK = { eventType:'', eventOther:'', date:'', guests:'', location:'', pkg:'', budget:'', message:'', name:'', email:'', phone:'', contact:'Email' };
+const BLANK = { eventType:'', eventOther:'', date:'', guests:'', location:'', pkg:'', budget:'', message:'', name:'', email:'', phone:'', contact:'Email', eventId:'' };
 const evLabel = (q) => q.eventType === 'other' && q.eventOther ? q.eventOther : (EV[q.eventType] ? EV[q.eventType].label : '');
 const fmtDate = (s) => { if (!s) return 'Not set'; const t = new Date(s + 'T12:00:00'); return isNaN(t) ? s : t.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short', year:'numeric' }); };
 const ago = (iso) => { const h = (Date.now() - new Date(iso)) / 36e5; if (h < 1) return 'JUST NOW'; if (h < 24) return Math.floor(h) + 'H AGO'; return Math.floor(h / 24) + 'D AGO'; };
@@ -2617,6 +2731,8 @@ class Component extends DCLogic {
     inq: { ids: [], step: 1, sentIds: [], picks: [], origin: null }, form: { ...BLANK }, errors: {},
     plan: { step: 1, event: '', area: '', needs: [] },
     inquiries: [], saved: load(LS.saved, []),
+    // My Events: kept on this device, and in the planner's account when signed in.
+    events: load(LS.events, []), evSaves: load(LS.evSaves, {}), evSent: load(LS.evSent, {}), evOpen: null, saveSheet: null,
     inboxVendor: '', inboxSel: null,
     auth: (() => { const a = load('eventory_auth_v1', { planner: null, vendor: null }); return a.planner && a.vendor ? { planner: a.planner, vendor: null } : a; })(),
     au: { mode: 'signin', f: { name: '', email: '', password: '' }, e: {} },
@@ -2693,6 +2809,7 @@ class Component extends DCLogic {
     local.forEach(id => db.setSaved(u.id, VID[id].uuid, true).catch(() => {}));
     const saved = [...fromDb, ...local]; store(LS.saved, saved);
     this.setState(st => ({ inquiries, saved, form: { ...st.form, name: st.form.name || planner.name, email: st.form.email || planner.email } }));
+    await this.syncEvents(planner);
   }
   setAuth(patch) { this.setState(st => { const auth = { ...st.auth, ...patch }; store('eventory_auth_v1', auth); return { auth }; }); }
   setJoin(patch) { this.setState(st => ({ join: { ...st.join, ...patch } })); }
@@ -2716,10 +2833,55 @@ class Component extends DCLogic {
   browseTo(patch) { this.go('browse', { browse: { mode:'event', event:'', cat:'', loc:'', q:'', ...patch } }); }
   setBrowse(patch) { this.setState(s => ({ browse: { ...s.browse, ...patch } })); }
   openVendor(id, list) { this.go('profile', { vendorId: id, gal: 0, ...(list ? { list } : {}) }); }
-  toggleSave(id) { this.setState(s => { const on = !s.saved.includes(id); const saved = on ? [...s.saved, id] : s.saved.filter(x => x !== id); store(LS.saved, saved); const pl = s.auth.planner; if (pl && pl.id && VID[id]) window.EVDB.setSaved(pl.id, VID[id].uuid, on).catch(() => {}); return { saved }; }); }
+  // Saving: to an event when one is in context (planning it or viewing it),
+  // otherwise ask which event when the planner has any, else a plain save.
+  saveContext() { const s = this.state; return s.view === 'plan' && s.plan.eventId ? s.plan.eventId : (s.view === 'saved' && s.evOpen ? s.evOpen : null); }
+  isSaved(id) { const s = this.state, ctx = this.saveContext(); return ctx ? (s.evSaves[ctx] || []).includes(id) : s.saved.includes(id) || Object.values(s.evSaves).some(l => l.includes(id)); }
+  savedAll() { const s = this.state; return [...new Set([...s.saved, ...s.events.flatMap(e => s.evSaves[e.id] || [])])].filter(id => VID[id]); }
+  toggleSave(id) {
+    const s = this.state, ctx = this.saveContext();
+    if (ctx) return this.setEventSave(ctx, id, !(s.evSaves[ctx] || []).includes(id));
+    if (s.events.length) return this.setState({ saveSheet: id });
+    this.setPlainSave(id, !s.saved.includes(id));
+  }
+  setPlainSave(id, on) { this.setState(s => { const saved = on ? [...new Set([...s.saved, id])] : s.saved.filter(x => x !== id); store(LS.saved, saved); const pl = s.auth.planner; if (pl && pl.id && VID[id]) window.EVDB.setSaved(pl.id, VID[id].uuid, on).catch(() => {}); return { saved }; }); }
+  setEventSave(evId, id, on) {
+    this.setState(s => { const cur = s.evSaves[evId] || []; const evSaves = { ...s.evSaves, [evId]: on ? [...new Set([...cur, id])] : cur.filter(x => x !== id) }; store(LS.evSaves, evSaves);
+      const pl = s.auth.planner; if (pl && pl.id && VID[id]) window.EVDB.setSaved(pl.id, VID[id].uuid, on, evId).catch(() => {}); return { evSaves }; });
+  }
+  eventName(e) { return e.name || [e.eventType === 'other' ? e.eventOther : (EV[e.eventType] ? EV[e.eventType].label : 'My event'), e.date ? fmtDate(e.date).replace(/^\w+, /, '') : ''].filter(Boolean).join(' · '); }
+  saveEvent(ev) {
+    this.setState(s => { const events = s.events.some(e => e.id === ev.id) ? s.events.map(e => e.id === ev.id ? ev : e) : [...s.events, ev]; store(LS.events, events); return { events }; });
+    const pl = this.state.auth.planner; if (pl && pl.id) window.EVDB.saveEvent(pl.id, ev).catch(e => console.error('[eventory] event not saved', e));
+  }
+  deleteEvent(id) {
+    this.setState(s => { const events = s.events.filter(e => e.id !== id); const evSaves = { ...s.evSaves }; delete evSaves[id]; const evSent = { ...s.evSent }; delete evSent[id];
+      store(LS.events, events); store(LS.evSaves, evSaves); store(LS.evSent, evSent); return { events, evSaves, evSent, evOpen: null }; });
+    const pl = this.state.auth.planner; if (pl && pl.id) window.EVDB.deleteEvent(id).catch(() => {});
+  }
+  // Signed in: the account's events and saves, plus anything made on this
+  // device before signing in (which is then stored in the account).
+  async syncEvents(pl) {
+    const db = window.EVDB, s = this.state;
+    const [remote, rows] = await Promise.all([db.listEvents().catch(() => null), db.savedRows ? db.savedRows().catch(() => null) : null]);
+    if (!remote) return;
+    const ids = new Set(remote.map(e => e.id));
+    const localOnly = s.events.filter(e => !ids.has(e.id));
+    await Promise.all(localOnly.map(e => db.saveEvent(pl.id, e).catch(() => {})));
+    const events = [...remote, ...localOnly];
+    const slugBy = Object.fromEntries(V.map(v => [v.uuid, v.id]));
+    const evSaves = {};
+    (rows || []).forEach(r => { if (r.event_id && slugBy[r.vendor_id]) (evSaves[r.event_id] = evSaves[r.event_id] || []).push(slugBy[r.vendor_id]); });
+    Object.entries(s.evSaves).forEach(([evId, list]) => { if (!events.some(e => e.id === evId)) return; list.forEach(id => {
+      if (!(evSaves[evId] || []).includes(id) && VID[id]) { (evSaves[evId] = evSaves[evId] || []).push(id); db.setSaved(pl.id, VID[id].uuid, true, evId).catch(() => {}); } }); });
+    store(LS.events, events); store(LS.evSaves, evSaves);
+    this.setState({ events, evSaves });
+  }
   startInquiry(ids, preset = {}) {
     const s = this.state; const ev = preset.eventType ?? s.browse.event ?? s.plan.event ?? '';
-    this.go('inquire', { inq: { ids, step: 1, sentIds: [], picks: [], origin: preset.origin || null }, errors: {}, form: { ...BLANK, ...s.form, message: '', pkg: '', ...preset, eventType: ev || s.form.eventType } });
+    const evRec = preset.eventId && s.events.find(e => e.id === preset.eventId);
+    const fromEvent = evRec ? { eventId: evRec.id, eventType: evRec.eventType || ev, eventOther: evRec.eventOther, date: evRec.date, guests: evRec.guests, location: evRec.area || s.form.location } : {};
+    this.go('inquire', { inq: { ids, step: 1, sentIds: [], picks: [], origin: preset.origin || null }, errors: {}, form: { ...BLANK, ...s.form, message: '', pkg: '', eventId: '', ...preset, eventType: ev || s.form.eventType, ...fromEvent } });
   }
   setField(k, v) { this.setState(s => ({ form: { ...s.form, [k]: v }, errors: { ...s.errors, [k]: undefined } })); }
   validate(step) {
@@ -2733,7 +2895,10 @@ class Component extends DCLogic {
   // basic vendor's inquiry is held.
   async sendTo(ids) {
     const s = this.state, f = s.form, pl = s.auth.planner;
-    await window.EVDB.sendInquiries(ids.map(id => VID[id].uuid), { ...f, pkg: ids.length === 1 || s.inq.ids.length === 1 ? f.pkg : '' }, pl && pl.id);
+    const uuids = ids.map(id => VID[id].uuid), fields = { ...f, pkg: ids.length === 1 || s.inq.ids.length === 1 ? f.pkg : '' };
+    await window.EVDB.sendInquiries(uuids, fields, pl && pl.id, f.eventId || null)
+      .catch(e => { if (!f.eventId) throw e; return window.EVDB.sendInquiries(uuids, fields, pl && pl.id, null); }); // event not in the account yet
+    if (f.eventId) this.setState(st => { const evSent = { ...st.evSent, [f.eventId]: [...(st.evSent[f.eventId] || []).filter(x => !ids.includes(x.vendor)), ...ids.map(v => ({ vendor: v, at: new Date().toISOString() }))] }; store(LS.evSent, evSent); return { evSent }; });
     if (!pl) return s.inquiries;
     return window.EVDB.plannerInquiries(Object.fromEntries(V.map(v => [v.uuid, v.id]))).catch(() => s.inquiries);
   }
@@ -2754,7 +2919,7 @@ class Component extends DCLogic {
     return V.filter(x => x.id !== id && !exclude.includes(x.id) && x.cat === v.cat && (!ev || x.events.includes(ev))).slice(0, 3);
   }
   dec(v) {
-    const s = this.state; const saved = s.saved.includes(v.id);
+    const s = this.state; const saved = this.isSaved(v.id);
     return { ...v, img: v.imgs[0], catLabel: CAT[v.cat].label, isSpotlight: this.tier(v.id) !== 'basic', saved, notSaved: !saved,
       open: () => this.openVendor(v.id), save: () => this.toggleSave(v.id), inquire: () => this.startInquiry([v.id]) };
   }
@@ -2774,7 +2939,7 @@ class Component extends DCLogic {
     const s = this.state, lim = this.limit(), f = s.form;
     const nav = {
       home: () => this.go('home'), events: () => this.browseTo({ mode: 'event' }), cats: () => this.browseTo({ mode: 'cat' }), all: () => this.browseTo({ mode: 'cat' }),
-      plan: () => this.go('plan', { plan: { step: 1, event: '', area: '', needs: [] } }), saved: () => this.go('saved'),
+      plan: () => this.go('plan', { plan: { step: 1, event: '', area: '', needs: [], eventId: null, name: '' }, form: { ...s.form, date: '', guests: '', eventOther: '' } }), saved: () => this.go('saved', { evOpen: null }),
       join: () => this.go('join', { join: { mode: 'signup', step: 1, d: { ...JOIN_BLANK }, e: {}, si: { email: '', password: '' } } }),
       vendorSignin: () => this.go('join', { join: { ...s.join, mode: 'signin', e: {} } }),
       signin: () => this.go('auth', { au: { mode: 'signin', f: { name: '', email: '', password: '' }, e: {} } }), blog: () => this.go('blog', { blogTag: '' }), inbox: () => s.auth.vendor && VID[s.auth.vendor] ? this.go('inbox', { inboxVendor: s.auth.vendor, inboxSel: null }) : this.go('join', { join: { ...s.join, mode: 'signin', e: {} } }), back: () => this.back(),
@@ -2800,7 +2965,7 @@ class Component extends DCLogic {
         if (a.planner) return { headerLabel: 'Hi, ' + a.planner.name.split(' ')[0], headerClick: () => this.go('account') };
         if (a.vendor && VID[a.vendor]) return { headerLabel: VID[a.vendor].name.split(' ')[0], headerClick: () => this.go('inbox', { inboxVendor: a.vendor, inboxSel: null }) };
         return { headerLabel: 'Sign in', headerClick: () => this.go('auth', { au: { mode: 'signin', f: { name: '', email: '', password: '' }, e: {} } }) }; })(),
-      nav, is, on, form: f, isOtherEvent: f.eventType === 'other', phoneLabel: f.contact === 'Email' ? 'Phone (optional)' : (f.contact === 'WhatsApp' ? 'WhatsApp number' : 'Phone'), quietBtn: QUIET_BTN, waBtn: { style: { background: '#25D366', color: '#FFFFFF', border: '1px solid #25D366' } }, navBtn: NAV_BTN, fieldProps: FIELD_PROPS, searchProps: SEARCH_PROPS, errors: s.errors, locOpts, savedCount: s.saved.length, homeQuery: s.homeQuery,
+      nav, is, on, form: f, isOtherEvent: f.eventType === 'other', phoneLabel: f.contact === 'Email' ? 'Phone (optional)' : (f.contact === 'WhatsApp' ? 'WhatsApp number' : 'Phone'), quietBtn: QUIET_BTN, waBtn: { style: { background: '#25D366', color: '#FFFFFF', border: '1px solid #25D366' } }, navBtn: NAV_BTN, fieldProps: FIELD_PROPS, searchProps: SEARCH_PROPS, errors: s.errors, locOpts, savedCount: this.savedAll().length, homeQuery: s.homeQuery,
       vendorCountLabel: V.length + ' VENDORS',
       heroRows: [
         { shift: 'clamp(40px,6vw,110px)', tiles: [['bar', 'bar'], ['stage-decor', 'decor'], ['makeup', 'makeup'], ['venue', 'venues']] },
@@ -2823,7 +2988,25 @@ class Component extends DCLogic {
       const b = s.browse; const byEvent = b.mode === 'event';
       const q = b.q.trim().toLowerCase();
       const RR = (v) => { const m = v.reply.match(/(\d+|an) hour/); return m ? (m[1] === 'an' ? 1 : +m[1]) : 24; };
-      let res = this.sortSpot(V.filter(v => (!b.event || v.events.includes(b.event)) && (!b.cat || v.cat === b.cat || (v.also || []).includes(b.cat)) && (!b.loc || v.location === b.loc || (SX && SEO.inLoc(SX, v, b.loc))) && (!q || (v.name + ' ' + CAT[v.cat].label + ' ' + v.tagline + ' ' + v.about).toLowerCase().includes(q))));
+      // Filters first; then the search words, read naturally ("birthday
+      // caterer", "decorator in Chaguanas"). If nothing matches everything,
+      // show the closest matches rather than an empty page.
+      const inCat = (v, c) => !c || v.cat === c || (v.also || []).includes(c);
+      const inPlace = (v, l) => !l || v.location === l || (SX && SEO.inLoc(SX, v, l)) || (SX && SX.loc[l] && (v.areas || []).includes(SX.loc[l].name));
+      const base = V.filter(v => (!b.event || v.events.includes(b.event)) && inCat(v, b.cat) && inPlace(v, b.loc));
+      const pq = q && SX ? SEO.parseQuery(SX, q) : { cat: '', event: '', loc: '', words: q ? [q] : [] };
+      const hay = (v) => (v.name + ' ' + CAT[v.cat].label + ' ' + v.tagline + ' ' + v.about + ' ' + (v.specialties || []).join(' ') + ' ' + v.packages.map(p => p.name + ' ' + p.desc).join(' ')).toLowerCase();
+      const hasWords = (v) => pq.words.every(w => hay(v).includes(w));
+      const tiers = !q ? [() => true] : [
+        v => inCat(v, pq.cat) && (!pq.event || v.events.includes(pq.event)) && inPlace(v, pq.loc) && hasWords(v),
+        v => inCat(v, pq.cat) && inPlace(v, pq.loc) && hasWords(v),
+        v => inCat(v, pq.cat) && hasWords(v),
+        v => (pq.cat || pq.words.length) && inCat(v, pq.cat) && (!pq.words.length || pq.words.some(w => hay(v).includes(w))),
+      ];
+      let res = [], tier = 0;
+      for (; tier < tiers.length && !res.length; tier++) res = base.filter(tiers[tier]);
+      const closest = tier > 1 && res.length > 0;
+      res = this.sortSpot(res);
             const evChips = [{ id: '', label: 'All events' }, ...EVENTS].map(e => ({ label: e.label, on: b.event === e.id, count: e.id ? V.filter(v => v.events.includes(e.id) && (!b.cat || v.cat === b.cat)).length : undefined, pick: () => this.setBrowse({ event: e.id }) }));
       const catChips = [{ id: '', label: 'All vendors' }, ...CATS].map(c => ({ label: c.label, on: b.cat === c.id, count: c.id ? V.filter(v => v.cat === c.id && (!b.event || v.events.includes(b.event))).length : undefined, pick: () => this.setBrowse({ cat: c.id }) })).filter(c => c.count !== 0);
       const evL = b.event ? EV[b.event].label : '', catL = b.cat ? CAT[b.cat].label : '';
@@ -2832,7 +3015,7 @@ class Component extends DCLogic {
       out.br = {
         byEvent, byCat: !byEvent, title, q: b.q, loc: b.loc, intro: clean && bm.intro ? bm.intro : '', hasIntro: !!(clean && bm.intro),
         eyebrow: byEvent ? 'Explore by Event' : 'Explore by Vendor',
-        countLabel: res.length + (res.length === 1 ? ' VENDOR' : ' VENDORS') + (b.loc ? ' · ' + locName(b.loc).toUpperCase() : '') + (q ? ' · “' + b.q + '”' : ''),
+        countLabel: (closest ? 'CLOSEST MATCHES · ' : '') + res.length + (res.length === 1 ? ' VENDOR' : ' VENDORS') + (b.loc ? ' · ' + locName(b.loc).toUpperCase() : '') + (q ? ' · “' + b.q + '”' : ''),
         primaryCaption: byEvent ? 'What are you planning?' : 'What do you need?',
         secondaryCaption: byEvent ? 'Narrow by vendor type' : 'Narrow by event',
         primary: byEvent ? evChips : catChips,
@@ -2867,6 +3050,11 @@ class Component extends DCLogic {
       };
     }
 
+    // Which event an inquiry is for (planners with events).
+    out.iqEv = { has: s.events.length > 0 && is.inquire, value: f.eventId || '',
+      opts: [{ value: '', label: 'Not for a saved event' }, ...s.events.map(e => ({ value: e.id, label: this.eventName(e) }))],
+      pick: (e) => { const e2 = s.events.find(x => x.id === e.target.value);
+        this.setState(st => ({ form: { ...st.form, eventId: e2 ? e2.id : '', ...(e2 ? { eventType: e2.eventType || st.form.eventType, eventOther: e2.eventOther || st.form.eventOther, date: e2.date || st.form.date, guests: e2.guests || st.form.guests, location: e2.area || st.form.location } : {}) }, errors: {} })); } };
     if (is.inquire) {
       const ids = s.inq.ids; const vs = ids.map(id => VID[id]).filter(Boolean); const single = vs.length === 1;
       const sent = s.inq.step === 'sent'; const allSent = s.inq.sentIds;
@@ -2895,6 +3083,7 @@ class Component extends DCLogic {
 
     if (is.plan) {
       const p = s.plan; const setP = (patch) => this.setState(st => ({ plan: { ...st.plan, ...patch } }));
+      const evSaved = p.eventId ? (s.evSaves[p.eventId] || []).filter(id => VID[id]) : [];
       const titles = { 1: 'What are you planning?', 2: 'When, how many, and where?', 3: 'Which vendors are you looking for?', 4: 'Your shortlist' };
       const leads = { 1: 'Pick the closest match. You can change it later.', 2: 'Rough numbers are fine. Vendors use them to quote.', 3: "We've picked what this event usually needs. Add or remove anything.", 4: 'Save the vendors you like to Your Eventory, then ask them all at once.' };
       const groups = p.needs.map(cid => {
@@ -2903,8 +3092,12 @@ class Component extends DCLogic {
         return { label: CAT[cid].label, vendors: vs.slice(0, 3).map(v => this.dec(v)), seeAllLabel: 'See all ' + vs.length + ' →', seeAll: () => this.browseTo({ mode: 'event', event: p.event, cat: cid }) };
       }).filter(g => g.vendors.length);
       const nextMap = {
-        1: () => setP({ step: 2 }), 2: () => setP({ step: 3 }), 3: () => setP({ step: 4 }),
-        4: () => this.startInquiry([...s.saved], { eventType: p.event, location: s.form.location || p.area, origin: 'saved' }),
+        1: () => setP({ step: 2 }), 2: () => setP({ step: 3 }),
+        // Finishing the questions saves the plan as an event in My Events.
+        3: () => { const id = p.eventId || newId(); const prev = s.events.find(e => e.id === id);
+          this.saveEvent({ ...(prev || { createdAt: new Date().toISOString() }), id, name: (p.name || '').trim(), eventType: p.event, eventOther: s.form.eventOther || '', date: s.form.date || '', guests: s.form.guests || '', area: p.area || '', needs: p.needs, notes: prev ? prev.notes || '' : '' });
+          setP({ step: 4, eventId: id }); },
+        4: () => this.startInquiry(evSaved, { eventId: p.eventId, origin: 'event' }),
       };
       out.pl = {
         isStep1: p.step === 1, isStep2: p.step === 2, isStep3: p.step === 3, isResults: p.step === 4,
@@ -2913,10 +3106,13 @@ class Component extends DCLogic {
         area: p.area, onArea: (e) => setP({ area: e.target.value }),
         needs: CATS.map(c => ({ label: c.label, on: p.needs.includes(c.id), count: V.filter(v => v.cat === c.id && (!p.event || v.events.includes(p.event))).length, pick: () => setP({ needs: p.needs.includes(c.id) ? p.needs.filter(x => x !== c.id) : [...p.needs, c.id] }) })),
         groups, canBack: p.step > 1, back: () => setP({ step: p.step - 1 }),
-        next: nextMap[p.step], nextDisabled: (p.step === 1 && !p.event) || (p.step === 3 && !p.needs.length) || (p.step === 4 && !s.saved.length),
+        next: nextMap[p.step], nextDisabled: (p.step === 1 && !p.event) || (p.step === 3 && !p.needs.length) || (p.step === 4 && !evSaved.length),
         nextVariant: p.step === 4 ? 'accent' : 'solid',
-        nextLabel: p.step === 4 ? (s.saved.length ? 'Send ' + s.saved.length + ' inquiries' : 'Save vendors to send') : 'Continue →',
-        hint: p.step === 4 ? s.saved.length + ' IN YOUR EVENTORY' : (p.step === 3 ? p.needs.length + ' CATEGORIES SELECTED' : ''),
+        nextLabel: p.step === 4 ? (evSaved.length ? (evSaved.length === 1 ? 'Send inquiry' : 'Send ' + evSaved.length + ' inquiries') : 'Save vendors to send') : (p.step === 3 ? 'Save event →' : 'Continue →'),
+        hint: p.step === 4 ? evSaved.length + ' SAVED TO THIS EVENT' : (p.step === 3 ? p.needs.length + ' CATEGORIES SELECTED' : ''),
+        name: p.name || '', onName: (e) => setP({ name: e.target.value }),
+        savedTo: p.step === 4 && p.eventId ? 'Saved to My Events: ' + this.eventName(s.events.find(e => e.id === p.eventId) || {}) : '',
+        openEvent: () => this.go('saved', { evOpen: p.eventId }),
       };
     }
 
@@ -2957,7 +3153,7 @@ class Component extends DCLogic {
       const mine = (s.auth.planner ? s.inquiries : []).slice().sort((x, y) => new Date(y.createdAt) - new Date(x.createdAt));
       out.ac = { name: pl.name, email: pl.email, empty: !mine.length,
         signOut: () => { window.EVDB.signOut(); this.setAuth({ planner: null }); this.setState({ inquiries: [] }); this.go('home'); },
-        inquiries: mine.map(q => { const v = VID[q.vendorId]; return { vendor: v ? v.name : 'Vendor', img: v ? v.imgs[0] : P.hero, sub: (evLabel(q) || 'Event') + ' · ' + fmtDate(q.date) + ' · Sent ' + ago(q.createdAt).toLowerCase(), status: q.status === 'replied' ? 'Replied' : 'Sent', open: () => v && this.openVendor(v.id) }; }) };
+        inquiries: mine.map(q => { const v = VID[q.vendorId]; const ev = q.eventId && s.events.find(e => e.id === q.eventId); return { vendor: v ? v.name : 'Vendor', img: v ? v.imgs[0] : P.hero, sub: (ev ? this.eventName(ev) + ' · ' : '') + (evLabel(q) || 'Event') + ' · ' + fmtDate(q.date) + ' · Sent ' + ago(q.createdAt).toLowerCase(), status: q.status === 'replied' ? 'Replied' : 'Sent', open: () => v && this.openVendor(v.id) }; }) };
     }
     if (is.join) {
       const j = s.join; const d = j.d; const step = j.step;
@@ -3038,10 +3234,50 @@ class Component extends DCLogic {
       out.ad = { show: items.length > 0, items, note: 'Paid placements from vendors on Eventory\u2019s Spotlight+ plan. They\u2019re separate from Eventory\u2019s listings and editorial.' };
     }
 
+    // "Save to…" sheet when a planner with events taps Save.
+    const sheetV = s.saveSheet && VID[s.saveSheet];
+    out.ss = { show: !!sheetV, name: sheetV ? sheetV.name : '',
+      rows: sheetV ? [...s.events.map(e => { const on = (s.evSaves[e.id] || []).includes(sheetV.id); return { label: this.eventName(e), mark: on ? '✓' : '+', on, bg: on ? 'var(--ink)' : 'var(--surface)', fg: on ? 'var(--ink-on)' : 'var(--ink)', pick: () => this.setEventSave(e.id, sheetV.id, !on) }; }),
+        (() => { const on = s.saved.includes(sheetV.id); return { label: 'Save without an event', mark: on ? '✓' : '+', on, bg: on ? 'var(--ink)' : 'var(--surface)', fg: on ? 'var(--ink-on)' : 'var(--ink)', pick: () => this.setPlainSave(sheetV.id, !on) }; })()] : [],
+      done: () => this.setState({ saveSheet: null }), newEvent: () => { this.setState({ saveSheet: null }); nav.plan(); } };
+
     if (is.saved) {
       const vs = s.saved.map(id => VID[id]).filter(Boolean);
-      out.sv = { vendors: vs.map(v => this.dec(v)), has: vs.length > 0, empty: vs.length === 0, countLabel: vs.length + (vs.length === 1 ? ' VENDOR SAVED' : ' VENDORS SAVED'),
-        sendLabel: vs.length === 1 ? 'Send inquiry' : 'Send ' + vs.length + ' inquiries', send: () => this.startInquiry(vs.map(v => v.id), { origin: 'saved' }) };
+      const sentFor = (evId) => { const byVendor = {};
+        (s.evSent[evId] || []).forEach(x => { byVendor[x.vendor] = { vendor: x.vendor, at: x.at, status: 'Sent' }; });
+        s.inquiries.filter(q => q.eventId === evId).forEach(q => { byVendor[q.vendorId] = { vendor: q.vendorId, at: q.createdAt, status: q.status === 'replied' ? 'Replied' : 'Sent' }; });
+        return Object.values(byVendor).filter(x => VID[x.vendor]).sort((a, b) => new Date(b.at) - new Date(a.at)); };
+      const evFacts = (e) => [e.eventType === 'other' ? e.eventOther : (EV[e.eventType] ? EV[e.eventType].label : ''), e.date ? fmtDate(e.date) : '', e.guests ? e.guests + ' guests' : '', e.area].filter(Boolean).join(' · ');
+      const cards = s.events.slice().sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999')).map(e => {
+        const n = (s.evSaves[e.id] || []).filter(id => VID[id]).length, m = sentFor(e.id).length;
+        return { name: this.eventName(e), facts: evFacts(e) || 'No details yet', counts: n + ' saved · ' + m + (m === 1 ? ' inquiry' : ' inquiries'), open: () => this.go('saved', { evOpen: e.id }) };
+      });
+      const allN = this.savedAll().length;
+      out.sv = { vendors: vs.map(v => this.dec(v)), has: vs.length > 0, empty: vs.length === 0 && !s.events.length, countLabel: allN + (allN === 1 ? ' VENDOR SAVED' : ' VENDORS SAVED'),
+        sendLabel: vs.length === 1 ? 'Send inquiry' : 'Send ' + vs.length + ' inquiries', send: () => this.startInquiry(vs.map(v => v.id), { origin: 'saved' }),
+        hub: !s.evOpen, hasEvents: s.events.length > 0, events: cards, newEvent: nav.plan,
+        plainTitle: s.events.length ? 'Saved without an event' : '', hasPlainTitle: s.events.length > 0 && vs.length > 0 };
+      out.ev = { name: '', needs: [], other: [], sent: [] };
+      const ev = s.evOpen && s.events.find(e => e.id === s.evOpen);
+      if (s.evOpen && !ev) out.sv.hub = true;
+      if (ev) {
+        const ids = (s.evSaves[ev.id] || []).filter(id => VID[id]), sent = sentFor(ev.id), sentIds = sent.map(x => x.vendor);
+        const unsent = ids.filter(id => !sentIds.includes(id));
+        const needs = (ev.needs || []).filter(c => CAT[c]).map(c => {
+          const mine = ids.filter(id => VID[id].cat === c || (VID[id].also || []).includes(c));
+          return { label: CAT[c].label, count: mine.length ? mine.length + ' SAVED' : 'NONE SAVED YET', vendors: mine.map(id => this.dec(VID[id])), none: !mine.length,
+            discoverLabel: 'Discover ' + ((SX && SX.cat[c] && SX.cat[c].plural) || CAT[c].label).split(' ').map(w => /[A-Z].*[A-Z]/.test(w) ? w : w.toLowerCase()).join(' ') + ' →', discover: () => this.browseTo({ mode: 'cat', cat: c, event: ev.eventType && ev.eventType !== 'other' ? ev.eventType : '', loc: '' }) };
+        });
+        const other = ids.filter(id => !(ev.needs || []).some(c => VID[id].cat === c || (VID[id].also || []).includes(c)));
+        out.ev = { name: this.eventName(ev), facts: evFacts(ev) || 'Add the date, guests and area so vendors can quote.', needs, hasNeeds: needs.length > 0,
+          other: other.map(id => this.dec(VID[id])), hasOther: other.length > 0,
+          noSent: !sent.length, sent: sent.map(x => ({ vendor: VID[x.vendor].name, img: VID[x.vendor].imgs[0], sub: 'Sent ' + ago(x.at).toLowerCase(), status: x.status, open: () => this.openVendor(x.vendor) })), hasSent: sent.length > 0,
+          canSend: unsent.length > 0, sendLabel: unsent.length === 1 ? 'Send inquiry to 1 saved vendor' : 'Send inquiry to ' + unsent.length + ' saved vendors',
+          send: () => this.startInquiry(unsent, { eventId: ev.id, origin: 'event' }),
+          back: () => this.go('saved', { evOpen: null }),
+          edit: () => this.go('plan', { plan: { step: 2, event: ev.eventType, area: ev.area, needs: ev.needs || [], eventId: ev.id, name: ev.name }, form: { ...s.form, date: ev.date, guests: ev.guests, eventOther: ev.eventOther, eventType: ev.eventType } }),
+          remove: () => { if (window.confirm('Delete "' + this.eventName(ev) + '"? Vendors saved to it are removed from the event; inquiries you sent stay sent.')) this.deleteEvent(ev.id); } };
+      }
     }
 
     if (is.inbox) {

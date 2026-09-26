@@ -53,7 +53,7 @@
       date: r.event_date || '', guests: r.guests || '', location: r.location || '', pkg: r.package_name || '',
       budget: r.budget || '', message: r.message || '', name: r.name || '', email: r.email || '',
       phone: r.phone || '', contact: r.contact_pref || 'Email', createdAt: r.created_at,
-      status: r.status || 'new', held: !!r.held,
+      status: r.status || 'new', held: !!r.held, eventId: r.event_id || null,
     };
   }
 
@@ -211,9 +211,10 @@
       return urls.length > 0;
     },
 
-    sendInquiries: async function (vendorUuids, f, plannerId) {
+    // eventId links the inquiries to one of the planner's events (signed-in only).
+    sendInquiries: async function (vendorUuids, f, plannerId, eventId) {
       var rows = vendorUuids.map(function (vid) {
-        return { vendor_id: vid, planner_user_id: plannerId || null, event_type: f.eventType || '',
+        return { vendor_id: vid, planner_user_id: plannerId || null, event_id: (plannerId && eventId) || null, event_type: f.eventType || '',
           event_other: f.eventOther || '', event_date: f.date || null, guests: String(f.guests || ''),
           location: f.location || '', package_name: f.pkg || '', budget: f.budget || '', message: f.message || '',
           name: f.name.trim(), email: f.email.trim(), phone: f.phone || '', contact_pref: f.contact || 'Email' };
@@ -250,14 +251,45 @@
     },
 
     savedList: async function () {
-      var r = await client.from('saved_vendors').select('vendor_id');
+      var r = await client.from('saved_vendors').select('vendor_id').is('event_id', null);
       if (r.error) fail(r.error);
       return r.data.map(function (x) { return x.vendor_id; });
     },
-    setSaved: async function (userId, vendorUuid, on) {
-      var r = on
-        ? await client.from('saved_vendors').upsert({ planner_user_id: userId, vendor_id: vendorUuid })
-        : await client.from('saved_vendors').delete().eq('planner_user_id', userId).eq('vendor_id', vendorUuid);
+    // Every save, with the event it belongs to (null = saved without an event).
+    savedRows: async function () {
+      var r = await client.from('saved_vendors').select('vendor_id, event_id');
+      if (r.error) fail(r.error);
+      return r.data;
+    },
+    setSaved: async function (userId, vendorUuid, on, eventId) {
+      var r;
+      if (on) {
+        r = await client.from('saved_vendors').insert({ planner_user_id: userId, vendor_id: vendorUuid, event_id: eventId || null });
+        if (r.error && r.error.code === '23505') return; // already saved
+      } else {
+        var q = client.from('saved_vendors').delete().eq('planner_user_id', userId).eq('vendor_id', vendorUuid);
+        r = await (eventId ? q.eq('event_id', eventId) : q.is('event_id', null));
+      }
+      if (r.error) fail(r.error);
+    },
+
+    // Planner's events ("My Events").
+    listEvents: async function () {
+      var r = await client.from('planner_events').select('*').order('created_at');
+      if (r.error) fail(r.error);
+      return r.data.map(function (e) {
+        return { id: e.id, name: e.name, eventType: e.event_type || '', eventOther: e.event_other || '', date: e.event_date || '',
+          guests: e.guests || '', area: e.location || '', needs: e.needs || [], notes: e.notes || '', createdAt: e.created_at };
+      });
+    },
+    saveEvent: async function (userId, e) {
+      var r = await client.from('planner_events').upsert({ id: e.id, owner_user_id: userId, name: (e.name || '').slice(0, 120),
+        event_type: e.eventType || null, event_other: e.eventOther || '', event_date: e.date || null, guests: String(e.guests || '').slice(0, 40),
+        location: e.area || '', needs: e.needs || [], notes: e.notes || '' });
+      if (r.error) fail(r.error);
+    },
+    deleteEvent: async function (id) {
+      var r = await client.from('planner_events').delete().eq('id', id);
       if (r.error) fail(r.error);
     },
   };
