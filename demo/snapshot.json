@@ -1304,7 +1304,7 @@
    "name": "Spotlight",
    "tagline": "Get more visibility on Eventory.",
    "price_ttd": 175,
-   "billing_period": "month",
+   "billing_period": "one-time",
    "inquiry_limit": null,
    "includes_label": null,
    "features": [
@@ -1319,8 +1319,8 @@
    "id": "spotlight_plus",
    "name": "Spotlight+",
    "tagline": "Go beyond visibility. Advertise with Eventory.",
-   "price_ttd": 300,
-   "billing_period": "month",
+   "price_ttd": 1600,
+   "billing_period": "one-time",
    "inquiry_limit": null,
    "includes_label": "Everything in Spotlight, plus:",
    "features": [
