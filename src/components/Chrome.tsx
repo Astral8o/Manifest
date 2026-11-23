@@ -133,7 +133,7 @@ export function Footer() {
       </div>
       <div style={{ borderTop: '1px solid rgba(255,246,229,.2)' }}>
         <div className="wrap mono" style={{ paddingTop: 16, paddingBottom: 16, fontSize: 11, letterSpacing: '.05em', opacity: 0.8 }}>
-          All businesses and offers shown are demonstration content and fictional. EventoryTT doesn’t sell, ticket or take payment.
+          Offers marked “Demo offer · fictional” are demonstration content. EventoryTT doesn’t sell, ticket or take payment.
         </div>
       </div>
     </footer>

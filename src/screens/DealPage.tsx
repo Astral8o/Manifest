@@ -39,20 +39,21 @@ export function DealPage() {
         <button type="button" className="pill" onClick={goBack} style={{ padding: '0 16px', minHeight: 44, fontSize: 14 }}>← Back</button>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', gap: 36, marginTop: 18, alignItems: 'start' }}>
-          <div className="stripes-lg" style={{ position: 'relative', aspectRatio: '1 / 1', border: `2px solid ${INK}`, borderRadius: 28, boxShadow: `8px 8px 0 ${INK}`, backgroundColor: deal.color }}>
-            <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div className={deal.image ? undefined : 'stripes-lg'} style={{ position: 'relative', aspectRatio: '1 / 1', border: `2px solid ${INK}`, borderRadius: 28, boxShadow: `8px 8px 0 ${INK}`, backgroundColor: deal.image ? INK : deal.color, overflow: 'hidden' }}>
+            {deal.image && <img src={deal.image} alt={`${deal.title} from ${deal.biz}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />}
+            <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {deal.isNew && <span className="badge-new" style={{ padding: '3px 12px', fontSize: 16, letterSpacing: 0 }}>NEW</span>}
               {deal.endingSoon && <span className="badge-ends" style={{ padding: '4px 12px', fontSize: 16, letterSpacing: 0 }}>{deal.endsShort}</span>}
             </div>
             {deal.pct > 0 && <Starburst size={118} fontSize={30} style={{ position: 'absolute', top: 12, right: 12 }}>-{deal.pct}%</Starburst>}
-            <span className="photo-note" style={{ left: 16, bottom: 16, fontSize: 12, letterSpacing: '.05em', padding: '5px 10px', borderRadius: 8, background: 'rgba(255,246,229,.9)' }}>photo · {deal.img}</span>
+            {!deal.image && <span className="photo-note" style={{ left: 16, bottom: 16, fontSize: 12, letterSpacing: '.05em', padding: '5px 10px', borderRadius: 8, background: 'rgba(255,246,229,.9)' }}>photo · {deal.img}</span>}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ background: deal.color, border: `2px solid ${INK}`, borderRadius: 999, padding: '4px 12px', fontWeight: 800, fontSize: 13 }}>{deal.catLabel}</span>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)' }}>{deal.addedLabel}</span>
-              {showDemo && <span className="demo-tag" style={{ fontSize: 11, border: `1.5px dashed ${INK}`, borderRadius: 999, padding: '3px 10px' }}>Demo offer · fictional</span>}
+              {showDemo && deal.demo && <span className="demo-tag" style={{ fontSize: 11, border: `1.5px dashed ${INK}`, borderRadius: 999, padding: '3px 10px' }}>Demo offer · fictional</span>}
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted-2)' }}>{deal.biz}</div>
