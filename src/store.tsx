@@ -1,0 +1,182 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { DEALS, DEFAULT_FILTERS, type CollKey, type Deal, type Filters, type Region } from './data';
+
+export type Screen = 'home' | 'browse' | 'deal' | 'things' | 'saved' | 'submit' | 'system';
+const SCREENS: Screen[] = ['home', 'browse', 'deal', 'things', 'saved', 'submit', 'system'];
+
+interface Route { screen: Screen; dealId: string }
+
+interface Store {
+  screen: Screen;
+  dealId: string;
+  prev: Screen;
+  isMobile: boolean;
+  filters: Filters;
+  setFilters: (patch: Partial<Filters>) => void;
+  resetFilters: (patch?: Partial<Filters>) => void;
+  saved: string[];
+  toggleSave: (id: string) => void;
+  homeRegion: Exclude<Region, 'Online'>;
+  setHomeRegion: (r: Exclude<Region, 'Online'>) => void;
+  coll: CollKey;
+  go: (screen: Screen, opts?: { dealId?: string; coll?: CollKey; focusSearch?: boolean }) => void;
+  openDeal: (id: string) => void;
+  browse: (patch?: Partial<Filters>, focusSearch?: boolean) => void;
+  goBack: () => void;
+  setColl: (k: CollKey) => void;
+  claim: (d: Deal) => void;
+  pass: Deal | null;
+  closePass: () => void;
+  toast: string;
+  showToast: (msg: string) => void;
+  focusSearch: boolean;
+  consumeFocusSearch: () => void;
+  showDemo: boolean;
+}
+
+const Ctx = createContext<Store | null>(null);
+
+export const useStore = () => {
+  const s = useContext(Ctx);
+  if (!s) throw new Error('useStore outside provider');
+  return s;
+};
+
+const SAVED_KEY = 'ett-saved';
+
+function parseHash(): Route | null {
+  const h = (window.location.hash || '').replace(/^#\/?/, '');
+  if (!h) return null;
+  const [s, id] = h.split('/');
+  if (s === 'deal') return DEALS.some((d) => d.id === id) ? { screen: 'deal', dealId: id } : null;
+  if ((SCREENS as string[]).includes(s)) return { screen: s as Screen, dealId: '' };
+  return null;
+}
+
+const hashFor = (r: Route) => (r.screen === 'deal' ? `#/deal/${r.dealId}` : `#/${r.screen}`);
+
+function readSaved(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function StoreProvider({ children }: { children: ReactNode }) {
+  const initial = parseHash() ?? { screen: 'home' as Screen, dealId: '' };
+  const [route, setRoute] = useState<Route>({ screen: initial.screen, dealId: initial.dealId || DEALS[0].id });
+  const [prev, setPrev] = useState<Screen>('home');
+  const [width, setWidth] = useState(() => window.innerWidth);
+  const [filters, setFiltersState] = useState<Filters>(DEFAULT_FILTERS);
+  const [saved, setSaved] = useState<string[]>(readSaved);
+  const [homeRegion, setHomeRegion] = useState<Exclude<Region, 'Online'>>('POS & West');
+  const [coll, setColl] = useState<CollKey>('weekend');
+  const [passId, setPassId] = useState<string | null>(null);
+  const [toast, setToast] = useState('');
+  const [focusSearch, setFocusSearch] = useState(false);
+  const toastTimer = useRef<number>();
+
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    const onPop = () => {
+      const r = parseHash() ?? { screen: 'home' as Screen, dealId: '' };
+      setRoute((cur) => {
+        if (cur.screen !== r.screen) setPrev(cur.screen);
+        return { screen: r.screen, dealId: r.dealId || cur.dealId };
+      });
+      setPassId(null);
+    };
+    window.addEventListener('resize', onResize);
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('popstate', onPop);
+    };
+  }, []);
+
+  // Keep saved deals in sync across tabs.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => e.key === SAVED_KEY && setSaved(readSaved());
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  useEffect(() => {
+    const deal = route.screen === 'deal' ? DEALS.find((d) => d.id === route.dealId) : null;
+    document.title = deal ? `${deal.title} · ${deal.biz} · EventoryTT` : 'EventoryTT · Today’s best deals in T&T';
+  }, [route]);
+
+  const showToast = useCallback((msg: string) => {
+    window.clearTimeout(toastTimer.current);
+    setToast(msg);
+    toastTimer.current = window.setTimeout(() => setToast(''), 2600);
+  }, []);
+
+  const go: Store['go'] = useCallback((screen, opts = {}) => {
+    setRoute((cur) => {
+      const next = { screen, dealId: opts.dealId ?? cur.dealId };
+      if (cur.screen !== screen) setPrev(cur.screen);
+      const hash = hashFor(next);
+      if (window.location.hash !== hash) window.history.pushState(null, '', hash);
+      return next;
+    });
+    if (opts.coll) setColl(opts.coll);
+    if (opts.focusSearch) setFocusSearch(true);
+    setPassId(null);
+    window.scrollTo(0, 0);
+  }, []);
+
+  const browse: Store['browse'] = useCallback((patch = {}, focus = false) => {
+    setFiltersState({ ...DEFAULT_FILTERS, ...patch });
+    go('browse', { focusSearch: focus });
+  }, [go]);
+
+  const toggleSave = useCallback((id: string) => {
+    setSaved((cur) => {
+      const has = cur.includes(id);
+      const next = has ? cur.filter((x) => x !== id) : [...cur, id];
+      try { localStorage.setItem(SAVED_KEY, JSON.stringify(next)); } catch { /* storage unavailable */ }
+      showToast(has ? 'Removed from Saved' : 'Saved. Find it in the Saved tab.');
+      return next;
+    });
+  }, [showToast]);
+
+  const claim = useCallback((d: Deal) => {
+    if (d.action === 'Show In Store') setPassId(d.id);
+    else showToast(`Demo: this would open ${d.destShort} for ${d.biz}`);
+  }, [showToast]);
+
+  const isMobile = width < 760;
+
+  const value = useMemo<Store>(() => ({
+    screen: route.screen,
+    dealId: route.dealId,
+    prev,
+    isMobile,
+    filters,
+    setFilters: (patch) => setFiltersState((f) => ({ ...f, ...patch })),
+    resetFilters: (patch = {}) => setFiltersState((f) => ({ ...DEFAULT_FILTERS, q: f.q, cat: f.cat, sort: f.sort, ...patch })),
+    saved,
+    toggleSave,
+    homeRegion,
+    setHomeRegion,
+    coll,
+    go,
+    openDeal: (id) => go('deal', { dealId: id }),
+    browse,
+    goBack: () => go(prev && prev !== 'deal' ? prev : 'home'),
+    setColl,
+    claim,
+    pass: passId ? DEALS.find((d) => d.id === passId) ?? null : null,
+    closePass: () => setPassId(null),
+    toast,
+    showToast,
+    focusSearch,
+    consumeFocusSearch: () => setFocusSearch(false),
+    showDemo: true,
+  }), [route, prev, isMobile, filters, saved, toggleSave, homeRegion, coll, go, browse, claim, passId, toast, showToast, focusSearch]);
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
