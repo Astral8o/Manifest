@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div onClick="{{ d.open }}" style="cursor:pointer;height:100%;display:flex;flex-direction:column;background:#FFFDF8;border:2px solid #141210;border-radius:18px;box-shadow:4px 4px 0 #141210;overflow:hidden;transition:transform .15s ease, box-shadow .15s ease" style-hover="transform:translate(-2px,-3px) rotate(-0.6deg);box-shadow:7px 8px 0 #141210" style-active="transform:translate(2px,2px);box-shadow:1px 1px 0 #141210">
+  <div style="position:relative;aspect-ratio:4/3;background-color:{{ d.color }};background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.2) 0 10px,transparent 10px 20px);border-bottom:2px solid #141210">
+    <div style="position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap;max-width:70%">
+      <sc-if value="{{ d.isNew }}" hint-placeholder-val="{{ false }}"><span style="background:#C6E83C;border:2px solid #141210;border-radius:999px;padding:2px 8px;font-family:Anton,sans-serif;font-size:13px;letter-spacing:.04em">NEW</span></sc-if>
+      <sc-if value="{{ d.endingSoon }}" hint-placeholder-val="{{ false }}"><span style="background:#141210;color:#FFF6E5;border-radius:999px;padding:3px 9px;font-family:Anton,sans-serif;font-size:13px;letter-spacing:.04em">{{ d.endsShort }}</span></sc-if>
+    </div>
+    <sc-if value="{{ d.pct }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;top:6px;right:6px;width:62px;height:62px;background:#FFC531;clip-path:polygon(50% 0%,60.35% 11.36%,75% 6.7%,78.28% 21.72%,93.3% 25%,88.64% 39.65%,100% 50%,88.64% 60.35%,93.3% 75%,78.28% 78.28%,75% 93.3%,60.35% 88.64%,50% 100%,39.65% 88.64%,25% 93.3%,21.72% 78.28%,6.7% 75%,11.36% 60.35%,0% 50%,11.36% 39.65%,6.7% 25%,21.72% 21.72%,25% 6.7%,39.65% 11.36%);display:grid;place-items:center;transform:rotate(12deg);font-family:Anton,sans-serif;font-size:17px;color:#141210"><span>-{{ d.pct }}%</span></div>
+    </sc-if>
+    <span style="position:absolute;left:10px;bottom:10px;max-width:calc(100% - 20px);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:#141210;background:rgba(255,246,229,.88);padding:3px 7px;border-radius:6px">photo · {{ d.img }}</span>
+  </div>
+  <div style="padding:12px;display:flex;flex-direction:column;gap:6px;flex:1">
+    <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#5A524A">{{ d.biz }}</div>
+    <div style="font-size:16px;font-weight:700;line-height:1.22;text-wrap:pretty">{{ d.title }}</div>
+    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:6px">
+      <span style="font-family:Anton,sans-serif;font-size:28px;line-height:1">{{ d.priceLabel }}</span>
+      <sc-if value="{{ d.wasLabel }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;text-decoration:line-through;color:#6B6259">{{ d.wasLabel }}</span></sc-if>
+    </div>
+    <div style="font-size:12.5px;color:#4A433C;display:flex;flex-direction:column;gap:2px;line-height:1.35">
+      <span>{{ d.area }}</span>
+      <span style="font-weight:600;color:#141210">{{ d.endsLabel }}</span>
+      <sc-if value="{{ d.showDemo }}" hint-placeholder-val="{{ false }}"><span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#7A7067;margin-top:2px">Demo offer · fictional</span></sc-if>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <button onClick="{{ d.claim }}" style="flex:1;min-height:44px;background:#141210;color:#FFF6E5;border:none;border-radius:999px;font-weight:700;font-size:13px;cursor:pointer;padding:0 10px" style-hover="background:#F0412F;color:#141210">{{ d.action }}</button>
+      <button onClick="{{ d.toggleSave }}" aria-label="Save deal" style="flex:0 0 44px;height:44px;border-radius:50%;border:2px solid #141210;background:{{ d.saveBg }};font-size:18px;line-height:1;cursor:pointer;color:#141210">{{ d.heart }}</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:260,&quot;height&quot;:440},&quot;d&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;}}"></script>
+</body>
+</html>
