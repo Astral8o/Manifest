@@ -54,7 +54,7 @@ export function DealCard({ d }: { d: Deal }) {
         </div>
         <div style={{ fontSize: 12.5, color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: 2, lineHeight: 1.35 }}>
           <span>{d.area}</span>
-          <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{d.endsLabel}</span>
+          {d.endsLabel && <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{d.endsLabel}</span>}
           {showDemo && d.demo && <span className="demo-tag" style={{ fontSize: 9.5, color: '#7A7067', marginTop: 2 }}>Demo offer · fictional</span>}
         </div>
         <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>

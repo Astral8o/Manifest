@@ -3,6 +3,7 @@ import { Footer, Header, PassModal, TabBar, Toast } from './components/Chrome';
 import { Browse } from './screens/Browse';
 import { DealPage } from './screens/DealPage';
 import { DesignSystem } from './screens/DesignSystem';
+import { Directory } from './screens/Directory';
 import { Home } from './screens/Home';
 import { Saved } from './screens/Saved';
 import { Submit } from './screens/Submit';
@@ -30,6 +31,7 @@ export function App() {
         {screen === 'browse' && <Browse />}
         {screen === 'deal' && <DealPage key={dealId} />}
         {screen === 'things' && <Things />}
+        {screen === 'directory' && <Directory />}
         {screen === 'saved' && <Saved />}
         {screen === 'submit' && <Submit />}
         {screen === 'system' && <DesignSystem />}
