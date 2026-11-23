@@ -90,16 +90,25 @@ const RAW: Raw[] = [
   ['pages-pepper', 'Pages & Pepper', 'Local authors box set: 4 books', 'shopping', 160, 200, 'POS & West', 'Woodbrook', 'Tragarete Rd, Woodbrook', '2026-11-19', '2026-12-10', 2, 'Get Deal', 'Online & in-store', 'stack of paperbacks', [], 55, false, 'Four Caribbean novels picked by the shop, gift-wrapped free.', 'Mon–Sat'],
 ];
 
+/** Real deals can be islandwide chains, which match every region filter. */
+export type DealRegion = Region | 'Islandwide';
+
 export interface Deal {
-  id: string; biz: string; title: string; cat: CatKey; price: number; was: number; region: Region; area: string; address: string;
+  id: string; biz: string; title: string; cat: CatKey; price: number; was: number; region: DealRegion; area: string; address: string;
   action: Action; format: Format; img: string; tags: string[]; hot: number; featured: boolean; blurb: string; when: string;
   added: number; daysLeft: number; startsIn: number; pct: number;
   catLabel: string; color: string; priceLabel: string; wasLabel: string; saveLabel: string;
   endsLabel: string; endsShort: string; endingSoon: boolean; isNew: boolean; addedLabel: string;
   validity: string; checked: string; destLabel: string; destShort: string; claimSteps: string[]; terms: string[]; hours: string; code: string;
+  /** true for fictional demo content; real offers are false. */
+  demo: boolean;
+  /** Real product photo, served from /public. Demo deals use a striped placeholder instead. */
+  image?: string;
+  /** The business's own page for the offer. When set, the claim button opens it. */
+  url?: string;
 }
 
-export const DEALS: Deal[] = RAW.map((r, i) => {
+const DEMO_DEALS: Deal[] = RAW.map((r, i) => {
   const [id, biz, title, cat, price, was, region, area, address, start, end, added, action, format, img, tags, hot, featured, blurb, when] = r;
   const s = pd(start), e = pd(end);
   const daysLeft = Math.round((+e - +TODAY) / DAY), startsIn = Math.round((+s - +TODAY) / DAY);
@@ -126,8 +135,70 @@ export const DEALS: Deal[] = RAW.map((r, i) => {
     terms: price === 0 ? ['Free entry. Space is first come, first served.', 'Organiser may change times due to weather.'] : TERMS,
     hours: 'Hours: ' + when,
     code: 'ETT-' + (1123 + i * 7),
+    demo: true,
   };
 });
+
+// ---------- Real offers ----------
+
+/**
+ * Mario's Pizzeria offers, checked against mymarios.com on 23 Nov 2026.
+ * Mario's publishes no end dates and no "was" prices, so neither is shown.
+ * `live: false` holds an offer back until its product page can be confirmed.
+ */
+type MariosRow = [id: string, title: string, price: number, description: string, conditions: string, slug: string, hot: number, live: boolean, extraTags?: string[]];
+const MARIOS: MariosRow[] = [
+  ['MAR-001', 'Burger and Slushie Combo', 43, 'Classic or veggie burger with any slushie.', '', 'burger-and-slushie-combo', 70, false],
+  ['MAR-002', 'Delivery Feast', 249, 'Two family specialty pizzas and Triple Cheese Stix.', 'Delivery only; delivery fee included.', 'delivery-feast', 84, true, ['family']],
+  ['MAR-003', 'Delivery Lime', 175, 'Family specialty pizza, 2L soft drink and Triple Cheese Stix.', 'Delivery only; delivery fee included.', 'delivery-lime', 94, true, ['family', 'weekend']],
+  ['MAR-004', 'Three Family Specialty Pizzas (Delivery Only)', 299, 'Three family specialty pizzas.', 'Delivery only; delivery fee included.', 'three-family-specialty-pizzas-copy-d629e8b9', 76, true, ['family']],
+  ['MAR-005', 'Family Specialty and Triple Cheese Stix', 175, 'Family specialty pizza and Triple Cheese Stix.', '', 'cheesy-stix-combo-copy-daeec350', 80, true, ['family']],
+  ['MAR-006', 'Oven Toasted Sandwich and Drink', 59, 'Any oven-toasted sandwich and a 16oz drink.', '', 'oven-toasted-sandwich-and-drink', 68, false],
+  ['MAR-007', 'Personal Two Topping Pizza, Small Snack and a Drink', 39, 'Personal pizza with two chosen toppings, small snack and 16oz drink.', '', 'personal-two-topping-pizza-small-snack-and-a-drink', 91, true],
+  ['MAR-008', 'Three Burgers and Three Drinks', 99, 'Three classic or veggie burgers and three 16oz drinks.', '', 'two-burgers-and-two-drinks-copy-03ab0995', 82, true, ['family']],
+  ['MAR-009', 'Three Family Specialty Pizzas', 299, 'Three family specialty pizzas.', '', 'three-family-specialty-pizzas', 78, true, ['family']],
+  ['MAR-010', 'Two Burgers and Two Drinks', 69, 'Two classic or veggie burgers and two 16oz drinks.', '', 'two-burgers-and-two-drinks', 86, true, ['date']],
+  ['MAR-011', 'Two Family Specialty Pizzas', 210, 'Two family specialty pizzas.', '', 'two-family-specilaty-pizzas', 79, true, ['family']],
+  ['MAR-012', 'Two Medium Specialty Pizzas', 175, 'Two medium specialty pizzas.', '', 'two-medium-specialty-pizzas', 74, true],
+  ['MAR-013', 'Two Sandwiches and Two Drinks', 110, 'Two oven-toasted sandwiches and two 16oz drinks.', '', 'two-sandwiches-and-two-drinks', 72, true, ['date']],
+];
+
+const MARIOS_DEALS: Deal[] = MARIOS.filter((r) => r[7]).map(([code, title, price, description, conditions, slug, hot, , extraTags = []]) => {
+  const delivery = conditions.startsWith('Delivery only');
+  const biz = "Mario's";
+  const tags = ['food', ...extraTags];
+  if (price <= 100) tags.push('budget');
+  return {
+    id: 'marios-' + code.slice(4), biz, title, cat: 'food', price, was: 0, region: 'Islandwide',
+    area: delivery ? 'Delivery islandwide' : 'Islandwide · delivery & branches',
+    address: "Mario's branches across Trinidad & Tobago. Order at mymarios.com.",
+    action: 'Get Deal', format: delivery ? 'Online' : 'Online & in-store', img: '', tags, hot, featured: code === 'MAR-003',
+    blurb: description, when: delivery ? 'Delivery' : 'Delivery or pickup', added: 0, daysLeft: Infinity, startsIn: 0, pct: 0,
+    catLabel: CATS.food.label, color: CATS.food.color,
+    priceLabel: 'TT$' + price, wasLabel: '', saveLabel: '',
+    endsLabel: 'No end date published', endsShort: '', endingSoon: false, isNew: true, addedLabel: 'Added today',
+    validity: 'No end date published',
+    checked: fmt(TODAY) + ' 2026',
+    destLabel: 'Opens the order page on mymarios.com', destShort: 'mymarios.com',
+    claimSteps: [
+      'Tap “Get Deal” to open this offer on mymarios.com.',
+      delivery ? 'Add your delivery address. The delivery fee is already in the price.' : 'Choose delivery or pickup and pick your options.',
+      "Pay Mario's directly. EventoryTT never takes payment.",
+    ],
+    terms: [
+      ...(conditions ? [conditions] : []),
+      `${description} Options as listed on Mario's site.`,
+      "Mario's hasn't published an end date. Confirm the price on mymarios.com before you order.",
+    ],
+    hours: "Hours: see mymarios.com for your nearest branch",
+    code: code,
+    demo: false,
+    image: `/deals/marios/${code}.webp`,
+    url: `https://www.mymarios.com/product/${slug}`,
+  };
+});
+
+export const DEALS: Deal[] = [...MARIOS_DEALS, ...DEMO_DEALS];
 
 export type CollKey = 'weekend' | 'free' | 'date' | 'family' | 'food' | 'outdoor' | 'events' | 'budget';
 export const COLLS: { k: CollKey; label: string; color: string; intro: string }[] = [
@@ -185,7 +256,7 @@ export function filterDeals(all: Deal[], f: Filters): Deal[] {
     r = r.filter((d) => [d.biz, d.title, d.area, d.region, d.catLabel, d.price === 0 ? 'free' : ''].join(' ').toLowerCase().includes(q));
   }
   if (f.cat !== 'all') r = r.filter((d) => d.cat === f.cat);
-  if (f.region !== 'all') r = r.filter((d) => (f.region === 'Online' ? d.format !== 'In-store' : d.region === f.region));
+  if (f.region !== 'all') r = r.filter((d) => (f.region === 'Online' ? d.format !== 'In-store' : d.region === f.region || d.region === 'Islandwide'));
   if (PRICE[f.price]) r = r.filter(PRICE[f.price]);
   if (f.disc !== 'any') r = r.filter((d) => d.pct >= +f.disc);
   if (f.added === 'today') r = r.filter((d) => d.added === 0);

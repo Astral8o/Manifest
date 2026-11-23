@@ -144,7 +144,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [showToast]);
 
   const claim = useCallback((d: Deal) => {
-    if (d.action === 'Show In Store') setPassId(d.id);
+    if (d.url) window.open(d.url, '_blank', 'noopener,noreferrer');
+    else if (d.action === 'Show In Store') setPassId(d.id);
     else showToast(`Demo: this would open ${d.destShort} for ${d.biz}`);
   }, [showToast]);
 

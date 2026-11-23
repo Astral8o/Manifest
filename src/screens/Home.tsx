@@ -165,7 +165,7 @@ export function Home() {
 
   return (
     <>
-      <Hero heroDeal={byHot[0]} todayCount={todayCount} />
+      <Hero heroDeal={byHot.find((d) => !d.demo) ?? byHot[0]} todayCount={todayCount} />
       <button type="button" className="new-strip" onClick={b({ sort: 'new', added: 'week' })} style={{ display: 'block', width: '100%', cursor: 'pointer', background: LIME, border: 'none', borderBottom: `2px solid ${INK}`, padding: 0, textAlign: 'left' }}>
         <div className="wrap" style={{ paddingTop: 14, paddingBottom: 14, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <span className="display" style={{ fontSize: 24, lineHeight: 1 }}>{newCount} new since your last visit</span>
@@ -179,7 +179,7 @@ export function Home() {
       <ThingsTeaser />
       <RowSection title="Featured" sub="Our editors’ favourites this week." color={SUN} deals={DEALS.filter((d) => d.featured)} onAll={b({ sort: 'popular' })} />
       <RowSection title="Food & Drink" sub="Specials from kitchens, bars and roti shops." color={TOMATO} deals={DEALS.filter((d) => d.cat === 'food')} onAll={b({ cat: 'food' })} />
-      <RowSection title="Deals Near You" sub={`Showing deals around ${homeRegion}.`} color={SKY} deals={DEALS.filter((d) => d.region === homeRegion)} onAll={b({ region: homeRegion })}>
+      <RowSection title="Deals Near You" sub={`Showing deals around ${homeRegion}.`} color={SKY} deals={[...DEALS.filter((d) => d.region === homeRegion), ...DEALS.filter((d) => d.region === 'Islandwide')]} onAll={b({ region: homeRegion })}>
         <div className="wrap scroll-x" role="group" aria-label="Choose your area" style={{ paddingBottom: 16, gap: 8 }}>
           {REGIONS.filter((r): r is Exclude<Region, 'Online'> => r !== 'Online').map((r) => {
             const on = r === homeRegion;

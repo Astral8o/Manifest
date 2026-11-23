@@ -31,15 +31,19 @@ export function DealCard({ d }: { d: Deal }) {
       tabIndex={0}
       aria-label={`${d.title} at ${d.biz}, ${d.priceLabel}`}
     >
-      <div className="stripes" style={{ position: 'relative', aspectRatio: '4 / 3', backgroundColor: d.color, borderBottom: '2px solid var(--ink)' }}>
-        <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: '70%' }}>
+      <div className={d.image ? undefined : 'stripes'} style={{ position: 'relative', aspectRatio: '4 / 3', backgroundColor: d.image ? 'var(--ink)' : d.color, borderBottom: '2px solid var(--ink)' }}>
+        <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 1, display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: '70%' }}>
           {d.isNew && <span className="badge-new pulse" style={{ padding: '2px 8px', fontSize: 13 }}>NEW</span>}
           {d.endingSoon && <span className="badge-ends" style={{ padding: '3px 9px', fontSize: 13 }}>{d.endsShort}</span>}
         </div>
         {d.pct > 0 && <Starburst size={62} fontSize={17} style={{ position: 'absolute', top: 6, right: 6 }}>-{d.pct}%</Starburst>}
-        <span className="photo-note" style={{ left: 10, bottom: 10, maxWidth: 'calc(100% - 20px)', fontSize: 10, padding: '3px 7px', borderRadius: 6 }}>
-          photo · {d.img}
-        </span>
+        {d.image ? (
+          <img src={d.image} alt={d.title} loading="lazy" decoding="async" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
+        ) : (
+          <span className="photo-note" style={{ left: 10, bottom: 10, maxWidth: 'calc(100% - 20px)', fontSize: 10, padding: '3px 7px', borderRadius: 6 }}>
+            photo · {d.img}
+          </span>
+        )}
       </div>
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
         <div className="label" style={{ fontSize: 11 }}>{d.biz}</div>
@@ -51,7 +55,7 @@ export function DealCard({ d }: { d: Deal }) {
         <div style={{ fontSize: 12.5, color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: 2, lineHeight: 1.35 }}>
           <span>{d.area}</span>
           <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{d.endsLabel}</span>
-          {showDemo && <span className="demo-tag" style={{ fontSize: 9.5, color: '#7A7067', marginTop: 2 }}>Demo offer · fictional</span>}
+          {showDemo && d.demo && <span className="demo-tag" style={{ fontSize: 9.5, color: '#7A7067', marginTop: 2 }}>Demo offer · fictional</span>}
         </div>
         <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
           <button type="button" className="card-action" onClick={a.claim}>{d.action}</button>
