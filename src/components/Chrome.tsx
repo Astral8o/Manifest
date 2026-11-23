@@ -1,17 +1,18 @@
-import { CREAM, INK, LILAC, PINK, SUN, TOMATO } from '../data';
+import { CREAM, INK, LILAC, LIME, PINK, SUN, TOMATO } from '../data';
 import { useStore, type Screen } from '../store';
 
-const NAV: [Screen, string, string, string][] = [
+const NAV: [Screen, string, string, string, string?][] = [
   ['home', 'Home', TOMATO, '50%'],
   ['browse', 'Browse', SUN, '3px'],
   ['things', 'Things to Do', LILAC, '50% 0'],
+  ['directory', 'Business Directory', LIME, '3px 3px 50% 50%', 'Directory'],
   ['saved', 'Saved', PINK, '50%'],
 ];
 
 function useNav() {
   const { screen, saved, go, browse } = useStore();
-  return NAV.map(([k, label, dot, shape]) => ({
-    k, label, dot, shape,
+  return NAV.map(([k, label, dot, shape, short]) => ({
+    k, label, dot, shape, short: short ?? label,
     on: screen === k,
     count: k === 'saved' && saved.length ? String(saved.length) : '',
     go: () => (k === 'browse' ? browse() : go(k)),
@@ -44,7 +45,7 @@ export function Header() {
       <div className="wrap" style={{ paddingTop: 10, paddingBottom: 10, display: 'flex', alignItems: 'center', gap: 14 }}>
         <Logo onClick={() => go('home')} />
         {!isMobile && (
-          <nav aria-label="Main" style={{ display: 'flex', gap: 6, marginLeft: 16 }}>
+          <nav aria-label="Main" className="top-nav" style={{ display: 'flex', gap: 6, marginLeft: 16 }}>
             {nav.map((n) => (
               <button
                 key={n.k}
@@ -54,7 +55,8 @@ export function Header() {
                 onClick={n.go}
                 style={{ background: n.on ? INK : 'transparent', color: n.on ? CREAM : INK, padding: '8px 16px', fontSize: 14, display: 'flex', gap: 8, alignItems: 'center', minHeight: 42 }}
               >
-                {n.label}
+                <span className="nav-long">{n.label}</span>
+                <span className="nav-short">{n.short}</span>
                 {n.count && <span style={{ background: PINK, color: INK, borderRadius: 999, padding: '0 7px', fontSize: 12, border: `1.5px solid ${INK}` }}>{n.count}</span>}
               </button>
             ))}
@@ -76,7 +78,7 @@ export function Header() {
           onClick={() => go('submit')}
           style={{ background: TOMATO, color: INK, padding: '0 16px', minHeight: 44, fontWeight: 800, fontSize: 14 }}
         >
-          {isMobile ? 'Submit' : 'Submit a Deal'}
+          {isMobile ? 'Submit' : <><span className="nav-long">Submit a Deal</span><span className="nav-short">Submit</span></>}
         </button>
       </div>
     </header>
@@ -86,17 +88,17 @@ export function Header() {
 export function TabBar() {
   const nav = useNav();
   return (
-    <nav aria-label="Main" style={{ position: 'fixed', left: 10, right: 10, bottom: 10, zIndex: 50, background: INK, borderRadius: 24, padding: 6, display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 4, boxShadow: '0 10px 30px rgba(20,18,16,.3)' }}>
+    <nav aria-label="Main" style={{ position: 'fixed', left: 10, right: 10, bottom: 10, zIndex: 50, background: INK, borderRadius: 24, padding: 6, display: 'grid', gridTemplateColumns: `repeat(${nav.length},1fr)`, gap: 4, boxShadow: '0 10px 30px rgba(20,18,16,.3)' }}>
       {nav.map((n) => (
         <button
           key={n.k}
           type="button"
           onClick={n.go}
           aria-current={n.on ? 'page' : undefined}
-          style={{ border: 'none', borderRadius: 18, minHeight: 54, background: n.on ? n.dot : 'transparent', color: n.on ? INK : CREAM, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, fontWeight: 700, fontSize: 12, cursor: 'pointer', position: 'relative' }}
+          style={{ border: 'none', borderRadius: 18, minHeight: 54, background: n.on ? n.dot : 'transparent', color: n.on ? INK : CREAM, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, fontWeight: 700, fontSize: 11, lineHeight: 1.1, textAlign: 'center', padding: '0 2px', cursor: 'pointer', position: 'relative' }}
         >
           <span aria-hidden="true" style={{ width: 12, height: 12, borderRadius: n.shape, background: n.dot, border: `1.5px solid ${INK}` }} />
-          <span>{n.label}</span>
+          <span>{n.short}</span>
           {n.count && (
             <span aria-label={`${n.count} saved`} style={{ position: 'absolute', top: 6, right: 'calc(50% - 26px)', background: PINK, color: INK, borderRadius: 999, minWidth: 18, height: 18, fontSize: 11, display: 'grid', placeItems: 'center', padding: '0 4px' }}>
               {n.count}
@@ -111,7 +113,7 @@ export function TabBar() {
 export function Footer() {
   const { go, browse } = useStore();
   const cols: { title: string; links: [string, () => void][] }[] = [
-    { title: 'Explore', links: [['Today’s deals', () => go('home')], ['Browse all', () => browse()], ['Things to Do', () => go('things')], ['Saved', () => go('saved')]] },
+    { title: 'Explore', links: [['Today’s deals', () => go('home')], ['Browse all', () => browse()], ['Things to Do', () => go('things')], ['Business Directory', () => go('directory')], ['Saved', () => go('saved')]] },
     { title: 'Businesses', links: [['Submit a deal', () => go('submit')], ['How review works', () => go('submit')]] },
     { title: 'About', links: [['Design system', () => go('system')], ['Friday Five on WhatsApp', () => go('home')]] },
   ];
@@ -133,7 +135,7 @@ export function Footer() {
       </div>
       <div style={{ borderTop: '1px solid rgba(255,246,229,.2)' }}>
         <div className="wrap mono" style={{ paddingTop: 16, paddingBottom: 16, fontSize: 11, letterSpacing: '.05em', opacity: 0.8 }}>
-          Offers marked “Demo offer · fictional” are demonstration content. EventoryTT doesn’t sell, ticket or take payment.
+          EventoryTT doesn’t sell, ticket or take payment. Prices and availability are set by each business.
         </div>
       </div>
     </footer>
@@ -157,7 +159,7 @@ export function PassModal() {
             {pass.wasLabel && <s style={{ color: 'var(--muted-3)' }}>{pass.wasLabel}</s>}
           </div>
           <div style={{ border: `2px dashed ${INK}`, borderRadius: 14, padding: 14, textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 26, letterSpacing: '.12em' }}>{pass.code}</div>
-          <div style={{ fontSize: 14, color: 'var(--muted)' }}>{pass.validity} · {pass.area}</div>
+          <div style={{ fontSize: 14, color: 'var(--muted)' }}>{[pass.validity, pass.area].filter(Boolean).join(' · ')}</div>
           <button type="button" autoFocus onClick={closePass} className="pill btn-dark" style={{ minHeight: 50, fontSize: 15 }}>Done</button>
         </div>
       </div>

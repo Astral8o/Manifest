@@ -129,6 +129,15 @@ textarea.field { padding: 12px 14px; resize: vertical; min-height: 110px; }
 select.field { padding: 0 12px; }
 .field:focus { box-shadow: 3px 3px 0 var(--tomato); }
 
+/* ---------- Nav ---------- */
+.nav-short { display: none; }
+@media (max-width: 1099px) {
+  .nav-long { display: none; }
+  .nav-short { display: inline; }
+  .top-nav { margin-left: 4px !important; gap: 4px !important; }
+  .top-nav .pill { padding: 8px 12px !important; }
+}
+
 /* ---------- Animations ---------- */
 @keyframes ettToast { from { transform: translate(-50%, 16px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 @keyframes ettPop { 0% { transform: scale(1); } 40% { transform: scale(1.3) rotate(-8deg); } 100% { transform: scale(1); } }

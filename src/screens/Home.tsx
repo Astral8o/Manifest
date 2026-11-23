@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { DealCard } from '../components/DealCard';
-import { CATS, COLLS, CREAM, DEALS, INK, LIME, LILAC, PINK, REGIONS, SKY, SUN, TOMATO, inColl, todayLabel, type CatKey, type Deal, type Filters, type Region } from '../data';
+import { ACTIVE_CATS, ACTIVE_COLLS, CATS, CREAM, DEALS, INK, LIME, LILAC, PINK, REGIONS, SKY, SUN, TOMATO, inColl, todayLabel, type Deal, type Filters, type Region } from '../data';
 import { useStore } from '../store';
 
 const MUTED = 'var(--muted)';
@@ -58,11 +58,11 @@ function Hero({ heroDeal, todayCount }: { heroDeal: Deal; todayCount: number }) 
             onClick={() => browse({}, true)}
             style={{ cursor: 'text', display: 'flex', alignItems: 'center', gap: 10, background: CREAM, border: `2px solid ${INK}`, borderRadius: 999, padding: '6px 6px 6px 18px', boxShadow: `4px 4px 0 ${INK}`, maxWidth: 520, width: '100%', textAlign: 'left' }}
           >
-            <span style={{ flex: 1, fontSize: 16, color: 'var(--muted-3)' }}>Search doubles, spa, Tobago, free…</span>
+            <span style={{ flex: 1, fontSize: 16, color: 'var(--muted-3)' }}>Search pizza, burgers, delivery…</span>
             <span style={{ background: INK, color: CREAM, borderRadius: 999, padding: '12px 18px', fontWeight: 800, fontSize: 14 }}>Find deals</span>
           </button>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {(Object.entries(CATS) as [CatKey, (typeof CATS)[CatKey]][]).map(([k, c]) => (
+            {ACTIVE_CATS.map((k) => [k, CATS[k]] as const).map(([k, c]) => (
               <button key={k} type="button" className="pill chip hover-lift" onClick={() => browse({ cat: k })} style={{ background: c.color, padding: '8px 14px', minHeight: 40 }}>{c.label}</button>
             ))}
           </div>
@@ -91,7 +91,7 @@ function ThingsTeaser() {
           <h2 className="display" style={{ fontSize: 'clamp(48px,8vw,88px)', lineHeight: 0.9 }}>Plans for the weekend?</h2>
           <p style={{ margin: 0, fontSize: 17, lineHeight: 1.45, maxWidth: 440 }}>Events, date ideas, free days out and family plans across both islands.</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {COLLS.slice(0, 4).map((c) => (
+            {ACTIVE_COLLS.slice(0, 4).map((c) => (
               <button key={c.k} type="button" className="pill hover-ink" onClick={() => go('things', { coll: c.k })} style={{ background: CREAM, padding: '8px 14px', fontSize: 14, minHeight: 40 }}>{c.label}</button>
             ))}
           </div>

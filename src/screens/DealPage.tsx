@@ -66,7 +66,7 @@ export function DealPage() {
                 {deal.saveLabel && <span style={{ background: PINK, border: `2px solid ${INK}`, borderRadius: 999, padding: '3px 12px', fontWeight: 800, fontSize: 14 }}>{deal.saveLabel}</span>}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, borderTop: `2px solid ${INK}`, paddingTop: 14 }}>
-                <Meta label="Valid" value={deal.validity} sub={deal.endsLabel} />
+                {deal.validity && <Meta label="Valid" value={deal.validity} sub={deal.endsLabel} />}
                 <Meta label="Where" value={deal.area} sub={deal.region} />
                 <Meta label="Format" value={deal.format} />
               </div>
@@ -133,7 +133,7 @@ export function DealPage() {
         <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50, background: CREAM, borderTop: `2px solid ${INK}`, padding: '10px 16px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontFamily: 'var(--display)', fontSize: 26, lineHeight: 1 }}>{deal.priceLabel}</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>{deal.endsLabel}</span>
+            {deal.endsLabel && <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>{deal.endsLabel}</span>}
           </div>
           <a href={shareUrl} target="_blank" rel="noopener noreferrer" aria-label="Share on WhatsApp" style={{ marginLeft: 'auto', width: 48, height: 48, borderRadius: '50%', border: `2px solid ${INK}`, background: LIME, display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 12, textDecoration: 'none', color: INK }}>Share</a>
           <button type="button" className="pill" onClick={a.claim} style={{ minHeight: 52, background: TOMATO, padding: '0 20px', fontWeight: 800, fontSize: 15 }}>{deal.action}</button>

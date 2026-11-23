@@ -1,10 +1,10 @@
 import type { CSSProperties } from 'react';
-import { COLLS, CREAM, INK, LILAC, PAPER, inColl } from '../data';
+import { ACTIVE_COLLS, CREAM, INK, LILAC, PAPER, inColl } from '../data';
 import { useStore } from '../store';
 
 export function Things() {
   const { coll: collKey, setColl, openDeal } = useStore();
-  const coll = COLLS.find((c) => c.k === collKey) ?? COLLS[0];
+  const coll = ACTIVE_COLLS.find((c) => c.k === collKey) ?? ACTIVE_COLLS[0];
   const list = inColl(coll.k);
   const [feature, ...rest] = list;
 
@@ -18,7 +18,7 @@ export function Things() {
             Weekend plans, date nights, free days out and family trips across Trinidad &amp; Tobago, picked by our team.
           </p>
           <div role="group" aria-label="Collections" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(46%,180px),1fr))', gap: 10, marginTop: 6 }}>
-            {COLLS.map((c) => {
+            {ACTIVE_COLLS.map((c) => {
               const on = c.k === coll.k;
               const n = inColl(c.k).length;
               return (

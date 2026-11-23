@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { SearchIcon } from '../components/Chrome';
 import { DealCard } from '../components/DealCard';
-import { CATS, CREAM, DEALS, DEFAULT_FILTERS, FILTER_KEYS, INK, PAPER, REGIONS, SUN, TOMATO, filterDeals, type CatKey, type Filters } from '../data';
+import { ACTIVE_CATS, CATS, CREAM, DEALS, DEFAULT_FILTERS, FILTER_KEYS, INK, PAPER, REGIONS, SUN, TOMATO, filterDeals, type CatKey, type Filters } from '../data';
 import { useStore } from '../store';
 
 type Opt<K extends keyof Filters> = [Filters[K], string];
@@ -53,7 +53,7 @@ export function Browse() {
     ? { position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 20, border: `2px solid ${INK}`, borderRadius: 22, padding: 18, background: PAPER }
     : { position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 60, background: CREAM, borderTop: `2px solid ${INK}`, borderRadius: '24px 24px 0 0', padding: '16px 20px 0', maxHeight: '84vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 18, animation: 'ettSheet .22s ease-out' };
 
-  const catOpts: ['all' | CatKey, string][] = [['all', 'All deals'], ...(Object.entries(CATS) as [CatKey, { label: string }][]).map(([k, c]) => [k, c.label] as ['all' | CatKey, string])];
+  const catOpts: ['all' | CatKey, string][] = [['all', 'All deals'], ...ACTIVE_CATS.map((k) => [k, CATS[k].label] as ['all' | CatKey, string])];
 
   return (
     <>
@@ -67,7 +67,7 @@ export function Browse() {
               type="search"
               value={f.q}
               onChange={(e) => setFilters({ q: e.target.value })}
-              placeholder="Search doubles, spa, Tobago, free…"
+              placeholder="Search pizza, burgers, delivery…"
               aria-label="Search deals"
               style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: 16, minHeight: 44, outline: 'none' }}
             />
