@@ -45,8 +45,8 @@ export function DealPage() {
           <div
             className={deal.image ? undefined : 'stripes-lg'}
             style={isMobile
-              ? { position: 'relative', aspectRatio: '1 / 1', margin: '0 -20px', borderTop: `2px solid ${INK}`, borderBottom: `2px solid ${INK}`, backgroundColor: deal.image ? INK : deal.color, overflow: 'hidden' }
-              : { position: 'sticky', top: 84, aspectRatio: '1 / 1', border: `2px solid ${INK}`, borderRadius: 28, boxShadow: `8px 8px 0 ${INK}`, backgroundColor: deal.image ? INK : deal.color, overflow: 'hidden' }}
+              ? { position: 'relative', aspectRatio: deal.imageRatio ?? '1 / 1', margin: '0 -20px', borderTop: `2px solid ${INK}`, borderBottom: `2px solid ${INK}`, backgroundColor: deal.image ? INK : deal.color, overflow: 'hidden' }
+              : { position: 'sticky', top: 84, aspectRatio: deal.imageRatio ?? '1 / 1', border: `2px solid ${INK}`, borderRadius: 28, boxShadow: `8px 8px 0 ${INK}`, backgroundColor: deal.image ? INK : deal.color, overflow: 'hidden' }}
           >
             {deal.image && <img src={deal.image} alt={`${deal.title} from ${deal.biz}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />}
             <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
