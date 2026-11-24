@@ -62,6 +62,10 @@ export interface Deal {
   imageRatio?: string;
   /** Short campaign tag taken from the business's own promo, e.g. 'Black Friday Week'. */
   promo?: string;
+  /** Overrides the "Delivery or pickup" style label when a business works differently. */
+  getIt?: string;
+  /** Percent-off sales have no single price: `price` is NaN and the label carries the discount. */
+  priceIsPercent?: boolean;
   /** The business's own page for the offer. When set, the claim button opens it. */
   url?: string;
   /** What the deal is, for browsing ("Pizza", "Burgers"…). */
@@ -190,7 +194,52 @@ const DOMINOS_DEALS: Deal[] = DOMINOS.map(([code, title, price, description, con
   };
 });
 
-export const DEALS: Deal[] = [...DOMINOS_DEALS, ...MARIOS_DEALS];
+/**
+ * Beauté by KNJ (Scarborough, Tobago) Black Friday sale, from beautebyknj.com/black-friday.
+ * Category discounts on selected retail items, Fri 27 and Sat 28 Nov 2026 only.
+ */
+const KNJ_START = new Date(2026, 10, 27), KNJ_END = new Date(2026, 10, 28), KNJ_CHECKED = new Date(2026, 10, 24);
+const KNJ_DEALS: Deal[] = [(() => {
+  const added = daysSince(KNJ_CHECKED);
+  const daysLeft = Math.round((+KNJ_END - +TODAY) / DAY), startsIn = Math.round((+KNJ_START - +TODAY) / DAY);
+  const biz = 'Beauté by KNJ';
+  return {
+    id: 'beautebyknj-black-friday', biz, title: 'Black Friday: up to 20% off wigs, skincare, makeup and hair',
+    cat: 'beauty' as CatKey, price: NaN, was: 0, region: 'Tobago' as DealRegion, area: 'Scarborough, Tobago',
+    address: 'Bill Brown Plaza, 60-62 Government House Road, Scarborough, Tobago · (868) 291-2993',
+    action: 'View Offer' as Action, format: 'In-store' as Format, img: '', tags: ['weekend'], hot: 93, featured: false,
+    blurb: '20% off wigs, 15% off skincare and makeup, 10% off hair and styling tools, 5% off hair products and accessories (selected retail items).',
+    when: 'Fri 27 Nov · 9am–5pm, Sat 28 Nov · 9am–2pm', added, daysLeft, startsIn, pct: 20,
+    catLabel: CATS.beauty.label, color: CATS.beauty.color,
+    priceLabel: 'UP TO 20% OFF', wasLabel: '', saveLabel: '',
+    endsLabel: startsIn > 0 ? `Starts Fri ${fmt(KNJ_START)}` : daysLeft <= 0 ? 'Ends today' : 'Ends tomorrow',
+    endsShort: daysLeft <= 0 ? 'ENDS TODAY' : daysLeft === 1 ? 'ENDS TOMORROW' : `${daysLeft} DAYS LEFT`,
+    endingSoon: startsIn <= 0 && daysLeft <= 3, isNew: added <= 2, addedLabel: addedLabelFor(added),
+    validity: `Fri ${fmt(KNJ_START)} – Sat ${fmt(KNJ_END)} ${KNJ_END.getFullYear()}`,
+    checked: `${fmt(KNJ_CHECKED)} ${KNJ_CHECKED.getFullYear()}`,
+    destLabel: 'Opens the Black Friday page on beautebyknj.com', destShort: 'beautebyknj.com',
+    claimSteps: [
+      'Visit the shop at Bill Brown Plaza, 60-62 Government House Road, Scarborough (Fri 9am–5pm, Sat 9am–2pm).',
+      'Or tap “View Offer”, add items to your cart and reserve them for collection. Nothing is paid online.',
+      'Collect and pay in store by Monday 30 November to keep the Black Friday price.',
+    ],
+    terms: [
+      'Wigs 20% off · Skincare 15% · Makeup 15% · Hair 10% · Hair rods, nail polish, styling tools 10% · Hair products and accessories 5%.',
+      'Discounts apply to selected retail items in these categories, on Friday 27 and Saturday 28 November 2026 only.',
+      'Sale prices show on the site from midnight on Friday 27 November.',
+      'Online reservations made on 27–28 November keep the Black Friday price when collected by Monday 30 November.',
+      'Salon services, body care and wig caps are not included. Cannot be combined with any other offer.',
+    ],
+    hours: 'Black Friday hours: Fri 9am–5pm, Sat 9am–2pm',
+    code: 'BKJ-001', demo: false,
+    image: '/deals/beautebyknj/BKJ-001.webp',
+    url: 'https://beautebyknj.com/black-friday/',
+    promo: 'Black Friday', getIt: 'In store or reserve & collect', priceIsPercent: true,
+  };
+})()];
+
+/** Every live deal. Deals drop off automatically the day after they end. */
+export const DEALS: Deal[] = [...DOMINOS_DEALS, ...MARIOS_DEALS, ...KNJ_DEALS].filter((d) => d.daysLeft >= 0);
 
 // ---------- Business directory ----------
 
@@ -203,6 +252,10 @@ export const BUSINESSES: Business[] = [
   {
     name: "Mario's", cat: 'food', about: 'Pizza, burgers and oven-toasted sandwiches. Delivery and pickup from branches across Trinidad & Tobago.',
     area: 'Islandwide', website: 'https://www.mymarios.com', websiteLabel: 'mymarios.com', logo: '/deals/marios/MAR-002.webp',
+  },
+  {
+    name: 'Beauté by KNJ', cat: 'beauty', about: 'Wigs, hair, skincare, makeup and styling tools, plus a salon. Shop in store or reserve online and collect.',
+    area: 'Scarborough, Tobago', website: 'https://beautebyknj.com', websiteLabel: 'beautebyknj.com',
   },
   {
     name: "Domino's", cat: 'food', about: 'Pizza, bread bites and sides. Delivery or carryout from stores across Trinidad & Tobago.',
@@ -260,13 +313,16 @@ const PRICE: Record<string, (d: Deal) => boolean> = {
   o200: (d) => d.price > 200,
 };
 
+/** Percent-off sales have no price, so they sort after priced deals either way. */
+const priceOf = (d: Deal, missing = Infinity) => (Number.isNaN(d.price) ? missing : d.price);
+
 const SORT: Record<Filters['sort'], (a: Deal, b: Deal) => number> = {
   popular: (a, b) => b.hot - a.hot,
   new: (a, b) => a.added - b.added,
   ending: (a, b) => a.daysLeft - b.daysLeft,
   saving: (a, b) => b.pct - a.pct,
-  price: (a, b) => a.price - b.price,
-  priceDesc: (a, b) => b.price - a.price,
+  price: (a, b) => priceOf(a) - priceOf(b),
+  priceDesc: (a, b) => priceOf(b, -1) - priceOf(a, -1),
 };
 
 /** Words a shopper might type that should match a deal. */

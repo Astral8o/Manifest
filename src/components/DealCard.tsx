@@ -56,7 +56,7 @@ export function SaveButton({ d, size = 40 }: { d: Deal; size?: number }) {
 export function dealFacts(d: Deal): string[] {
   return [
     d.size && SIZES[d.size],
-    d.format === 'Online' ? 'Delivery only' : d.format === 'Online & in-store' ? 'Delivery or pickup' : 'In store',
+    d.getIt ?? (d.format === 'Online' ? 'Delivery only' : d.format === 'Online & in-store' ? 'Delivery or pickup' : 'In store'),
   ].filter(Boolean) as string[];
 }
 
@@ -84,11 +84,11 @@ export function DealCard({ d, eager = false }: { d: Deal; eager?: boolean }) {
           {d.endingSoon && <span className="badge-ends" style={{ padding: '2px 8px', fontSize: 12 }}>{d.endsShort}</span>}
         </div>
         <div style={{ position: 'absolute', top: 8, right: 8 }}><SaveButton d={d} size={38} /></div>
-        {d.pct > 0 && <Starburst size={58} fontSize={16} style={{ position: 'absolute', bottom: 6, right: 6 }}>-{d.pct}%</Starburst>}
+        {d.pct > 0 && !d.priceIsPercent && <Starburst size={58} fontSize={16} style={{ position: 'absolute', bottom: 6, right: 6 }}>-{d.pct}%</Starburst>}
       </div>
       <div className="deal-body">
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-          <span className="deal-price">{d.priceLabel}</span>
+          <span className="deal-price" style={d.priceIsPercent ? { fontSize: 22 } : undefined}>{d.priceLabel}</span>
           {d.wasLabel && <s style={{ fontSize: 13, color: 'var(--muted-3)' }}>{d.wasLabel}</s>}
         </div>
         <h3 className="deal-title">{d.title}</h3>
@@ -121,7 +121,7 @@ export function FeatureCard({ d, label }: { d: Deal; label: string }) {
         <h3 className="display" style={{ fontSize: 'clamp(24px,3vw,34px)', lineHeight: 0.95 }}>{d.title}</h3>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{d.promo && <span className="fact" style={{ background: 'var(--ink)', color: 'var(--sun)', borderColor: 'var(--ink)' }}>{d.promo}</span>}{dealFacts(d).map((f) => <span key={f} className="fact">{f}</span>)}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 'auto', paddingTop: 4, flexWrap: 'wrap' }}>
-          <span className="deal-price" style={{ fontSize: 40 }}>{d.priceLabel}</span>
+          <span className="deal-price" style={{ fontSize: d.priceIsPercent ? 30 : 40 }}>{d.priceLabel}</span>
           {d.wasLabel && <s style={{ fontSize: 15, color: 'var(--muted-3)' }}>{d.wasLabel}</s>}
           <button type="button" className="pill btn-dark" onClick={a.claim} style={{ marginLeft: 'auto', minHeight: 46, padding: '0 18px', fontSize: 14 }}>{d.action} →</button>
         </div>

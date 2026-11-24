@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { DealCard, FeatureCard } from '../components/DealCard';
 import { SearchIcon } from '../components/Chrome';
 import {
-  ACTIVE_COLLS, BUSINESSES, CREAM, DEALS, INK, KINDS, LILAC, SIZES, SUN, TOMATO,
+  ACTIVE_COLLS, BUSINESSES, CATS, CREAM, DEALS, INK, KINDS, LILAC, SIZES, SUN, TOMATO,
   filterDeals, inColl, todayLabel, DEFAULT_FILTERS, type Deal, type Filters, type Kind, type Size,
 } from '../data';
 import { useStore } from '../store';
@@ -110,7 +110,7 @@ function BizStrip() {
       <div className="deal-row" style={{ gap: 14 }}>
         {BUSINESSES.map((b) => (
           <button key={b.name} type="button" className="biz-chip" style={{ flexBasis: 84 }} onClick={() => browse({ biz: b.name })}>
-            <span className="logo">{b.logo && <img src={b.logo} alt="" />}</span>
+            <span className="logo" style={b.logo ? undefined : { background: CATS[b.cat].color, display: 'grid', placeItems: 'center', fontFamily: 'var(--display)', fontSize: 30, color: INK }}>{b.logo ? <img src={b.logo} alt="" /> : b.name.charAt(0)}</span>
             <span>{b.name}</span>
           </button>
         ))}
@@ -211,6 +211,7 @@ export function Home() {
       <Top spotlight={spotlight} />
       <QuickRail />
       <BizStrip />
+      <RowSection title="Coming up" sub="Sales that haven't started yet. Save one and we’ll keep it in your Saved tab." deals={DEALS.filter((d) => d.startsIn > 0).sort((a, c) => a.startsIn - c.startsIn)} onAll={b({ sort: 'new' })} min={1} />
       <RowSection title="Ending soon" sub="Real end dates only." deals={ending} onAll={b({ sort: 'ending', ends: '7' })} min={1} />
       <RowSection title="Top picks today" sub="Our team’s picks for today." deals={byHot.slice(spotlight.length)} onAll={b({ sort: 'popular' })} />
       <RowSection title="Under TT$100" sub="Big flavour, small spend." deals={rows({ price: 'u100', sort: 'price' })} onAll={b({ price: 'u100', sort: 'price' })} />

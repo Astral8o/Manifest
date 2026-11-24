@@ -54,7 +54,7 @@ export function DealPage() {
               {deal.isNew && <span className="badge-new" style={{ padding: '3px 12px', fontSize: 16, letterSpacing: 0 }}>NEW</span>}
               {deal.endingSoon && <span className="badge-ends" style={{ padding: '4px 12px', fontSize: 16, letterSpacing: 0 }}>{deal.endsShort}</span>}
             </div>
-            {deal.pct > 0 && <Starburst size={118} fontSize={30} style={{ position: 'absolute', top: 12, right: 12 }}>-{deal.pct}%</Starburst>}
+            {deal.pct > 0 && !deal.priceIsPercent && <Starburst size={118} fontSize={30} style={{ position: 'absolute', top: 12, right: 12 }}>-{deal.pct}%</Starburst>}
             {!deal.image && <span className="photo-note" style={{ left: 16, bottom: 16, fontSize: 12, letterSpacing: '.05em', padding: '5px 10px', borderRadius: 8, background: 'rgba(255,246,229,.9)' }}>photo · {deal.img}</span>}
           </div>
 
