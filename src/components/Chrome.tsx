@@ -30,7 +30,7 @@ export function SearchIcon() {
 
 export function Logo({ onClick }: { onClick: () => void }) {
   return (
-    <a href="#/home" onClick={(e) => { e.preventDefault(); onClick(); }} aria-label="EventoryTT home" style={{ display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', color: INK }}>
+    <a href="/" onClick={(e) => { e.preventDefault(); onClick(); }} aria-label="EventoryTT home" style={{ display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', color: INK }}>
       <span style={{ fontFamily: 'var(--display)', fontSize: 28, letterSpacing: '.02em', lineHeight: 1 }}>EVENTORY</span>
       <span style={{ fontFamily: 'var(--display)', fontSize: 14, background: TOMATO, color: CREAM, width: 36, height: 36, borderRadius: '50%', display: 'grid', placeItems: 'center', border: `2px solid ${INK}`, transform: 'rotate(-12deg)' }}>TT</span>
     </a>
