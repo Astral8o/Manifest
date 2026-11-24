@@ -628,6 +628,6 @@ export function filterDeals(all: Deal[], f: Filters, skip?: FilterKey): Deal[] {
   return [...r].sort(SORT[f.sort]);
 }
 
-export const dealUrl = (id: string) => `https://eventory.tt/deal/${id}`;
+export const dealUrl = (id: string) => `https://eventorytt.com/deal/${id}`;
 export const whatsappShareUrl = (d: Deal) =>
   'https://wa.me/?text=' + encodeURIComponent(`${d.title} at ${d.biz}, ${d.priceLabel}. Found it on EventoryTT: ${dealUrl(d.id)}`);

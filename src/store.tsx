@@ -44,8 +44,13 @@ export const useStore = () => {
 
 const SAVED_KEY = 'ett-saved';
 
-function parseHash(): Route | null {
-  const h = (window.location.hash || '').replace(/^#\/?/, '');
+/**
+ * Reads the page from a clean path (/deal/<id>, /browse). Old links that used
+ * a hash (/#/deal/<id>) still work and are rewritten to the clean form.
+ */
+function parsePath(): Route | null {
+  const legacy = (window.location.hash || '').replace(/^#\/?/, '');
+  const h = (legacy || window.location.pathname).replace(/^\/+|\/+$/g, '');
   if (!h) return null;
   const [s, id] = h.split('/');
   if (s === 'deal') return DEALS.some((d) => d.id === id) ? { screen: 'deal', dealId: id } : null;
@@ -53,7 +58,7 @@ function parseHash(): Route | null {
   return null;
 }
 
-const hashFor = (r: Route) => (r.screen === 'deal' ? `#/deal/${r.dealId}` : `#/${r.screen}`);
+const pathFor = (r: Route) => (r.screen === 'deal' ? `/deal/${r.dealId}` : r.screen === 'home' ? '/' : `/${r.screen}`);
 
 function readSaved(): string[] {
   try {
@@ -65,7 +70,12 @@ function readSaved(): string[] {
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const initial = parseHash() ?? { screen: 'home' as Screen, dealId: '' };
+  const initial = parsePath() ?? { screen: 'home' as Screen, dealId: '' };
+  // Replace an old /#/… address or an unknown path with the clean one.
+  if (typeof window !== 'undefined') {
+    const clean = pathFor({ screen: initial.screen, dealId: initial.dealId });
+    if (window.location.hash || window.location.pathname !== clean) window.history.replaceState(null, '', clean + window.location.search);
+  }
   const [route, setRoute] = useState<Route>({ screen: initial.screen, dealId: initial.dealId || DEALS[0].id });
   const [prev, setPrev] = useState<Screen>('home');
   const [width, setWidth] = useState(() => window.innerWidth);
@@ -81,7 +91,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const onResize = () => setWidth(window.innerWidth);
     const onPop = () => {
-      const r = parseHash() ?? { screen: 'home' as Screen, dealId: '' };
+      const r = parsePath() ?? { screen: 'home' as Screen, dealId: '' };
       setRoute((cur) => {
         if (cur.screen !== r.screen) setPrev(cur.screen);
         return { screen: r.screen, dealId: r.dealId || cur.dealId };
@@ -118,8 +128,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setRoute((cur) => {
       const next = { screen, dealId: opts.dealId ?? cur.dealId };
       if (cur.screen !== screen) setPrev(cur.screen);
-      const hash = hashFor(next);
-      if (window.location.hash !== hash) window.history.pushState(null, '', hash);
+      const path = pathFor(next);
+      if (window.location.pathname !== path) window.history.pushState(null, '', path);
       return next;
     });
     if (opts.coll) setColl(opts.coll);
