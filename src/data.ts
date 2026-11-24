@@ -251,7 +251,7 @@ const SACHA: SachaRow[] = [
   ['SAC-003', 'Three Mini Lip Velvets', 100, 0, 'Three mini Sacha lip velvets.', 86],
   ['SAC-004', 'Setting Powder', 94.5, 105, 'Sacha setting powder.', 84],
 ];
-const money = (n: number) => 'TT$' + (Number.isInteger(n) ? String(n) : n.toFixed(2));
+const money = (n: number) => 'TT$' + n.toLocaleString('en-US', { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 });
 const SACHA_DEALS: Deal[] = SACHA.map(([code, title, price, was, description, hot]) => {
   const added = daysSince(SACHA_CHECKED);
   const pct = was ? Math.round(((was - price) / was) * 100) : 0;
@@ -336,6 +336,33 @@ const courts = (id: string, title: string, price: number, was: number, blurb: st
   live: false,
 });
 const NEW_DEALS = [
+  makeDeal({
+    id: 'courts-marissa-living-room', biz: 'Courts', title: 'Marissa 3-Piece Living Room Set with USB', cat: 'shopping', blurb: '3-piece living room set with USB charging. Model LHT3CD.',
+    price: 8999, was: 9999, url: COURTS_URL, destShort: 'courts.com', region: 'Islandwide', area: 'Courts stores islandwide · online',
+    address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
+    checked: NOV24, hot: 88, image: '/deals/courts/marissa.webp', imageRatio: '1000 / 430',
+    claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
+    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    live: true,
+  }),
+  makeDeal({
+    id: 'courts-skempton-dining-set', biz: 'Courts', title: 'Skempton Rectangular Dining Set, 6 Chairs', cat: 'shopping', blurb: 'Rectangular dining table with 6 chairs. Model DAT06B.',
+    price: 6999, was: 8999, url: COURTS_URL, destShort: 'courts.com', region: 'Islandwide', area: 'Courts stores islandwide · online',
+    address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
+    checked: NOV24, hot: 86, image: '/deals/courts/skempton.webp', imageRatio: '1000 / 430',
+    claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
+    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    live: true,
+  }),
+  makeDeal({
+    id: 'courts-quattro-charcoal-grill', biz: 'Courts', title: 'Quattro Charcoal Grill with Thermometer', cat: 'shopping', blurb: 'Charcoal grill with a built-in thermometer and side shelves. Model 3290D5.',
+    price: 1199, was: 0, url: COURTS_URL, destShort: 'courts.com', region: 'Islandwide', area: 'Courts stores islandwide · online',
+    address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
+    checked: NOV24, hot: 82, image: '/deals/courts/quattro-grill.webp', imageRatio: '1000 / 424',
+    claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
+    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    live: true,
+  }),
   makeDeal({
     id: 'courts-black-friday', biz: 'Courts', title: 'Black Friday at Courts: up to 40% off', cat: 'shopping',
     blurb: 'Up to 40% off across Courts for Black Friday: furniture, appliances, electronics and more.', priceLabel: 'UP TO 40% OFF', pct: 40,
