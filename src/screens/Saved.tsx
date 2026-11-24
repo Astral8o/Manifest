@@ -28,7 +28,7 @@ export function Saved() {
             <button type="button" className="pill btn-shadow btn-press" onClick={() => browse()} style={{ background: TOMATO, padding: '0 20px', minHeight: 48, fontWeight: 800 }}>Browse today’s deals</button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,230px),1fr))', gap: 18 }}>
+          <div className="deal-grid">
             {deals.map((d) => <DealCard key={d.id} d={d} />)}
           </div>
         )}
