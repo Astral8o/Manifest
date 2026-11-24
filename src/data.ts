@@ -238,8 +238,54 @@ const KNJ_DEALS: Deal[] = [(() => {
   };
 })()];
 
+/**
+ * Sacha Cosmetics Black Friday sale ("up to 50% off" banner), prices as supplied on 24 Nov 2026.
+ * Prices are assumed to be TTD. No end date was published.
+ */
+const SACHA_CHECKED = new Date(2026, 10, 24);
+const SACHA_URL = 'https://www.shopsacha.com/en/';
+type SachaRow = [code: string, title: string, price: number, was: number, description: string, hot: number];
+const SACHA: SachaRow[] = [
+  ['SAC-001', 'Cream-to-Powder Foundation', 75, 100, 'Sacha cream-to-powder foundation.', 90],
+  ['SAC-002', 'Compact Face Powder', 71.25, 95, 'Sacha compact face powder.', 88],
+  ['SAC-003', 'Three Mini Lip Velvets', 100, 0, 'Three mini Sacha lip velvets.', 86],
+  ['SAC-004', 'Setting Powder', 94.5, 105, 'Sacha setting powder.', 84],
+];
+const money = (n: number) => 'TT$' + (Number.isInteger(n) ? String(n) : n.toFixed(2));
+const SACHA_DEALS: Deal[] = SACHA.map(([code, title, price, was, description, hot]) => {
+  const added = daysSince(SACHA_CHECKED);
+  const pct = was ? Math.round(((was - price) / was) * 100) : 0;
+  const biz = 'Sacha Cosmetics';
+  return {
+    id: 'sacha-' + code.slice(4), biz, title, cat: 'beauty' as CatKey, price, was, region: 'Online' as DealRegion,
+    area: 'Online · shopsacha.com', address: 'Shop online at shopsacha.com.',
+    action: 'Get Deal' as Action, format: 'Online' as Format, img: '', tags: price <= 100 ? ['budget'] : [], hot, featured: false,
+    blurb: description, when: 'Online', added, daysLeft: Infinity, startsIn: 0, pct,
+    catLabel: CATS.beauty.label, color: CATS.beauty.color,
+    priceLabel: money(price), wasLabel: was ? money(was) : '', saveLabel: was ? `Save ${money(was - price)} (${pct}%)` : '',
+    endsLabel: '', endsShort: '', endingSoon: false, isNew: added <= 2, addedLabel: addedLabelFor(added),
+    validity: '', checked: `${fmt(SACHA_CHECKED)} ${SACHA_CHECKED.getFullYear()}`,
+    destLabel: 'Opens shopsacha.com', destShort: 'shopsacha.com',
+    claimSteps: [
+      'Tap “Get Deal” to open shopsacha.com.',
+      `Find the ${title.toLowerCase()} in the Black Friday sale and add it to your cart.`,
+      'Pay Sacha Cosmetics directly. EventoryTT never takes payment.',
+    ],
+    terms: [
+      'Part of the Sacha Cosmetics Black Friday sale (up to 50% off).',
+      'Shades and stock as listed on Sacha’s site.',
+      'Confirm the price on shopsacha.com before you order.',
+    ],
+    hours: 'Order online any time',
+    code, demo: false,
+    image: '/deals/sacha/black-friday.webp',
+    url: SACHA_URL,
+    promo: 'Black Friday', getIt: 'Order online',
+  };
+});
+
 /** Every live deal. Deals drop off automatically the day after they end. */
-export const DEALS: Deal[] = [...DOMINOS_DEALS, ...MARIOS_DEALS, ...KNJ_DEALS].filter((d) => d.daysLeft >= 0);
+export const DEALS: Deal[] = [...DOMINOS_DEALS, ...MARIOS_DEALS, ...KNJ_DEALS, ...SACHA_DEALS].filter((d) => d.daysLeft >= 0);
 
 // ---------- Business directory ----------
 
@@ -256,6 +302,10 @@ export const BUSINESSES: Business[] = [
   {
     name: 'Beauté by KNJ', cat: 'beauty', about: 'Wigs, hair, skincare, makeup and styling tools, plus a salon. Shop in store or reserve online and collect.',
     area: 'Scarborough, Tobago', website: 'https://beautebyknj.com', websiteLabel: 'beautebyknj.com',
+  },
+  {
+    name: 'Sacha Cosmetics', cat: 'beauty', about: 'Trinidad-born makeup brand: foundations, powders, lip colour and setting sprays.',
+    area: 'Online', website: 'https://www.shopsacha.com/en/', websiteLabel: 'shopsacha.com',
   },
   {
     name: "Domino's", cat: 'food', about: 'Pizza, bread bites and sides. Delivery or carryout from stores across Trinidad & Tobago.',
