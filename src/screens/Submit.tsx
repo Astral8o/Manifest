@@ -16,7 +16,7 @@ interface Field {
 
 const STEPS = [
   { n: 1, title: 'Send your offer', sub: 'Takes about 5 minutes.' },
-  { n: 2, title: 'We check it', sub: 'A real person reviews it within 2 business days.' },
+  { n: 2, title: 'We get it ready', sub: 'We set up your deal page within 2 business days.' },
   { n: 3, title: 'It goes live', sub: 'Your deal gets its own page and link to share.' },
 ];
 
@@ -125,7 +125,7 @@ export function Submit() {
             <span className="eyebrow" style={{ letterSpacing: '.06em' }}>Submission #ETT-2611-047</span>
             <h2 className="display" style={{ fontSize: 'clamp(44px,7vw,72px)', lineHeight: 0.9 }}>Thanks, we’ve got it.</h2>
             <p style={{ margin: 0, fontSize: 17, lineHeight: 1.5, maxWidth: 560 }}>
-              Our team will check the details within 2 business days and may WhatsApp you to confirm prices or dates. Once approved, your deal goes live with its own shareable link.
+              We’ll set up your deal within 2 business days and may WhatsApp you to confirm prices or dates. Once approved, your deal goes live with its own shareable link.
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6 }}>
               <button type="button" className="pill btn-dark" onClick={() => { setSubmitted(false); setFileName(''); }} style={{ padding: '0 20px', minHeight: 48 }}>Submit another deal</button>

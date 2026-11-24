@@ -15,7 +15,7 @@ const GROUPS: { label: string; key: FilterKey; opts: [string, string][] }[] = [
   { label: 'Get it by', key: 'format', opts: [['online', 'Delivery'], ['store', 'Pickup / in store']] },
   { label: 'Business', key: 'biz', opts: BUSINESSES.map((b) => [b.name, b.name]) },
   { label: 'Where', key: 'region', opts: REGIONS.map((r) => [r, r]) },
-  { label: 'Verified discount', key: 'disc', opts: [['20', '20%+'], ['30', '30%+'], ['50', '50%+']] },
+  { label: 'Discount', key: 'disc', opts: [['20', '20%+'], ['30', '30%+'], ['50', '50%+']] },
   { label: 'Added', key: 'added', opts: [['today', 'Today'], ['week', 'This week']] },
   { label: 'Ends', key: 'ends', opts: [['3', 'Within 3 days'], ['7', 'This week']] },
 ];
@@ -77,7 +77,7 @@ export function Browse() {
           </div>
           <form role="search" onSubmit={(e) => { e.preventDefault(); searchRef.current?.blur(); }} style={{ display: 'flex', alignItems: 'center', gap: 10, background: CREAM, border: `2px solid ${INK}`, borderRadius: 999, padding: '4px 6px 4px 16px', boxShadow: `3px 3px 0 ${INK}`, maxWidth: 640 }}>
             <SearchIcon />
-            <input ref={searchRef} type="search" value={f.q} onChange={(e) => setFilters({ q: e.target.value })} placeholder="Search deals, stores, products…" aria-label="Search deals" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: 16, minHeight: 42, outline: 'none' }} />
+            <input ref={searchRef} type="search" value={f.q} onChange={(e) => setFilters({ q: e.target.value })} placeholder="What yuh looking for?" aria-label="Search deals" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: 16, minHeight: 42, outline: 'none' }} />
             {f.q && <button type="button" className="pill btn-dark" onClick={() => setFilters({ q: '' })} style={{ padding: '0 14px', minHeight: 38, fontWeight: 700, border: 'none' }}>Clear</button>}
           </form>
           {catOpts.length > 0 && (
@@ -144,8 +144,8 @@ export function Browse() {
           <div style={{ minWidth: 0 }}>
             {n === 0 ? (
               <div style={{ border: `2px dashed ${INK}`, borderRadius: 22, padding: '40px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                <span className="display" style={{ fontSize: 32 }}>No deals match</span>
-                <span style={{ fontSize: 16, color: 'var(--muted)' }}>Try a different search or fewer filters. New deals land every morning.</span>
+                <span className="display" style={{ fontSize: 32 }}>Nothing here… yet</span>
+                <span style={{ fontSize: 16, color: 'var(--muted)' }}>Try another word or fewer filters. New deals land every day.</span>
                 <button type="button" className="pill btn-dark" onClick={() => browse()} style={{ padding: '0 18px', minHeight: 44 }}>See all deals</button>
               </div>
             ) : (

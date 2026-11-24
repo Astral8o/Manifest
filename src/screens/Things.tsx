@@ -12,10 +12,10 @@ export function Things() {
     <>
       <section style={{ background: LILAC, borderBottom: `2px solid ${INK}` }}>
         <div className="wrap" style={{ paddingTop: 32, paddingBottom: 28, display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <span className="eyebrow">Editorial · updated every Thursday</span>
+          <span className="eyebrow">Fresh every Thursday</span>
           <h1 className="display" style={{ fontSize: 'clamp(64px,13vw,160px)', lineHeight: 0.85 }}>Things<br />to do</h1>
           <p style={{ margin: 0, fontSize: 18, lineHeight: 1.45, maxWidth: 560, fontWeight: 500 }}>
-            Weekend plans, date nights, free days out and family trips across Trinidad &amp; Tobago, picked by our team.
+            Limes, date nights, free days out and family trips across Trinidad &amp; Tobago.
           </p>
           <div role="group" aria-label="Collections" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(46%,180px),1fr))', gap: 10, marginTop: 6 }}>
             {ACTIVE_COLLS.map((c) => {

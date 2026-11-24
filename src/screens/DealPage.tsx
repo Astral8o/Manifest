@@ -94,14 +94,14 @@ export function DealPage() {
               <button type="button" className="pill" onClick={copyLink} style={{ flex: '0 1 auto', minHeight: 48, padding: '0 18px', fontWeight: 800, fontSize: 15 }}>Copy link</button>
             </div>
             <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--muted)' }}>
-              Checked by the EventoryTT team on {deal.checked}. EventoryTT doesn’t sell or take payment. Prices and availability are set by {deal.biz}.
+              Added {deal.checked}. You buy direct from {deal.biz}, and they set the price and stock, so give it a quick check before you pay.
             </p>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 20, marginTop: 48 }}>
           <div style={panel}>
-            <h3 className="display" style={h3}>How to claim</h3>
+            <h3 className="display" style={h3}>How to get it</h3>
             <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {deal.claimSteps.map((t, i) => (
                 <li key={i} style={{ display: 'grid', gridTemplateColumns: '34px minmax(0,1fr)', gap: 12, alignItems: 'start', padding: '8px 0' }}>
@@ -112,7 +112,7 @@ export function DealPage() {
             </ol>
           </div>
           <div style={panel}>
-            <h3 className="display" style={h3}>Terms</h3>
+            <h3 className="display" style={h3}>The fine print</h3>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {deal.terms.map((t) => (
                 <li key={t} style={{ fontSize: 15, lineHeight: 1.45, padding: '7px 0', borderBottom: '1.5px solid rgba(20,18,16,.15)' }}>{t}</li>
@@ -125,7 +125,7 @@ export function DealPage() {
               <h3 className="display" style={{ fontSize: 28 }}>{deal.biz}</h3>
               <span style={{ fontSize: 15 }}>{deal.address}</span>
               <span style={{ fontSize: 14, color: 'var(--muted)' }}>{deal.hours}</span>
-              <button type="button" className="pill" onClick={a.claim} style={{ alignSelf: 'flex-start', marginTop: 8, padding: '0 16px', minHeight: 44 }}>Contact business</button>
+              <button type="button" className="pill" onClick={a.claim} style={{ alignSelf: 'flex-start', marginTop: 8, padding: '0 16px', minHeight: 44 }}>Contact {deal.biz}</button>
             </div>
           </div>
         </div>
