@@ -4,85 +4,172 @@
 <meta charset="utf-8">
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
-  :root { --ink: #141210; --cream: #FFF6E5; --pink: #FF8FB8; --sun: #FFC531; --tomato: #F0412F; }
+  :root { --ink: #141210; --cream: #FFF6E5; --pink: #FF8FB8; --sun: #FFC531; --tomato: #F0412F; --lime: #C6E83C; }
   * { box-sizing: border-box; margin: 0; }
-  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--pink); }
-  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; font-family: Archivo, sans-serif; color: var(--ink);
-    background: var(--pink) repeating-linear-gradient(135deg, rgba(255,255,255,.18) 0 28px, transparent 28px 56px); }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--ink); }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; font-family: Archivo, sans-serif; color: var(--ink); background: var(--ink); }
   .abs { position: absolute; }
-  /* Reels safe zone: keep content between ~250px from top and ~400px from bottom */
-  #tag { left: 90px; top: 250px; background: var(--ink); color: var(--sun); font-family: Anton; font-size: 58px; letter-spacing: .06em;
-    padding: 14px 34px; border-radius: 999px; transform-origin: left center; }
-  #biz { left: 96px; top: 362px; font-weight: 800; font-size: 40px; letter-spacing: .12em; text-transform: uppercase; }
-  #card { left: 170px; top: 440px; width: 720px; height: 742px; border: 6px solid var(--ink); border-radius: 44px; overflow: hidden;
-    box-shadow: 22px 22px 0 var(--ink); background: #1a1020; transform-origin: center; }
-  #card img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  #burst { left: 720px; top: 360px; width: 250px; height: 250px; background: var(--sun); display: grid; place-items: center;
-    font-family: Anton; font-size: 78px; line-height: 1; color: var(--ink);
+  .scene { position: absolute; inset: 0; }
+  .display { font-family: Anton; text-transform: uppercase; line-height: .86; }
+
+  /* Ticker tapes */
+  .tape { position: absolute; left: -200px; width: 1600px; height: 92px; background: var(--sun); border-top: 6px solid var(--ink); border-bottom: 6px solid var(--ink);
+    display: flex; align-items: center; white-space: nowrap; font-family: Anton; font-size: 52px; letter-spacing: .08em; overflow: hidden; }
+  .tape span { display: inline-block; padding-right: 40px; }
+
+  /* Scene 1: Black Friday */
+  #s1 { background: var(--ink); }
+  .bf { position: absolute; left: 80px; font-size: 300px; color: var(--cream); }
+  #bf2 { color: var(--sun); }
+
+  /* Scene 2: product */
+  #s2 { background: var(--pink) repeating-linear-gradient(135deg, rgba(255,255,255,.2) 0 30px, transparent 30px 60px); }
+  #cat { left: 90px; top: 270px; background: var(--ink); color: var(--cream); font-family: Anton; font-size: 54px; letter-spacing: .06em; padding: 12px 30px; border-radius: 999px; }
+  /* Foundation bottle drawn from simple shapes */
+  #bottle { left: 330px; top: 470px; width: 420px; height: 760px; }
+  #cap { left: 105px; top: 0; width: 210px; height: 210px; background: var(--ink); border-radius: 26px 26px 10px 10px; border: 8px solid var(--ink); }
+  #neck { left: 145px; top: 200px; width: 130px; height: 50px; background: #2a2522; }
+  #body { left: 0; top: 240px; width: 420px; height: 520px; border-radius: 60px; border: 8px solid var(--ink);
+    background: linear-gradient(180deg, #E3A57C 0%, #C98A5E 100%); box-shadow: 22px 22px 0 var(--ink); overflow: hidden; }
+  #shine { left: 40px; top: 30px; width: 60px; height: 440px; background: rgba(255,255,255,.35); border-radius: 40px; }
+  #label { left: 70px; top: 170px; width: 280px; height: 200px; background: var(--cream); border: 6px solid var(--ink); border-radius: 22px;
+    display: grid; place-items: center; text-align: center; font-family: Anton; font-size: 44px; line-height: .95; }
+  .spark { width: 90px; height: 90px; background: var(--cream); clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); }
+  #prod { left: 90px; top: 1290px; width: 900px; font-size: 104px; }
+
+  /* Scene 3: price */
+  #s3 { background: var(--sun); }
+  #wasl { left: 90px; top: 330px; font-weight: 800; font-size: 46px; letter-spacing: .12em; }
+  #was { left: 90px; top: 395px; font-size: 170px; color: rgba(20,18,16,.45); }
+  #strike { left: 80px; top: 470px; height: 18px; background: var(--tomato); border-radius: 9px; transform-origin: left center; transform: rotate(-4deg); }
+  #nowl { left: 90px; top: 640px; font-weight: 800; font-size: 46px; letter-spacing: .12em; }
+  #now { left: 70px; top: 700px; font-size: 400px; color: var(--ink); transform-origin: left top; }
+  #burst { left: 610px; top: 1080px; width: 380px; height: 380px; background: var(--tomato); color: var(--cream); display: grid; place-items: center; text-align: center;
+    font-family: Anton; font-size: 70px; line-height: .95;
     clip-path: polygon(50% 0%,60.35% 11.36%,75% 6.7%,78.28% 21.72%,93.3% 25%,88.64% 39.65%,100% 50%,88.64% 60.35%,93.3% 75%,78.28% 78.28%,75% 93.3%,60.35% 88.64%,50% 100%,39.65% 88.64%,25% 93.3%,21.72% 78.28%,6.7% 75%,11.36% 60.35%,0% 50%,11.36% 39.65%,6.7% 25%,21.72% 21.72%,25% 6.7%,39.65% 11.36%); }
-  #title { left: 90px; top: 1238px; width: 870px; font-family: Anton; font-size: 76px; line-height: .92; text-transform: uppercase; }
-  #prices { left: 90px; top: 1395px; display: flex; align-items: flex-end; gap: 34px; }
-  #was { position: relative; margin-bottom: 10px; font-weight: 700; font-size: 54px; color: rgba(20,18,16,.6); }
-  #strike { position: absolute; left: -6px; top: 52%; height: 8px; background: var(--tomato); border-radius: 4px; }
-  #now { font-family: Anton; font-size: 150px; line-height: .8; transform-origin: left bottom; }
-  #cta { left: 210px; top: 1135px; background: var(--ink); color: var(--cream); font-weight: 800; font-size: 34px;
-    padding: 18px 30px; border-radius: 999px; border: 4px solid var(--cream); white-space: nowrap; }
+  #pct { left: 90px; top: 1180px; font-size: 150px; }
+
+  /* Scene 4: where */
+  #s4 { background: var(--ink); color: var(--cream); }
+  #biz { left: 90px; top: 300px; font-weight: 800; font-size: 44px; letter-spacing: .14em; color: var(--pink); }
+  #ptitle { left: 90px; top: 370px; width: 900px; font-size: 150px; color: var(--cream); }
+  #price4 { left: 90px; top: 830px; display: flex; align-items: flex-end; gap: 30px; }
+  #price4 .n { font-family: Anton; font-size: 220px; line-height: .8; color: var(--sun); }
+  #price4 .w { font-weight: 700; font-size: 60px; text-decoration: line-through; text-decoration-color: var(--tomato); text-decoration-thickness: 8px; color: rgba(255,246,229,.6); margin-bottom: 12px; }
+  #cta { left: 90px; top: 1130px; background: var(--pink); color: var(--ink); border: 6px solid var(--cream); border-radius: 999px; padding: 26px 44px;
+    font-weight: 800; font-size: 50px; box-shadow: 12px 12px 0 var(--cream); }
+  #bfnote { left: 90px; top: 1330px; font-family: Anton; font-size: 64px; letter-spacing: .04em; color: var(--sun); }
 </style>
 </head>
 <body>
 <div id="stage">
-  <div id="tag" class="abs">BLACK FRIDAY DEAL</div>
-  <div id="biz" class="abs">Sacha Cosmetics</div>
-  <div id="card" class="abs"><img src="photo.webp" alt=""></div>
-  <div id="burst" class="abs"><span>-25%</span></div>
-  <div id="cta" class="abs">Shop online · shopsacha.com</div>
-  <div id="title" class="abs">Cream-to-Powder<br>Foundation</div>
-  <div id="prices" class="abs">
-    <span id="was">TT$100<span id="strike"></span></span>
-    <span id="now">TT$75</span>
+  <!-- Scene 1 -->
+  <div id="s1" class="scene">
+    <div id="tape1" class="tape" style="top: 210px; transform: rotate(-4deg)"><span>BLACK FRIDAY ✦ BLACK FRIDAY ✦ BLACK FRIDAY ✦ BLACK FRIDAY ✦ BLACK FRIDAY ✦</span></div>
+    <div id="bf1" class="display bf" style="top: 470px">BLACK</div>
+    <div id="bf2" class="display bf" style="top: 740px">FRIDAY</div>
+    <div id="bf3" class="display bf" style="top: 1010px; color: var(--pink)">DEAL</div>
+    <div id="tape2" class="tape" style="top: 1390px; transform: rotate(3deg); background: var(--pink)"><span>BEAUTY ✦ BEAUTY ✦ BEAUTY ✦ BEAUTY ✦ BEAUTY ✦ BEAUTY ✦ BEAUTY ✦ BEAUTY ✦</span></div>
+  </div>
+
+  <!-- Scene 2 -->
+  <div id="s2" class="scene">
+    <div id="cat" class="abs">FOUNDATION</div>
+    <div id="sp1" class="abs spark" style="left: 170px; top: 560px"></div>
+    <div id="sp2" class="abs spark" style="left: 830px; top: 470px; width: 120px; height: 120px"></div>
+    <div id="sp3" class="abs spark" style="left: 840px; top: 1080px; width: 70px; height: 70px"></div>
+    <div id="bottle" class="abs">
+      <div id="cap" class="abs"></div>
+      <div id="neck" class="abs"></div>
+      <div id="body" class="abs"><div id="shine" class="abs"></div><div id="label" class="abs">CREAM<br>TO<br>POWDER</div></div>
+    </div>
+    <div id="prod" class="abs display">Cream-to-Powder<br>Foundation</div>
+  </div>
+
+  <!-- Scene 3 -->
+  <div id="s3" class="scene">
+    <div id="wasl" class="abs">WAS</div>
+    <div id="was" class="abs display">TT$100</div>
+    <div id="strike" class="abs"></div>
+    <div id="nowl" class="abs">NOW</div>
+    <div id="now" class="abs display">TT$75</div>
+    <div id="burst" class="abs"><span>SAVE<br>TT$25</span></div>
+    <div id="pct" class="abs display">25% OFF</div>
+  </div>
+
+  <!-- Scene 4 -->
+  <div id="s4" class="scene">
+    <div id="biz" class="abs">SACHA COSMETICS</div>
+    <div id="ptitle" class="abs display">Cream-to-<br>Powder<br>Foundation</div>
+    <div id="price4" class="abs"><span class="n">TT$75</span><span class="w">TT$100</span></div>
+    <div id="cta" class="abs">Shop online · shopsacha.com</div>
+    <div id="bfnote" class="abs">✦ BLACK FRIDAY SALE ✦</div>
   </div>
 </div>
 <script>
-  // Deterministic timeline: render(t) draws the frame at t seconds, so every frame can be captured exactly.
   const clamp = (x) => Math.max(0, Math.min(1, x));
   const prog = (t, a, b) => clamp((t - a) / (b - a));
   const outCubic = (x) => 1 - Math.pow(1 - x, 3);
+  const inOut = (x) => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
   const outBack = (x) => { const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
   const $ = (id) => document.getElementById(id);
-  const set = (id, o, tf) => { const e = $(id); e.style.opacity = o; e.style.transform = tf; };
+  const tf = (id, s, o) => { const e = $(id); e.style.transform = s; if (o !== undefined) e.style.opacity = o; };
+  // Scene windows (seconds). Each scene wipes in over the previous one.
+  const S = { s1: [0, 1.9], s2: [1.75, 3.9], s3: [3.75, 5.9], s4: [5.75, 8.6] };
 
-  window.DURATION = 7;
+  window.DURATION = 8.6;
   window.render = (t) => {
-    // 1. Tag stamps in, business name slides in
-    const a = prog(t, 0.1, 0.55);
-    set('tag', a > 0 ? 1 : 0, `scale(${0.4 + 0.6 * outBack(a)}) rotate(${-6 * (1 - a)}deg)`);
-    const b = outCubic(prog(t, 0.35, 0.8));
-    set('biz', b, `translateX(${-60 * (1 - b)}px)`);
+    // Scene visibility with a vertical wipe-in
+    for (const [id, [a]] of Object.entries(S)) {
+      const w = id === 's1' ? 1 : inOut(prog(t, a, a + 0.3));
+      const next = Object.values(S).find(([na]) => na > a);
+      const visible = t >= a && (!next || t < next[0] + 0.35);
+      $(id).style.display = visible ? 'block' : 'none';
+      $(id).style.clipPath = `inset(${(1 - w) * 100}% 0 0 0)`;
+    }
 
-    // 2. Photo card drops in with a bounce, then floats gently
-    const c = prog(t, 0.45, 1.15);
-    const float = t > 1.15 ? Math.sin((t - 1.15) * 2.2) * 8 : 0;
-    set('card', c > 0 ? 1 : 0, `translateY(${(1 - outBack(c)) * 220 + float}px) rotate(${-2.5 + 4 * (1 - outCubic(c))}deg) scale(${0.75 + 0.25 * outBack(c)})`);
+    // Scene 1: tapes scroll, words slam in
+    tf('tape1', `rotate(-4deg) translateX(${-((t * 260) % 460)}px)`);
+    tf('tape2', `rotate(3deg) translateX(${-460 + ((t * 260) % 460)}px)`);
+    ['bf1', 'bf2', 'bf3'].forEach((id, i) => {
+      const p = prog(t, 0.1 + i * 0.22, 0.4 + i * 0.22);
+      tf(id, `translateX(${(1 - outCubic(p)) * (i % 2 ? 900 : -900)}px) skewX(${(1 - p) * -12}deg)`, p > 0 ? 1 : 0);
+    });
 
-    // 3. Title slides up
-    const d = outCubic(prog(t, 1.4, 1.95));
-    set('title', d, `translateY(${80 * (1 - d)}px)`);
+    // Scene 2: label, bottle rises with bounce, sparkles twinkle, name slides up
+    const t2 = t - S.s2[0];
+    tf('cat', `scale(${outBack(prog(t2, 0.2, 0.55))})`, prog(t2, 0.2, 0.55) > 0 ? 1 : 0);
+    const bp = prog(t2, 0.25, 0.85);
+    tf('bottle', `translateY(${(1 - outBack(bp)) * 700 + Math.sin(t2 * 2.4) * 10}px) rotate(${(1 - outCubic(bp)) * 14 - 3}deg)`);
+    ['sp1', 'sp2', 'sp3'].forEach((id, i) => {
+      const p = prog(t2, 0.7 + i * 0.15, 1.0 + i * 0.15);
+      tf(id, `scale(${outBack(p) * (0.85 + 0.15 * Math.sin(t2 * 6 + i))}) rotate(${t2 * 40}deg)`, p > 0 ? 1 : 0);
+    });
+    const np = outCubic(prog(t2, 0.9, 1.35));
+    tf('prod', `translateY(${(1 - np) * 120}px)`, np);
 
-    // 4. Old price appears, gets struck, new price punches in, burst pops and spins slowly
-    const e = outCubic(prog(t, 2.2, 2.6));
-    set('was', e, `translateY(${40 * (1 - e)}px)`);
-    $('strike').style.width = `${(e > 0 ? outCubic(prog(t, 2.75, 3.15)) : 0) * 106}%`;
-    const f = prog(t, 3.2, 3.65);
-    set('now', f > 0 ? 1 : 0, `scale(${0.3 + 0.7 * outBack(f)})`);
-    const g = prog(t, 3.55, 3.95);
-    set('burst', g > 0 ? 1 : 0, `scale(${outBack(g)}) rotate(${12 + Math.sin((t - 3.55) * 3) * 5}deg)`);
+    // Scene 3: was price, strike, NOW price punches, burst + 25% off
+    const t3 = t - S.s3[0];
+    const wp = outCubic(prog(t3, 0.2, 0.5));
+    tf('wasl', `translateY(${(1 - wp) * 40}px)`, wp); tf('was', `translateY(${(1 - wp) * 60}px)`, wp);
+    $('strike').style.width = `${outCubic(prog(t3, 0.55, 0.85)) * 640}px`;
+    const nw = prog(t3, 0.85, 1.25);
+    tf('nowl', '', nw > 0 ? 1 : 0);
+    tf('now', `scale(${0.2 + 0.8 * outBack(nw)}) rotate(${(1 - outCubic(nw)) * -8}deg)`, nw > 0 ? 1 : 0);
+    const bu = prog(t3, 1.2, 1.55);
+    tf('burst', `scale(${outBack(bu)}) rotate(${10 + Math.sin(t3 * 3) * 5}deg)`, bu > 0 ? 1 : 0);
+    const pc = outCubic(prog(t3, 1.35, 1.7));
+    tf('pct', `translateX(${(1 - pc) * -300}px)`, pc);
 
-    // 5. Call to action slides up over the photo
-    const h = outBack(prog(t, 4.4, 4.9));
-    set('cta', prog(t, 4.4, 4.9) > 0 ? 1 : 0, `translateY(${60 * (1 - h)}px) scale(${0.85 + 0.15 * h})`);
-
-    // 6. Gentle pulse on the price to hold attention through the end
-    if (t > 4.2) $('now').style.transform = `scale(${1 + Math.sin((t - 4.2) * 4) * 0.025})`;
+    // Scene 4: recap and call to action
+    const t4 = t - S.s4[0];
+    const steps = [['biz', 0.25], ['ptitle', 0.4], ['price4', 0.65], ['cta', 0.95], ['bfnote', 1.2]];
+    steps.forEach(([id, d]) => {
+      const p = prog(t4, d, d + 0.35);
+      const pop = id === 'cta' ? `scale(${0.7 + 0.3 * outBack(p)})` : `translateY(${(1 - outCubic(p)) * 70}px)`;
+      tf(id, pop, p > 0 ? 1 : 0);
+    });
+    if (t4 > 1.6) $('cta').style.transform = `scale(${1 + Math.sin((t4 - 1.6) * 5) * 0.03})`;
   };
   window.render(0);
 </script>
