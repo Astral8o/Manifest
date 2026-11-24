@@ -284,8 +284,112 @@ const SACHA_DEALS: Deal[] = SACHA.map(([code, title, price, was, description, ho
   };
 });
 
+// ---------- Shared builder for new deals ----------
+
+interface DealInput {
+  id: string; biz: string; title: string; cat: CatKey; blurb: string; url: string; destShort: string;
+  /** Price in TTD; omit for percent-off sales or events and give `priceLabel` instead. */
+  price?: number; was?: number; priceLabel?: string; pct?: number;
+  region: DealRegion; area: string; address: string; getIt: string; format: Format; action?: Action;
+  checked: Date; start?: Date; end?: Date; hot: number; tags?: string[]; promo?: string;
+  claimSteps: string[]; terms: string[]; hours?: string; image?: string; imageRatio?: string; featured?: boolean;
+  /** Held back until a photo or the details are confirmed. */
+  live: boolean;
+}
+
+function makeDeal(o: DealInput): Deal & { live: boolean } {
+  const added = daysSince(o.checked);
+  const startsIn = o.start ? Math.round((+o.start - +TODAY) / DAY) : 0;
+  const daysLeft = o.end ? Math.round((+o.end - +TODAY) / DAY) : Infinity;
+  const hasPrice = o.price !== undefined;
+  const was = o.was ?? 0;
+  const pct = o.pct ?? (hasPrice && was ? Math.round(((was - o.price!) / was) * 100) : 0);
+  const fmtDay = (d: Date) => `${DOW[d.getDay()]} ${fmt(d)}`;
+  return {
+    id: o.id, biz: o.biz, title: o.title, cat: o.cat, price: hasPrice ? o.price! : NaN, was, region: o.region, area: o.area, address: o.address,
+    action: o.action ?? 'Get Deal', format: o.format, img: o.title.toLowerCase(), tags: [...(o.tags ?? []), ...(hasPrice && o.price! <= 100 ? ['budget'] : [])],
+    hot: o.hot, featured: o.featured ?? false, blurb: o.blurb, when: o.getIt, added, daysLeft, startsIn, pct,
+    catLabel: CATS[o.cat].label, color: CATS[o.cat].color,
+    priceLabel: o.priceLabel ?? (hasPrice ? money(o.price!) : ''), wasLabel: was ? money(was) : '',
+    saveLabel: hasPrice && was ? `Save ${money(was - o.price!)} (${pct}%)` : '',
+    endsLabel: startsIn > 0 ? `Starts ${fmtDay(o.start!)}` : !o.end ? '' : daysLeft <= 0 ? 'Ends today' : daysLeft === 1 ? 'Ends tomorrow' : daysLeft <= 7 ? `Ends in ${daysLeft} days` : `Valid until ${fmt(o.end)}`,
+    endsShort: daysLeft <= 0 ? 'ENDS TODAY' : daysLeft === 1 ? 'ENDS TOMORROW' : `${daysLeft} DAYS LEFT`,
+    endingSoon: !!o.end && startsIn <= 0 && daysLeft <= 3, isNew: added <= 2, addedLabel: addedLabelFor(added),
+    validity: o.start && o.end ? `${fmtDay(o.start)} – ${fmtDay(o.end)} ${o.end.getFullYear()}` : o.end ? `Until ${fmtDay(o.end)} ${o.end.getFullYear()}` : '',
+    checked: `${fmt(o.checked)} ${o.checked.getFullYear()}`,
+    destLabel: `Opens ${o.destShort}`, destShort: o.destShort,
+    claimSteps: o.claimSteps, terms: o.terms, hours: o.hours ?? '', code: o.id, demo: false,
+    image: o.image, imageRatio: o.imageRatio, url: o.url, promo: o.promo, getIt: o.getIt,
+    priceIsPercent: !hasPrice, live: o.live,
+  };
+}
+
+/** Deals from the 24 Nov 2026 roundup. Held back (`live: false`) until their photos arrive. */
+const NOV24 = new Date(2026, 10, 24);
+const COURTS_URL = 'https://www.courts.com/trinidadandtobago';
+const courts = (id: string, title: string, price: number, was: number, blurb: string, hot: number) => makeDeal({
+  id: 'courts-' + id, biz: 'Courts', title, cat: 'shopping', blurb, price, was, url: COURTS_URL, destShort: 'courts.com',
+  region: 'Islandwide', area: 'Courts stores islandwide · online', address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.',
+  getIt: 'In store or online', format: 'Online & in-store', checked: NOV24, hot, promo: 'Black Friday',
+  claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
+  terms: ['Courts Black Friday price. No end date published; Courts also runs a Cyber Monday sale (Mon 30 Nov).', 'Stock and prices set by Courts. Check before you go.'],
+  live: false,
+});
+const NEW_DEALS = [
+  makeDeal({
+    id: 'courts-black-friday', biz: 'Courts', title: 'Black Friday at Courts: up to 40% off', cat: 'shopping',
+    blurb: 'Up to 40% off across Courts for Black Friday: furniture, appliances, electronics and more.', priceLabel: 'UP TO 40% OFF', pct: 40,
+    url: COURTS_URL, destShort: 'courts.com', region: 'Islandwide', area: 'Courts stores islandwide · online',
+    address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
+    checked: NOV24, hot: 92, promo: 'Black Friday', image: '/deals/courts/black-friday.webp', imageRatio: '1000 / 615',
+    claimSteps: ['Tap “Get Deal” to browse the sale online, or visit any Courts store.', 'Discounts are already shown on sale items.', 'Pay Courts directly. EventoryTT never takes payment.'],
+    terms: ['Up to 40% off selected items; the discount varies by item.', 'No end date published. Courts also runs a Cyber Monday sale (Mon 30 Nov).', 'Stock and prices set by Courts.'],
+    live: true,
+  }),
+  courts('tcl-65-qled', 'TCL 65" 4K QLED TV', 4999, 6999, 'TCL 65-inch 4K QLED smart TV.', 89),
+  courts('tcl-washer-dryer', 'TCL Washer + Dryer', 3499, 4999, 'TCL washer and dryer set.', 85),
+  courts('mastertech-coffee', 'Mastertech Coffee Maker', 169, 349, 'Mastertech coffee maker.', 80),
+  makeDeal({
+    id: 'digicel-a07-postpaid', biz: 'Digicel', title: 'Samsung A07 for TT$1 with a Postpaid My Choice Plan', cat: 'shopping',
+    blurb: 'Samsung Galaxy A07 for $1 when you sign up for a Postpaid My Choice Plan.', price: 1, url: 'https://www.digicelgroup.com/tt', destShort: 'digicelgroup.com/tt',
+    region: 'Islandwide', area: 'Digicel stores islandwide', address: 'Digicel stores across Trinidad & Tobago.', getIt: 'In-store sign-up only', format: 'In-store',
+    action: 'View Offer', checked: NOV24, hot: 87,
+    claimSteps: ['Visit a Digicel store (in-store sign-up only).', 'Sign up for a Postpaid My Choice Plan.', 'Get the Samsung A07 for $1. Plan charges apply.'],
+    terms: ['Requires a Postpaid My Choice Plan; plan costs and contract terms set by Digicel.', 'In-store sign-up only. No end date published.'],
+    live: false,
+  }),
+  makeDeal({
+    id: 'digicel-fibre-families', biz: 'Digicel', title: '30% off Digicel Fibre for families', cat: 'shopping',
+    blurb: '30% off Digicel Fibre home internet for families.', priceLabel: '30% OFF', pct: 30, url: 'https://www.digicelgroup.com/tt', destShort: 'digicelgroup.com/tt',
+    region: 'Islandwide', area: 'Where Digicel Fibre is available', address: 'Digicel Fibre service areas in Trinidad & Tobago.', getIt: 'Home internet', format: 'Online & in-store',
+    action: 'View Offer', checked: NOV24, hot: 78, tags: ['family'],
+    claimSteps: ['Tap “View Offer” for Digicel Fibre plans, or visit a Digicel store.', 'Check that Fibre is available at your address.', 'Sign up and ask for the families discount.'],
+    terms: ['Discount and eligibility set by Digicel. No end date published.'],
+    live: false,
+  }),
+  makeDeal({
+    id: 'north-shore-optical-packages', biz: 'North Shore Optical', title: 'Complete eyewear packages from TT$695', cat: 'beauty',
+    blurb: 'Complete eyewear packages (frames and lenses) starting at $695.', price: 695, priceLabel: 'FROM TT$695', url: 'https://northshoreopticaltt.com', destShort: 'northshoreopticaltt.com',
+    region: 'POS & West', area: 'See northshoreopticaltt.com', address: 'See northshoreopticaltt.com for location and hours.', getIt: 'In store', format: 'In-store',
+    action: 'View Offer', checked: NOV24, hot: 70,
+    claimSteps: ['Tap “View Offer” to see the packages and book.', 'Choose your frames and lenses in store.', 'Pay North Shore Optical directly.'],
+    terms: ['Ongoing offer. What’s included in each package is set by North Shore Optical.'],
+    live: false,
+  }),
+  makeDeal({
+    id: 'ttma-christmas-popup', biz: 'TTMA Christmas Pop-Up Shop', title: 'Christmas Pop-Up Shop: locally made goods', cat: 'events',
+    blurb: 'Shop locally made goods from Trinidad & Tobago manufacturers, just in time for Christmas.', priceLabel: 'POP-UP SHOP', url: 'https://ttma.com', destShort: 'ttma.com',
+    region: 'East', area: 'Macoya', address: 'Macoya, Trinidad.', getIt: 'In person', format: 'In-store', action: 'View Offer',
+    checked: NOV24, start: new Date(2026, 10, 28), end: new Date(2026, 10, 29), hot: 76, tags: ['weekend', 'family', 'events'],
+    hours: 'Sat 28 & Sun 29 Nov · 10am–6pm',
+    claimSteps: ['Head to the pop-up in Macoya, Sat 28 or Sun 29 November, 10am–6pm.', 'Browse and buy directly from local makers.'],
+    terms: ['Sat 28 – Sun 29 November 2026, 10am–6pm.', 'Prices set by each vendor.'],
+    live: false,
+  }),
+].filter((d) => d.live);
+
 /** Every live deal. Deals drop off automatically the day after they end. */
-export const DEALS: Deal[] = [...DOMINOS_DEALS, ...MARIOS_DEALS, ...KNJ_DEALS, ...SACHA_DEALS].filter((d) => d.daysLeft >= 0);
+export const DEALS: Deal[] = [...DOMINOS_DEALS, ...MARIOS_DEALS, ...KNJ_DEALS, ...SACHA_DEALS, ...NEW_DEALS].filter((d) => d.daysLeft >= 0);
 
 // ---------- Business directory ----------
 
@@ -306,6 +410,10 @@ export const BUSINESSES: Business[] = [
   {
     name: 'Sacha Cosmetics', cat: 'beauty', about: 'Trinidad-born makeup brand: foundations, powders, lip colour and setting sprays.',
     area: 'Online', website: 'https://www.shopsacha.com/en/', websiteLabel: 'shopsacha.com',
+  },
+  {
+    name: 'Courts', cat: 'shopping', about: 'Furniture, appliances and electronics, with payment plans. Stores across Trinidad & Tobago and online.',
+    area: 'Islandwide', website: 'https://www.courts.com/trinidadandtobago', websiteLabel: 'courts.com',
   },
   {
     name: "Domino's", cat: 'food', about: 'Pizza, bread bites and sides. Delivery or carryout from stores across Trinidad & Tobago.',

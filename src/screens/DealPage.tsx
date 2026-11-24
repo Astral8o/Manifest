@@ -74,7 +74,7 @@ export function DealPage() {
             </div>
             <div style={{ background: PAPER, border: `2px solid ${INK}`, borderRadius: 20, padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: 'var(--display)', fontSize: 60, lineHeight: 0.9 }}>{deal.priceLabel}</span>
+                <span style={{ fontFamily: 'var(--display)', fontSize: deal.priceIsPercent ? 'clamp(34px, 9vw, 52px)' : 60, lineHeight: 0.9 }}>{deal.priceLabel}</span>
                 {deal.wasLabel && <s style={{ fontSize: 18, color: 'var(--muted-3)' }}>{deal.wasLabel}</s>}
                 {deal.saveLabel && <span style={{ background: PINK, border: `2px solid ${INK}`, borderRadius: 999, padding: '3px 12px', fontWeight: 800, fontSize: 14 }}>{deal.saveLabel}</span>}
               </div>
