@@ -60,6 +60,8 @@ export interface Deal {
   image?: string;
   /** Shape of the photo when it isn't square, e.g. '5 / 2' for wide banners. */
   imageRatio?: string;
+  /** Short campaign tag taken from the business's own promo, e.g. 'Black Friday Week'. */
+  promo?: string;
   /** The business's own page for the offer. When set, the claim button opens it. */
   url?: string;
   /** What the deal is, for browsing ("Pizza", "Burgers"…). */
@@ -145,7 +147,7 @@ const DOMINOS_CHECKED = new Date(2026, 10, 24);
 const DOMINOS_URL = 'https://www.dominos.tt/en/pages/order/?couponCode_0=BLFRIPAN&partnerCode=DOMINOS&so=hp#!/locations/search/';
 type DominosRow = [code: string, title: string, price: number, description: string, conditions: string[], hot: number, size: Size, featured: boolean];
 const DOMINOS: DominosRow[] = [
-  ['DOM-001', 'Black Friday Week: Any 1-Topping Pan Pizza', 99, 'Any 1-topping pan pizza.', ['Black Friday Week offer.', 'Free slice sauce while stocks last.', 'Coupon BLFRIPAN is applied when you order through the link.'], 97, 'share', true],
+  ['DOM-001', 'Any 1-Topping Pan Pizza', 99, 'Any 1-topping pan pizza.', ['Black Friday Week offer.', 'Free slice sauce while stocks last.', 'Coupon BLFRIPAN is applied when you order through the link.'], 97, 'share', true],
   ['DOM-002', 'The Big DeXL: XL 1-Topping Pizza, Bread Bites & 2L Drink', 129, 'XL 1-topping hand tossed pizza, bread bites and a 2L drink.', [], 89, 'family', false],
   ['DOM-003', 'The Big DeXL: XL 16" 1-Topping Pizza', 99, 'XL 16-inch 1-topping pizza.', [], 88, 'family', false],
 ];
@@ -182,6 +184,7 @@ const DOMINOS_DEALS: Deal[] = DOMINOS.map(([code, title, price, description, con
     demo: false,
     image: `/deals/dominos/${code}.webp`,
     imageRatio: '5 / 2',
+    promo: code === 'DOM-001' ? 'Black Friday Week' : undefined,
     url: DOMINOS_URL,
   };
 });
@@ -267,7 +270,7 @@ const SORT: Record<Filters['sort'], (a: Deal, b: Deal) => number> = {
 
 /** Words a shopper might type that should match a deal. */
 const searchText = (d: Deal) =>
-  [d.biz, d.title, d.blurb, d.area, d.region, d.catLabel, d.kind && KINDS[d.kind], d.size && SIZES[d.size], d.format !== 'In-store' ? 'delivery' : '', d.price === 0 ? 'free' : '']
+  [d.biz, d.title, d.promo, d.blurb, d.area, d.region, d.catLabel, d.kind && KINDS[d.kind], d.size && SIZES[d.size], d.format !== 'In-store' ? 'delivery' : '', d.price === 0 ? 'free' : '']
     .join(' ').toLowerCase();
 
 export function filterDeals(all: Deal[], f: Filters, skip?: FilterKey): Deal[] {

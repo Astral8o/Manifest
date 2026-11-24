@@ -50,6 +50,7 @@ export function DealPage() {
           >
             {deal.image && <img src={deal.image} alt={`${deal.title} from ${deal.biz}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />}
             <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {deal.promo && <span className="badge-ends" style={{ padding: '4px 12px', fontSize: 16, letterSpacing: 0, color: 'var(--sun)', textTransform: 'uppercase' }}>{deal.promo}</span>}
               {deal.isNew && <span className="badge-new" style={{ padding: '3px 12px', fontSize: 16, letterSpacing: 0 }}>NEW</span>}
               {deal.endingSoon && <span className="badge-ends" style={{ padding: '4px 12px', fontSize: 16, letterSpacing: 0 }}>{deal.endsShort}</span>}
             </div>

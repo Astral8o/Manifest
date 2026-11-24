@@ -79,6 +79,7 @@ export function DealCard({ d, eager = false }: { d: Deal; eager?: boolean }) {
       <div style={{ position: 'relative' }}>
         <DealImage d={d} eager={eager} />
         <div style={{ position: 'absolute', top: 8, left: 8, display: 'flex', gap: 5, flexWrap: 'wrap', maxWidth: 'calc(100% - 60px)' }}>
+          {d.promo && <span className="badge-ends" style={{ padding: '2px 8px', fontSize: 12, background: 'var(--ink)', color: 'var(--sun)', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{d.promo}</span>}
           {d.isNew && <span className="badge-new pulse" style={{ padding: '1px 8px', fontSize: 12 }}>NEW</span>}
           {d.endingSoon && <span className="badge-ends" style={{ padding: '2px 8px', fontSize: 12 }}>{d.endsShort}</span>}
         </div>
@@ -118,7 +119,7 @@ export function FeatureCard({ d, label }: { d: Deal; label: string }) {
       <div className="feature-body">
         <div className="deal-meta" style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>{d.biz}</div>
         <h3 className="display" style={{ fontSize: 'clamp(24px,3vw,34px)', lineHeight: 0.95 }}>{d.title}</h3>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{dealFacts(d).map((f) => <span key={f} className="fact">{f}</span>)}</div>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{d.promo && <span className="fact" style={{ background: 'var(--ink)', color: 'var(--sun)', borderColor: 'var(--ink)' }}>{d.promo}</span>}{dealFacts(d).map((f) => <span key={f} className="fact">{f}</span>)}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 'auto', paddingTop: 4, flexWrap: 'wrap' }}>
           <span className="deal-price" style={{ fontSize: 40 }}>{d.priceLabel}</span>
           {d.wasLabel && <s style={{ fontSize: 15, color: 'var(--muted-3)' }}>{d.wasLabel}</s>}
