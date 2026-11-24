@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from 'react';
+
+const SUBMIT_URL = 'https://oiwjuvzsydhuhmetcuqk.supabase.co/functions/v1/submit-deal';
 import { CATS, CREAM, INK, LIME, PAPER, SUN, TOMATO } from '../data';
 import { useStore } from '../store';
 
@@ -47,6 +49,8 @@ export function Submit() {
   const [linkType, setLinkType] = useState<LinkType>('WhatsApp');
   const [fileName, setFileName] = useState('');
   const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
+  const [ref, setRef] = useState('');
 
   const groups: { n: number; title: string; fields: Field[]; linkTypes?: boolean; hasImage?: boolean }[] = [
     {
@@ -81,17 +85,30 @@ export function Submit() {
     },
   ];
 
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (sending) return;
     const data = new FormData(e.currentTarget);
     const start = String(data.get('start') || ''), end = String(data.get('end') || '');
     const price = Number(data.get('price')), was = Number(data.get('was') || 0);
     if (start && end && end < start) return setError('The expiry date must be on or after the start date.');
     if (was && price > was) return setError('The promo price should be lower than the original price.');
     setError('');
-    // TODO: send `data` to the review queue (no backend in this prototype).
-    setSubmitted(true);
-    window.scrollTo(0, 0);
+    data.set('linkType', linkType);
+    setSending(true);
+    try {
+      // Saved to Supabase and emailed to the EventoryTT admin inbox (submit-deal edge function).
+      const res = await fetch(SUBMIT_URL, { method: 'POST', body: data });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.ok) throw new Error(body.error || 'Something went wrong.');
+      setRef(body.ref);
+      setSubmitted(true);
+      window.scrollTo(0, 0);
+    } catch (err) {
+      setError(err instanceof Error && err.message !== 'Failed to fetch' ? err.message : 'Couldn’t send your deal. Check your connection and try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -122,18 +139,20 @@ export function Submit() {
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 20px 56px' }}>
         {submitted ? (
           <div role="status" style={{ border: `2px solid ${INK}`, borderRadius: 28, background: LIME, boxShadow: `6px 6px 0 ${INK}`, padding: 'clamp(24px,4vw,44px)', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <span className="eyebrow" style={{ letterSpacing: '.06em' }}>Submission #ETT-2611-047</span>
+            <span className="eyebrow" style={{ letterSpacing: '.06em' }}>Reference {ref}</span>
             <h2 className="display" style={{ fontSize: 'clamp(44px,7vw,72px)', lineHeight: 0.9 }}>Thanks, we’ve got it.</h2>
             <p style={{ margin: 0, fontSize: 17, lineHeight: 1.5, maxWidth: 560 }}>
               We’ll set up your deal within 2 business days and may WhatsApp you to confirm prices or dates. Once approved, your deal goes live with its own shareable link.
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6 }}>
-              <button type="button" className="pill btn-dark" onClick={() => { setSubmitted(false); setFileName(''); }} style={{ padding: '0 20px', minHeight: 48 }}>Submit another deal</button>
+              <button type="button" className="pill btn-dark" onClick={() => { setSubmitted(false); setFileName(''); setRef(''); }} style={{ padding: '0 20px', minHeight: 48 }}>Submit another deal</button>
               <button type="button" className="pill" onClick={() => go('home')} style={{ padding: '0 20px', minHeight: 48, fontWeight: 800 }}>Back to home</button>
             </div>
           </div>
         ) : (
           <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+            {/* Honeypot for bots: hidden from people and screen readers */}
+            <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: -9999, width: 1, height: 1, opacity: 0 }} />
             {groups.map((g) => (
               <fieldset key={g.n} style={{ border: `2px solid ${INK}`, borderRadius: 24, padding: 22, margin: 0, background: PAPER, display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
                 <legend className="display" style={{ fontSize: 26, padding: '0 10px', background: CREAM, border: `2px solid ${INK}`, borderRadius: 999 }}>{g.n} · {g.title}</legend>
@@ -162,7 +181,7 @@ export function Submit() {
               <span>I confirm this offer is real, the prices are accurate, and I’m authorised to promote it. I understand EventoryTT reviews every submission before publishing.</span>
             </label>
             {error && <div role="alert" style={{ border: `2px solid ${INK}`, background: '#FFE1DC', borderRadius: 14, padding: '12px 16px', fontWeight: 700 }}>{error}</div>}
-            <button type="submit" className="pill btn-press display" style={{ minHeight: 60, background: TOMATO, boxShadow: `5px 5px 0 ${INK}`, fontSize: 24 }}>Submit for review</button>
+            <button type="submit" disabled={sending} className="pill btn-press display" style={{ minHeight: 60, background: TOMATO, boxShadow: `5px 5px 0 ${INK}`, fontSize: 24, opacity: sending ? 0.6 : 1 }}>{sending ? 'Sending…' : 'Send my deal'}</button>
           </form>
         )}
       </div>
