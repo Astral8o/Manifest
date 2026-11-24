@@ -1,0 +1,31 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  html, body { background: transparent; }
+  .icon { position: relative; width: 512px; height: 512px; overflow: hidden; display: none; font-family: Anton; }
+  body[data-v="a"] #a, body[data-v="b"] #b, body[data-v="c"] #c, body[data-v="d"] #d { display: grid; }
+  /* A: the TT sticker on its own, as in the site header */
+  #a { place-items: center; }
+  #a span { width: 470px; height: 470px; border-radius: 50%; background: #F0412F; border: 36px solid #141210; display: grid; place-items: center;
+    color: #FFF6E5; font-size: 250px; line-height: 1; transform: rotate(-12deg); }
+  /* B: ETT stacked in a red square */
+  #b { background: #F0412F; border-radius: 96px; place-items: center; color: #FFF6E5; font-size: 300px; line-height: .8; letter-spacing: -.01em; }
+  /* C: black square, cream E, red dot */
+  #c { background: #141210; border-radius: 96px; }
+  #c .e { position: absolute; left: 92px; top: 30px; color: #FFF6E5; font-size: 470px; line-height: .9; }
+  #c .dot { position: absolute; right: 64px; bottom: 70px; width: 120px; height: 120px; border-radius: 50%; background: #F0412F; }
+  /* D: price-tag shape with TT */
+  #d { place-items: center; }
+  #d .tag { width: 440px; height: 300px; background: #FFC531; border: 30px solid #141210; border-radius: 40px 150px 150px 40px; transform: rotate(-18deg);
+    display: grid; place-items: center; position: relative; }
+  #d .tag b { font-weight: 400; font-size: 190px; line-height: 1; color: #141210; margin-right: 50px; }
+  #d .tag i { position: absolute; right: 52px; top: 50%; width: 46px; height: 46px; margin-top: -23px; border-radius: 50%; background: #141210; }
+</style></head>
+<body>
+  <div id="a" class="icon"><span>TT</span></div>
+  <div id="b" class="icon">ETT</div>
+  <div id="c" class="icon"><span class="e">E</span><span class="dot"></span></div>
+  <div id="d" class="icon"><div class="tag"><b>TT</b><i></i></div></div>
+<script>document.body.dataset.v = new URLSearchParams(location.search).get('v');</script></body></html>
