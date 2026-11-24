@@ -190,20 +190,25 @@ function ThingsTeaser() {
   );
 }
 
+/** EventoryTT's WhatsApp number for the Friday Five sign-up (no plus or dashes, as wa.me needs). */
+const WHATSAPP_NUMBER = '18687177720';
+const JOIN_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hi EventoryTT, add me to the Friday Five.')}`;
+
 function Digest() {
-  const { showToast } = useStore();
-  const [phone, setPhone] = useState('');
   return (
     <section className="wrap" style={{ marginTop: 40 }}>
       <div style={{ background: SUN, border: `2px solid ${INK}`, borderRadius: 24, boxShadow: `5px 5px 0 ${INK}`, padding: 'clamp(20px,4vw,36px)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 20, alignItems: 'center' }}>
         <div>
           <h2 className="display" style={{ fontSize: 'clamp(32px,5vw,52px)', lineHeight: 0.95 }}>The Friday Five, on WhatsApp</h2>
-          <p style={{ margin: '8px 0 0', fontSize: 15, lineHeight: 1.45, maxWidth: 440 }}>Five deals worth your weekend, every Friday at 9am. No spam. Reply STOP any time.</p>
+          <p style={{ margin: '8px 0 0', fontSize: 15, lineHeight: 1.45, maxWidth: 440 }}>Five deals worth your weekend, every Friday at 9am. Tap below, hit send, and you’re in. Reply STOP any time.</p>
         </div>
-        <form onSubmit={(e) => { e.preventDefault(); showToast(phone.trim() ? 'Done. Your first Friday Five arrives this week.' : 'Add your WhatsApp number first'); }} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 868 555 0123" inputMode="tel" type="tel" aria-label="WhatsApp number" style={{ flex: '1 1 200px', minHeight: 50, border: `2px solid ${INK}`, borderRadius: 999, padding: '0 18px', fontSize: 16, background: CREAM, outline: 'none' }} />
-          <button type="submit" className="pill btn-dark" style={{ minHeight: 50, padding: '0 22px', fontSize: 15 }}>Send me the five</button>
-        </form>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+          <a href={JOIN_LINK} target="_blank" rel="noopener noreferrer" className="pill btn-dark"
+            style={{ display: 'inline-flex', alignItems: 'center', minHeight: 54, padding: '0 26px', fontSize: 16, textDecoration: 'none', color: CREAM }}>
+            Join on WhatsApp →
+          </a>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>Opens WhatsApp with the message ready to send.</span>
+        </div>
       </div>
     </section>
   );
