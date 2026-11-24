@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
-import { DealCard, useDealActions } from '../components/DealCard';
+import { DealCard, dealFacts, useDealActions } from '../components/DealCard';
 import { Starburst } from '../components/Starburst';
-import { CREAM, DEALS, INK, LIME, PAPER, PINK, SUN, TOMATO, dealUrl, whatsappShareUrl } from '../data';
+import { CREAM, DEALS, KINDS, INK, LIME, PAPER, PINK, SUN, TOMATO, dealUrl, whatsappShareUrl } from '../data';
 import { useStore } from '../store';
 
 const panel: CSSProperties = { border: `2px solid ${INK}`, borderRadius: 22, padding: 22, background: PAPER };
@@ -21,7 +21,10 @@ export function DealPage() {
   const { dealId, goBack, isMobile, showDemo, showToast } = useStore();
   const deal = DEALS.find((d) => d.id === dealId) ?? DEALS[0];
   const a = useDealActions(deal);
-  const related = DEALS.filter((d) => d.id !== deal.id && (d.cat === deal.cat || d.region === deal.region)).sort((x, y) => y.hot - x.hot).slice(0, 8);
+  // Same business first, then the same kind of deal, then anything in the category.
+  const score = (d: typeof deal) => (d.biz === deal.biz ? 2 : 0) + (d.kind && d.kind === deal.kind ? 1 : 0);
+  const related = DEALS.filter((d) => d.id !== deal.id && (d.biz === deal.biz || d.cat === deal.cat))
+    .sort((x, y) => score(y) - score(x) || y.hot - x.hot).slice(0, 10);
   const shareUrl = whatsappShareUrl(deal);
 
   const copyLink = async () => {
@@ -38,8 +41,13 @@ export function DealPage() {
       <div className="wrap" style={{ paddingTop: 16, paddingBottom: 48 }}>
         <button type="button" className="pill" onClick={goBack} style={{ padding: '0 16px', minHeight: 44, fontSize: 14 }}>← Back</button>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', gap: 36, marginTop: 18, alignItems: 'start' }}>
-          <div className={deal.image ? undefined : 'stripes-lg'} style={{ position: 'relative', aspectRatio: '1 / 1', border: `2px solid ${INK}`, borderRadius: 28, boxShadow: `8px 8px 0 ${INK}`, backgroundColor: deal.image ? INK : deal.color, overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', gap: isMobile ? 20 : 36, marginTop: isMobile ? 12 : 18, alignItems: 'start' }}>
+          <div
+            className={deal.image ? undefined : 'stripes-lg'}
+            style={isMobile
+              ? { position: 'relative', aspectRatio: '1 / 1', margin: '0 -20px', borderTop: `2px solid ${INK}`, borderBottom: `2px solid ${INK}`, backgroundColor: deal.image ? INK : deal.color, overflow: 'hidden' }
+              : { position: 'sticky', top: 84, aspectRatio: '1 / 1', border: `2px solid ${INK}`, borderRadius: 28, boxShadow: `8px 8px 0 ${INK}`, backgroundColor: deal.image ? INK : deal.color, overflow: 'hidden' }}
+          >
             {deal.image && <img src={deal.image} alt={`${deal.title} from ${deal.biz}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />}
             <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {deal.isNew && <span className="badge-new" style={{ padding: '3px 12px', fontSize: 16, letterSpacing: 0 }}>NEW</span>}
@@ -57,7 +65,11 @@ export function DealPage() {
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted-2)' }}>{deal.biz}</div>
-              <h1 className="display" style={{ margin: '6px 0 0', fontSize: 'clamp(38px,5.5vw,64px)', lineHeight: 0.95, textWrap: 'balance' } as CSSProperties}>{deal.title}</h1>
+              <h1 className="display" style={{ margin: '6px 0 0', fontSize: 'clamp(34px,5.5vw,60px)', lineHeight: 0.95, textWrap: 'balance' } as CSSProperties}>{deal.title}</h1>
+              <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.45 }}><strong>What you get:</strong> {deal.blurb}</p>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+                {[deal.kind && KINDS[deal.kind], ...dealFacts(deal)].filter(Boolean).map((t) => <span key={t} className="fact" style={{ fontSize: 13, padding: '3px 10px' }}>{t}</span>)}
+              </div>
             </div>
             <div style={{ background: PAPER, border: `2px solid ${INK}`, borderRadius: 20, padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
@@ -67,8 +79,8 @@ export function DealPage() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, borderTop: `2px solid ${INK}`, paddingTop: 14 }}>
                 {deal.validity && <Meta label="Valid" value={deal.validity} sub={deal.endsLabel} />}
-                <Meta label="Where" value={deal.area} sub={deal.region} />
-                <Meta label="Format" value={deal.format} />
+                <Meta label="Where" value={deal.area} sub={deal.region === 'Islandwide' ? undefined : deal.region} />
+                <Meta label="Get it by" value={dealFacts(deal).slice(-1)[0]} />
               </div>
             </div>
             <button type="button" className="btn-claim" onClick={a.claim}>
@@ -107,7 +119,7 @@ export function DealPage() {
             </ul>
           </div>
           <div style={{ ...panel, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div className="mono" style={{ height: 130, backgroundColor: '#E9DFC9', backgroundImage: 'repeating-linear-gradient(45deg,rgba(20,18,16,.07) 0 8px,transparent 8px 16px)', borderBottom: `2px solid ${INK}`, display: 'grid', placeItems: 'center', fontSize: 11, letterSpacing: '.06em' }}>map · {deal.area}</div>
+            {deal.region !== 'Islandwide' && <div className="mono" style={{ height: 130, backgroundColor: '#E9DFC9', backgroundImage: 'repeating-linear-gradient(45deg,rgba(20,18,16,.07) 0 8px,transparent 8px 16px)', borderBottom: `2px solid ${INK}`, display: 'grid', placeItems: 'center', fontSize: 11, letterSpacing: '.06em' }}>map · {deal.area}</div>}
             <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 6 }}>
               <h3 className="display" style={{ fontSize: 28 }}>{deal.biz}</h3>
               <span style={{ fontSize: 15 }}>{deal.address}</span>
@@ -119,10 +131,10 @@ export function DealPage() {
 
         {related.length > 0 && (
           <div style={{ marginTop: 52 }}>
-            <h2 className="display" style={{ margin: '0 0 16px', fontSize: 'clamp(32px,5vw,46px)' }}>More like this</h2>
+            <h2 className="display" style={{ margin: '0 0 16px', fontSize: 'clamp(28px,5vw,42px)' }}>{related.every((d) => d.biz === deal.biz) ? `More from ${deal.biz}` : 'More like this'}</h2>
             <div className="scroll-x" style={{ gap: 16, padding: '4px 4px 16px', scrollSnapType: 'x mandatory' }}>
               {related.map((d) => (
-                <div key={d.id} style={{ flex: '0 0 252px', scrollSnapAlign: 'start' }}><DealCard d={d} /></div>
+                <div key={d.id} style={{ flex: '0 0 min(44vw, 220px)', scrollSnapAlign: 'start' }}><DealCard d={d} /></div>
               ))}
             </div>
           </div>

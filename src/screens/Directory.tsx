@@ -38,7 +38,7 @@ export function Directory() {
                 </div>
                 <p style={{ margin: 0, fontSize: 15, lineHeight: 1.45 }}>{b.about}</p>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 'auto' }}>
-                  <button type="button" className="pill btn-dark" onClick={() => browse({ q: b.name })} style={{ flex: '1 1 auto', minHeight: 46, padding: '0 16px', fontSize: 14 }}>
+                  <button type="button" className="pill btn-dark" onClick={() => browse({ biz: b.name })} style={{ flex: '1 1 auto', minHeight: 46, padding: '0 16px', fontSize: 14 }}>
                     See {n} {n === 1 ? 'deal' : 'deals'} →
                   </button>
                   <a href={b.website} target="_blank" rel="noopener noreferrer" className="pill" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 46, padding: '0 16px', fontSize: 14, textDecoration: 'none', color: INK, background: CREAM }}>
