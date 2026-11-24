@@ -176,7 +176,8 @@ const DOMINOS_DEALS: Deal[] = DOMINOS.map(([code, title, price, description, con
     ],
     terms: [
       ...conditions,
-      'Available online and in store, for delivery or carryout.',
+      // Wording from each banner: the pan pizza banner doesn't mention online or in-store ordering.
+      code === 'DOM-001' ? 'Available for carryout and delivery.' : 'Available online and in store, for delivery or carryout.',
       'Confirm the price on dominos.tt before you order.',
     ],
     hours: "Hours: see dominos.tt for your nearest store",
