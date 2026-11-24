@@ -337,6 +337,24 @@ const courts = (id: string, title: string, price: number, was: number, blurb: st
 });
 const NEW_DEALS = [
   makeDeal({
+    id: 'courts-honor-x6c-256gb', biz: 'Courts', title: 'Honor X6C 256GB Smartphone', cat: 'shopping', blurb: 'Honor X6C smartphone with 256GB storage. Model 4590BD.',
+    price: 1349, was: 1399, url: COURTS_URL, destShort: 'courts.com', region: 'Islandwide', area: 'Courts stores islandwide · online',
+    address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
+    checked: NOV24, hot: 84, image: '/deals/courts/honor-x6c.webp', imageRatio: '1000 / 424',
+    claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
+    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    live: true,
+  }),
+  makeDeal({
+    id: 'courts-radioshack-15-speaker', biz: 'Courts', title: 'RadioShack 15" 2-Way Active Speaker', cat: 'shopping', blurb: '15-inch 2-way active speaker, 20,000W PMPO. Model R40076.',
+    price: 1599, was: 2199, url: COURTS_URL, destShort: 'courts.com', region: 'Islandwide', area: 'Courts stores islandwide · online',
+    address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
+    checked: NOV24, hot: 83, image: '/deals/courts/radioshack-speaker.webp', imageRatio: '1000 / 424',
+    claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
+    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    live: true,
+  }),
+  makeDeal({
     id: 'courts-marissa-living-room', biz: 'Courts', title: 'Marissa 3-Piece Living Room Set with USB', cat: 'shopping', blurb: '3-piece living room set with USB charging. Model LHT3CD.',
     price: 8999, was: 9999, url: COURTS_URL, destShort: 'courts.com', region: 'Islandwide', area: 'Courts stores islandwide · online',
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
