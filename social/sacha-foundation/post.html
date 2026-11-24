@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #141210; --cream: #FFF6E5; --paper: #FFFDF8; --pink: #FF8FB8; --hot: #FF4FA0; --sun: #FFC531; --tomato: #F0412F; --lime: #C6E83C; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1080px; height: 1350px; overflow: hidden; }
+  #post { position: relative; width: 1080px; height: 1350px; overflow: hidden; font-family: Archivo, sans-serif; color: var(--ink);
+    background: radial-gradient(circle at 70% 45%, #D8F25A 0%, var(--lime) 45%, #AFD12A 100%); }
+  .abs { position: absolute; }
+  .display { font-family: Anton; text-transform: uppercase; line-height: .84; }
+
+  /* Big type behind the phone */
+  #bf { left: 56px; top: 70px; font-size: 168px; }
+  #bf .l2 { color: var(--hot); }
+
+  /* Phone with a chunky, bubbly case */
+  #phone { left: 530px; top: 225px; width: 490px; height: 990px; transform: rotate(8deg); }
+  #case { position: absolute; inset: 0; background: linear-gradient(160deg, #FFB3D2, var(--hot) 60%, #E0337F);
+    border-radius: 150px 120px 160px 110px / 120px 160px 110px 150px;
+    box-shadow: inset 10px 14px 0 rgba(255,255,255,.35), inset -12px -16px 0 rgba(120,0,60,.25), 30px 40px 60px rgba(20,18,16,.35); }
+  #screen { position: absolute; left: 38px; top: 40px; right: 38px; bottom: 40px; background: var(--paper); border-radius: 64px; overflow: hidden; border: 4px solid var(--ink); }
+  #island { position: absolute; left: 50%; top: 16px; width: 130px; height: 36px; margin-left: -65px; background: var(--ink); border-radius: 20px; z-index: 3; }
+  #status { position: absolute; left: 34px; right: 30px; top: 20px; display: flex; justify-content: space-between; font-weight: 700; font-size: 22px; z-index: 2; }
+  .dots { display: flex; gap: 5px; align-items: flex-end; }
+  .dots i { display: block; width: 7px; background: var(--ink); border-radius: 2px; }
+
+  /* Deal screen */
+  #hero { position: absolute; left: 0; right: 0; top: 0; height: 460px; border-bottom: 4px solid var(--ink);
+    background: var(--pink) repeating-linear-gradient(135deg, rgba(255,255,255,.25) 0 18px, transparent 18px 36px); }
+  #bottle { position: absolute; left: 50%; top: 92px; width: 190px; height: 340px; margin-left: -95px; transform: rotate(-6deg); }
+  #cap { position: absolute; left: 48px; top: 0; width: 94px; height: 92px; background: var(--ink); border-radius: 14px 14px 6px 6px; }
+  #neck { position: absolute; left: 66px; top: 88px; width: 58px; height: 24px; background: #2a2522; }
+  #body { position: absolute; left: 0; top: 108px; width: 190px; height: 232px; border-radius: 30px; border: 5px solid var(--ink);
+    background: linear-gradient(180deg, #E3A57C, #C98A5E); box-shadow: 10px 10px 0 var(--ink); overflow: hidden; }
+  #shine { position: absolute; left: 18px; top: 16px; width: 26px; height: 196px; background: rgba(255,255,255,.35); border-radius: 20px; }
+  #label { position: absolute; left: 34px; top: 70px; width: 122px; height: 92px; background: var(--cream); border: 4px solid var(--ink); border-radius: 12px;
+    display: grid; place-items: center; text-align: center; font-family: Anton; font-size: 21px; line-height: .95; }
+  .spark { position: absolute; background: var(--cream); clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); }
+  .burst { position: absolute; display: grid; place-items: center; text-align: center; font-family: Anton; line-height: .95;
+    clip-path: polygon(50% 0%,60.35% 11.36%,75% 6.7%,78.28% 21.72%,93.3% 25%,88.64% 39.65%,100% 50%,88.64% 60.35%,93.3% 75%,78.28% 78.28%,75% 93.3%,60.35% 88.64%,50% 100%,39.65% 88.64%,25% 93.3%,21.72% 78.28%,6.7% 75%,11.36% 60.35%,0% 50%,11.36% 39.65%,6.7% 25%,21.72% 21.72%,25% 6.7%,39.65% 11.36%); }
+  #sbadge { z-index: 2; left: 24px; top: 78px; background: var(--ink); color: var(--sun); font-family: Anton; font-size: 22px; letter-spacing: .05em; padding: 5px 14px; border-radius: 999px; }
+  #info { position: absolute; left: 26px; right: 26px; top: 480px; display: flex; flex-direction: column; gap: 10px; }
+  #info .biz { font-weight: 800; font-size: 17px; letter-spacing: .12em; color: #5A524A; }
+  #info .title { font-family: Anton; font-size: 44px; line-height: .92; text-transform: uppercase; }
+  #info .prices { display: flex; align-items: baseline; gap: 14px; margin-top: 4px; }
+  #info .now { font-family: Anton; font-size: 82px; line-height: .85; }
+  #info .was { font-size: 26px; font-weight: 700; color: #6B6259; text-decoration: line-through; text-decoration-color: var(--tomato); text-decoration-thickness: 4px; }
+  #info .save { background: var(--pink); border: 3px solid var(--ink); border-radius: 999px; padding: 3px 12px; font-weight: 800; font-size: 18px; }
+  #info .chips { display: flex; gap: 8px; }
+  #info .chip { font-size: 16px; font-weight: 700; border: 2px solid rgba(20,18,16,.3); border-radius: 999px; padding: 4px 12px; background: var(--cream); }
+  #btn { margin-top: 8px; background: var(--tomato); border: 4px solid var(--ink); border-radius: 999px; box-shadow: 6px 6px 0 var(--ink);
+    text-align: center; padding: 16px; font-family: Anton; font-size: 34px; letter-spacing: .03em; }
+
+  /* Sticker over the phone */
+  #sticker { left: 830px; top: 95px; width: 220px; height: 220px; background: var(--sun); color: var(--ink); font-size: 54px; transform: rotate(12deg); z-index: 5;
+    filter: drop-shadow(6px 6px 0 var(--ink)); }
+
+  /* Copy on the left */
+  #copy { left: 60px; top: 520px; width: 440px; display: flex; flex-direction: column; gap: 18px; }
+  #copy .kick { font-weight: 800; font-size: 26px; letter-spacing: .12em; }
+  #copy .line { font-family: Anton; font-size: 64px; line-height: .9; text-transform: uppercase; }
+  #copy .line.hot { color: var(--hot); }
+  #copy .pill { align-self: flex-start; margin-top: 8px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 14px 24px; font-weight: 800; font-size: 24px; }
+  #arrow { left: 300px; top: 900px; width: 120px; height: 80px; border: 6px solid var(--ink); border-color: var(--ink) transparent transparent transparent; border-radius: 50%; transform: rotate(18deg); }
+</style>
+</head>
+<body>
+<div id="post">
+  <div id="bf" class="abs display">Black<br><span class="l2">Friday</span></div>
+
+  <div id="copy" class="abs">
+    <span class="kick">SACHA COSMETICS</span>
+    <span class="line">Cream-to-<br>powder<br>foundation</span>
+    <span class="line hot">Now TT$75</span>
+    <span class="pill">Shop at shopsacha.com</span>
+  </div>
+
+  <div id="phone" class="abs">
+    <div id="case"></div>
+    <div id="screen">
+      <div id="island"></div>
+      <div id="status"><span>9:41</span><span class="dots"><i style="height:9px"></i><i style="height:13px"></i><i style="height:17px"></i><i style="height:21px"></i></span></div>
+      <div id="hero">
+        <span id="sbadge" class="abs">BLACK FRIDAY</span>
+        <div class="spark" style="left: 60px; top: 170px; width: 46px; height: 46px"></div>
+        <div class="spark" style="left: 360px; top: 300px; width: 36px; height: 36px"></div>
+        <div id="bottle">
+          <div id="cap"></div><div id="neck"></div>
+          <div id="body"><div id="shine"></div><div id="label">CREAM<br>TO<br>POWDER</div></div>
+        </div>
+      </div>
+      <div id="info">
+        <span class="biz">SACHA COSMETICS</span>
+        <span class="title">Cream-to-Powder Foundation</span>
+        <div class="prices"><span class="now">TT$75</span><span class="was">TT$100</span></div>
+        <div class="chips"><span class="save">Save TT$25</span><span class="chip">Order online</span></div>
+        <div id="btn">GET DEAL →</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sticker" class="abs burst"><span>SAVE<br>25%</span></div>
+</div>
+</body>
+</html>
