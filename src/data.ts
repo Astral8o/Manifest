@@ -58,6 +58,8 @@ export interface Deal {
   demo: boolean;
   /** Real product photo, served from /public. Deals without one show a striped placeholder. */
   image?: string;
+  /** Shape of the photo when it isn't square, e.g. '5 / 2' for wide banners. */
+  imageRatio?: string;
   /** The business's own page for the offer. When set, the claim button opens it. */
   url?: string;
   /** What the deal is, for browsing ("Pizza", "Burgers"…). */
@@ -134,7 +136,57 @@ const MARIOS_DEALS: Deal[] = MARIOS.filter((r) => r[7]).map(([code, title, price
   };
 });
 
-export const DEALS: Deal[] = MARIOS_DEALS;
+/**
+ * Domino's Trinidad & Tobago coupon deals, from Domino's own promo banners (24 Nov 2026).
+ * All three use the order link Domino's supplied; it opens dominos.tt with coupon BLFRIPAN.
+ * No end dates or "was" prices are published, so neither is shown.
+ */
+const DOMINOS_CHECKED = new Date(2026, 10, 24);
+const DOMINOS_URL = 'https://www.dominos.tt/en/pages/order/?couponCode_0=BLFRIPAN&partnerCode=DOMINOS&so=hp#!/locations/search/';
+type DominosRow = [code: string, title: string, price: number, description: string, conditions: string[], hot: number, size: Size, featured: boolean];
+const DOMINOS: DominosRow[] = [
+  ['DOM-001', 'Black Friday Week: Any 1-Topping Pan Pizza', 99, 'Any 1-topping pan pizza.', ['Black Friday Week offer.', 'Free slice sauce while stocks last.', 'Coupon BLFRIPAN is applied when you order through the link.'], 97, 'share', true],
+  ['DOM-002', 'The Big DeXL: XL 1-Topping Pizza, Bread Bites & 2L Drink', 129, 'XL 1-topping hand tossed pizza, bread bites and a 2L drink.', [], 89, 'family', false],
+  ['DOM-003', 'The Big DeXL: XL 16" 1-Topping Pizza', 99, 'XL 16-inch 1-topping pizza.', [], 88, 'family', false],
+];
+
+const DOMINOS_DEALS: Deal[] = DOMINOS.map(([code, title, price, description, conditions, hot, size, featured]) => {
+  const added = daysSince(DOMINOS_CHECKED);
+  const biz = "Domino's";
+  const tags = ['food', ...(size === 'family' ? ['family'] : []), ...(price <= 100 ? ['budget'] : [])];
+  return {
+    id: 'dominos-' + code.slice(4), biz, title, cat: 'food', kind: 'pizza', size, price, was: 0, region: 'Islandwide',
+    area: 'Islandwide · delivery & carryout',
+    address: "Domino's stores across Trinidad & Tobago. Order at dominos.tt.",
+    action: 'Get Deal', format: 'Online & in-store', img: '', tags, hot, featured,
+    blurb: description, when: 'Delivery or carryout', added, daysLeft: Infinity, startsIn: 0, pct: 0,
+    catLabel: CATS.food.label, color: CATS.food.color,
+    priceLabel: 'TT$' + price, wasLabel: '', saveLabel: '',
+    endsLabel: '', endsShort: '', endingSoon: false, isNew: added <= 2, addedLabel: addedLabelFor(added),
+    validity: '',
+    checked: `${fmt(DOMINOS_CHECKED)} ${DOMINOS_CHECKED.getFullYear()}`,
+    destLabel: 'Opens ordering on dominos.tt', destShort: 'dominos.tt',
+    claimSteps: [
+      'Tap “Get Deal” to open ordering on dominos.tt.',
+      'Pick your nearest store, then choose delivery or carryout.',
+      code === 'DOM-001' ? 'Choose your pan pizza and topping. The coupon is already applied.' : 'Choose this deal from the coupons and add it to your order.',
+      "Pay Domino's directly. EventoryTT never takes payment.",
+    ],
+    terms: [
+      ...conditions,
+      'Available online and in store, for delivery or carryout.',
+      'Confirm the price on dominos.tt before you order.',
+    ],
+    hours: "Hours: see dominos.tt for your nearest store",
+    code,
+    demo: false,
+    image: `/deals/dominos/${code}.webp`,
+    imageRatio: '5 / 2',
+    url: DOMINOS_URL,
+  };
+});
+
+export const DEALS: Deal[] = [...DOMINOS_DEALS, ...MARIOS_DEALS];
 
 // ---------- Business directory ----------
 
@@ -147,6 +199,10 @@ export const BUSINESSES: Business[] = [
   {
     name: "Mario's", cat: 'food', about: 'Pizza, burgers and oven-toasted sandwiches. Delivery and pickup from branches across Trinidad & Tobago.',
     area: 'Islandwide', website: 'https://www.mymarios.com', websiteLabel: 'mymarios.com', logo: '/deals/marios/MAR-002.webp',
+  },
+  {
+    name: "Domino's", cat: 'food', about: 'Pizza, bread bites and sides. Delivery or carryout from stores across Trinidad & Tobago.',
+    area: 'Islandwide', website: 'https://www.dominos.tt', websiteLabel: 'dominos.tt', logo: '/deals/dominos/logo.webp',
   },
 ];
 

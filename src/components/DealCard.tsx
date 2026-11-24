@@ -22,7 +22,11 @@ export function DealImage({ d, ratio = '1 / 1', eager = false, rounded = 0 }: { 
   return (
     <div className={d.image ? 'deal-media' : 'deal-media stripes'} style={{ aspectRatio: ratio, backgroundColor: d.image ? 'var(--ink)' : d.color, borderRadius: rounded }}>
       {d.image ? (
-        <img src={d.image} alt={d.title} loading={eager ? 'eager' : 'lazy'} decoding="async" />
+        <>
+          {/* Blurred copy fills the space around wide or tall photos, so nothing is cropped. */}
+          <img className="deal-media-fill" src={d.image} alt="" aria-hidden="true" loading={eager ? 'eager' : 'lazy'} decoding="async" />
+          <img src={d.image} alt={d.title} loading={eager ? 'eager' : 'lazy'} decoding="async" />
+        </>
       ) : (
         <span className="photo-note" style={{ left: 10, bottom: 10, maxWidth: 'calc(100% - 20px)', fontSize: 10, padding: '3px 7px', borderRadius: 6 }}>photo · {d.img}</span>
       )}
