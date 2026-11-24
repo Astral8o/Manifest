@@ -98,6 +98,7 @@ export function DealCard({ d, eager = false }: { d: Deal; eager?: boolean }) {
           {d.endsLabel && !d.endingSoon && <span className="fact">{d.endsLabel}</span>}
         </div>
         {showDemo && d.demo && <span className="demo-tag" style={{ fontSize: 9.5, color: '#7A7067', marginTop: 4 }}>Demo offer · fictional</span>}
+        <button type="button" className="card-action" onClick={a.claim} aria-label={`${d.action}: ${d.title}`}>{d.action} →</button>
       </div>
     </article>
   );
