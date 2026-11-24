@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #141210; --cream: #FFF6E5; --tomato: #F0412F; --sun: #FFC531; --pink: #FF8FB8; --lime: #C6E83C; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { background: transparent; }
+  .view { display: none; position: relative; overflow: hidden; }
+  body[data-v="profile-ink"] #profile, body[data-v="profile-tomato"] #profile, body[data-v="profile-lime"] #profile { display: grid; }
+  body[data-v^="wordmark"] #wordmark { display: flex; }
+  body[data-v="cover"] #cover { display: block; }
+
+  /* The TT sticker: tilted circle with an ink outline, as on the site */
+  .tt { display: grid; place-items: center; border-radius: 50%; background: var(--tomato); color: var(--cream); font-family: Anton; transform: rotate(-12deg); line-height: 1; }
+
+  /* Profile picture: E monogram + TT sticker, sized to survive a circle crop */
+  #profile { width: 1080px; height: 1080px; place-items: center; }
+  #profile .mark { position: relative; width: 640px; height: 640px; transform: translate(-70px, -25px); }
+  #profile .e { position: absolute; left: 70px; top: 30px; font-family: Anton; font-size: 620px; line-height: .86; }
+  #profile .tt { position: absolute; right: 0; bottom: 20px; width: 330px; height: 330px; font-size: 150px; border: 22px solid var(--ink); }
+  body[data-v="profile-ink"] #profile { background: var(--ink); }
+  body[data-v="profile-ink"] #profile .e { color: var(--cream); }
+  body[data-v="profile-ink"] #profile .tt { border-color: var(--cream); }
+  body[data-v="profile-tomato"] #profile { background: var(--tomato); }
+  body[data-v="profile-tomato"] #profile .e { color: var(--cream); }
+  body[data-v="profile-tomato"] #profile .tt { background: var(--sun); color: var(--ink); border-color: var(--ink); }
+  body[data-v="profile-lime"] #profile { background: var(--lime); }
+  body[data-v="profile-lime"] #profile .e { color: var(--ink); }
+
+  /* Wordmark on transparent */
+  #wordmark { align-items: center; gap: 30px; padding: 60px 70px; width: max-content; }
+  #wordmark .word { font-family: Anton; font-size: 300px; line-height: 1; letter-spacing: .02em; }
+  #wordmark .tt { width: 330px; height: 330px; font-size: 150px; border: 16px solid var(--ink); }
+  body[data-v="wordmark-dark"] .word { color: var(--ink); }
+  body[data-v="wordmark-light"] .word { color: var(--cream); }
+  body[data-v="wordmark-light"] #wordmark .tt { border-color: var(--cream); }
+
+  /* Facebook cover 1640x624: keep key content centred (mobile crops the sides) */
+  #cover { width: 1640px; height: 624px; background: var(--ink); }
+  #cover .stripes { position: absolute; inset: 0; background: repeating-linear-gradient(135deg, rgba(255,255,255,.04) 0 26px, transparent 26px 52px); }
+  #cover .tape { position: absolute; left: -100px; width: 1900px; height: 64px; background: var(--sun); border-top: 5px solid var(--ink); border-bottom: 5px solid var(--ink);
+    display: flex; align-items: center; white-space: nowrap; font-family: Anton; font-size: 34px; letter-spacing: .1em; color: var(--ink); }
+  #cover .lockup { position: absolute; left: 50%; top: 150px; transform: translateX(-50%); display: flex; align-items: center; gap: 22px; }
+  #cover .word { font-family: Anton; font-size: 190px; line-height: 1; color: var(--cream); letter-spacing: .02em; }
+  #cover .tt { width: 210px; height: 210px; font-size: 96px; border: 12px solid var(--cream); }
+  #cover .tag { position: absolute; left: 0; right: 0; top: 400px; text-align: center; font-family: Archivo; font-weight: 700; font-size: 40px; color: var(--cream); }
+  #cover .tag b { color: var(--sun); }
+</style>
+</head>
+<body>
+  <div id="profile" class="view"><div class="mark"><span class="e">E</span><span class="tt">TT</span></div></div>
+  <div id="wordmark" class="view"><span class="word">EVENTORY</span><span class="tt">TT</span></div>
+  <div id="cover" class="view">
+    <div class="stripes"></div>
+    <div class="tape" style="top: 30px; transform: rotate(-1.5deg)">DEALS ✦ THINGS TO DO ✦ FOOD ✦ SHOPPING ✦ BEAUTY ✦ EVENTS ✦ DEALS ✦ THINGS TO DO ✦ FOOD ✦ SHOPPING ✦ BEAUTY ✦ EVENTS ✦</div>
+    <div class="lockup"><span class="word">EVENTORY</span><span class="tt">TT</span></div>
+    <div class="tag">What’s on offer in <b>Trinidad &amp; Tobago</b>, checked daily.</div>
+    <div class="tape" style="top: 530px; transform: rotate(1.5deg); background: var(--pink)">DEALS ✦ THINGS TO DO ✦ FOOD ✦ SHOPPING ✦ BEAUTY ✦ EVENTS ✦ DEALS ✦ THINGS TO DO ✦ FOOD ✦ SHOPPING ✦ BEAUTY ✦ EVENTS ✦</div>
+  </div>
+  <script>document.body.dataset.v = new URLSearchParams(location.search).get('v') || 'profile-ink';</script>
+</body>
+</html>
