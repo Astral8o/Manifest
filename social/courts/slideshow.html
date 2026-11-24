@@ -1,0 +1,166 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #141210; --cream: #FFF6E5; --pink: #FF8FB8; --sun: #FFC531; --tomato: #F0412F; --lime: #C6E83C; --sky: #7CC6F2; --lilac: #B79CF0; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--ink); }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; font-family: Archivo, sans-serif; color: var(--ink); background: var(--ink); }
+  .abs { position: absolute; }
+  .display { font-family: Anton; text-transform: uppercase; line-height: .88; }
+  .layer { position: absolute; inset: 0; display: none; }
+  .tape { position: absolute; left: -240px; width: 1800px; height: 92px; display: flex; align-items: center; white-space: nowrap;
+    font-family: Anton; font-size: 52px; letter-spacing: .08em; border-top: 6px solid var(--ink); border-bottom: 6px solid var(--ink); }
+  .burst { display: grid; place-items: center; text-align: center; font-family: Anton; line-height: .92;
+    clip-path: polygon(50% 0%,60.35% 11.36%,75% 6.7%,78.28% 21.72%,93.3% 25%,88.64% 39.65%,100% 50%,88.64% 60.35%,93.3% 75%,78.28% 78.28%,75% 93.3%,60.35% 88.64%,50% 100%,39.65% 88.64%,25% 93.3%,21.72% 78.28%,6.7% 75%,11.36% 60.35%,0% 50%,11.36% 39.65%,6.7% 25%,21.72% 21.72%,25% 6.7%,39.65% 11.36%); }
+
+  /* Intro */
+  #intro { background: var(--ink); color: var(--cream); }
+  #i-courts { left: 80px; top: 470px; font-size: 300px; }
+  #i-bf { left: 84px; top: 760px; font-size: 150px; color: var(--sun); }
+  #i-sub { left: 90px; top: 1040px; font-weight: 800; font-size: 54px; }
+  #i-burst { left: 690px; top: 1120px; width: 320px; height: 320px; background: var(--tomato); color: var(--cream); font-size: 70px; }
+
+  /* Deal slide */
+  #slide .bg { position: absolute; inset: 0; }
+  #s-count { left: 90px; top: 255px; background: var(--ink); color: var(--cream); font-family: Anton; font-size: 40px; letter-spacing: .08em; padding: 8px 22px; border-radius: 999px; }
+  #s-card { left: 100px; top: 340px; width: 880px; height: 800px; border: 7px solid var(--ink); border-radius: 40px; overflow: hidden; background: #fff; box-shadow: 18px 18px 0 var(--ink); }
+  #s-card .fill { position: absolute; inset: -40px; width: calc(100% + 80px); height: calc(100% + 80px); object-fit: cover; filter: blur(26px) saturate(1.1); opacity: .7; }
+  #s-card .main { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  #s-burst { left: 740px; top: 250px; width: 300px; height: 300px; background: var(--tomato); color: var(--cream); font-size: 54px; z-index: 3; }
+  #s-name { left: 90px; top: 1185px; width: 900px; font-size: 78px; }
+  #s-prices { left: 90px; top: 1360px; display: flex; align-items: flex-end; gap: 28px; }
+  #s-now { font-family: Anton; font-size: 150px; line-height: .8; }
+  #s-was { position: relative; font-weight: 800; font-size: 50px; color: rgba(20,18,16,.6); margin-bottom: 10px; }
+  #s-strike { position: absolute; left: -6px; top: 50%; height: 8px; background: var(--tomato); border-radius: 4px; transform: rotate(-4deg); }
+
+  /* Outro */
+  #outro { background: var(--sun); }
+  #o-1 { left: 80px; top: 420px; font-size: 220px; }
+  #o-url { left: 90px; top: 900px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 26px 44px; font-weight: 800; font-size: 58px; box-shadow: 12px 12px 0 var(--tomato); }
+  #o-store { left: 90px; top: 1080px; font-weight: 800; font-size: 50px; }
+  #o-note { left: 90px; top: 1180px; width: 880px; font-size: 32px; font-weight: 500; color: rgba(20,18,16,.75); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="intro" class="layer">
+    <div id="i-tape1" class="tape" style="top: 230px; background: var(--sun); transform: rotate(-4deg)"><span>BLACK FRIDAY ✦ BLACK FRIDAY ✦ BLACK FRIDAY ✦ BLACK FRIDAY ✦ BLACK FRIDAY ✦ BLACK FRIDAY ✦</span></div>
+    <div id="i-courts" class="abs display">Courts</div>
+    <div id="i-bf" class="abs display">Black Friday<br>deals</div>
+    <div id="i-sub" class="abs">13 deals you can grab now</div>
+    <div id="i-burst" class="abs burst"><span>UP TO<br>40%<br>OFF</span></div>
+    <div id="i-tape2" class="tape" style="top: 1500px; background: var(--pink); transform: rotate(3deg)"><span>FURNITURE ✦ APPLIANCES ✦ ELECTRONICS ✦ FURNITURE ✦ APPLIANCES ✦ ELECTRONICS ✦</span></div>
+  </div>
+
+  <div id="slide" class="layer">
+    <div class="bg" id="s-bg"></div>
+    <div id="s-count" class="abs">01 / 13</div>
+    <div id="s-card" class="abs"><img class="fill" id="s-fill" alt=""><img class="main" id="s-img" alt=""></div>
+    <div id="s-burst" class="abs burst"><span id="s-save"></span></div>
+    <div id="s-name" class="abs display"></div>
+    <div id="s-prices" class="abs"><span id="s-now"></span><span id="s-was"><span id="s-wastext"></span><span id="s-strike"></span></span></div>
+  </div>
+
+  <div id="outro" class="layer">
+    <div id="o-1" class="abs display">Shop<br>the sale</div>
+    <div id="o-url" class="abs">courts.com/trinidadandtobago</div>
+    <div id="o-store" class="abs">or any Courts store islandwide</div>
+    <div id="o-note" class="abs">Prices from Courts. Stock and prices may change, so check before you buy.</div>
+  </div>
+</div>
+<script>
+  // Biggest saving first. Prices in TTD from Courts' own product banners.
+  const DEALS = [
+    ['skempton', 'Skempton Dining Set, 6 Chairs', 6999, 8999],
+    ['serta', 'Serta Midnight Magic Pillow Top Divan', 2199, 3999],
+    ['tcl-fridge', 'TCL 23 Cu. Ft. Side by Side Fridge', 6999, 8499],
+    ['marissa', 'Marissa 3-Piece Living Room Set', 8999, 9999],
+    ['mabe-stove', 'Mabe 30" 6 Burner Stove', 2499, 3299],
+    ['radioshack', 'RadioShack 15" Active Speaker', 1599, 2199],
+    ['arizona', 'Arizona 4-Door Kitchen Hutch', 3199, 3699],
+    ['mabe-washer', 'Mabe 17 KG Top Load Washer', 3899, 4399],
+    ['yanes', 'Yanes Push Back Recliner', 1699, 1999],
+    ['microwave', 'Mastertech 0.7 ft³ Microwave', 499, 799],
+    ['cookware', 'Quattro 7pc Nonstick Cookware Set', 349, 449],
+    ['honor', 'Honor X6C 256GB Smartphone', 1349, 1399],
+    ['grill', 'Quattro Charcoal Grill', 1199, 0],
+  ];
+  const BGS = ['#FFC531', '#FF8FB8', '#C6E83C', '#7CC6F2', '#B79CF0'];
+  const INTRO = 1.8, SLIDE = 1.8, OUTRO = 2.2;
+  window.DURATION = INTRO + DEALS.length * SLIDE + OUTRO;
+
+  const money = (n) => 'TT$' + n.toLocaleString('en-US');
+  const clamp = (x) => Math.max(0, Math.min(1, x));
+  const prog = (t, a, b) => clamp((t - a) / (b - a));
+  const outCubic = (x) => 1 - Math.pow(1 - x, 3);
+  const outBack = (x) => { const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+  const $ = (id) => document.getElementById(id);
+  const tf = (id, s, o) => { const e = $(id); e.style.transform = s; if (o !== undefined) e.style.opacity = o; };
+  const show = (id) => ['intro', 'slide', 'outro'].forEach((l) => ($(l).style.display = l === id ? 'block' : 'none'));
+
+  // Preload every photo so frames never render half-loaded images.
+  window.READY = Promise.all(DEALS.map(([img]) => new Promise((res) => { const i = new Image(); i.onload = i.onerror = res; i.src = `img/${img}.jpg`; })));
+
+  let current = -1;
+  window.render = (t) => {
+    if (t < INTRO) {
+      show('intro');
+      tf('i-tape1', `rotate(-4deg) translateX(${-((t * 280) % 470)}px)`);
+      tf('i-tape2', `rotate(3deg) translateX(${-470 + ((t * 280) % 470)}px)`);
+      const a = prog(t, 0.05, 0.4), b = prog(t, 0.3, 0.65), c = outCubic(prog(t, 0.6, 0.9)), d = prog(t, 0.8, 1.1);
+      tf('i-courts', `translateX(${(1 - outCubic(a)) * -900}px) skewX(${(1 - a) * -12}deg)`, a > 0 ? 1 : 0);
+      tf('i-bf', `translateX(${(1 - outCubic(b)) * 900}px) skewX(${(1 - b) * 12}deg)`, b > 0 ? 1 : 0);
+      tf('i-sub', `translateY(${(1 - c) * 50}px)`, c);
+      tf('i-burst', `scale(${outBack(d)}) rotate(${12 + Math.sin(t * 4) * 5}deg)`, d > 0 ? 1 : 0);
+      return;
+    }
+    const ts = t - INTRO;
+    if (ts >= DEALS.length * SLIDE) {
+      show('outro');
+      $('stage').style.background = BGS[(DEALS.length - 1) % BGS.length];
+      const to = ts - DEALS.length * SLIDE;
+      const a = prog(to, 0, 0.35), b = prog(to, 0.3, 0.6), c = outCubic(prog(to, 0.5, 0.8)), d = outCubic(prog(to, 0.7, 1));
+      $('outro').style.clipPath = `inset(${(1 - outCubic(prog(to, 0, 0.25))) * 100}% 0 0 0)`;
+      tf('o-1', `translateY(${(1 - outCubic(a)) * 120}px)`, a > 0 ? 1 : 0);
+      tf('o-url', `scale(${(0.7 + 0.3 * outBack(b)) * (to > 0.6 ? 1 + Math.sin((to - 0.6) * 5) * 0.025 : 1)})`, b > 0 ? 1 : 0);
+      tf('o-store', `translateY(${(1 - c) * 40}px)`, c);
+      tf('o-note', `translateY(${(1 - d) * 30}px)`, d);
+      return;
+    }
+    show('slide');
+    const i = Math.floor(ts / SLIDE), lt = ts - i * SLIDE;
+    const [img, name, now, was] = DEALS[i];
+    if (i !== current) {
+      current = i;
+      $('s-img').src = $('s-fill').src = `img/${img}.jpg`;
+      $('s-name').textContent = name;
+      $('s-now').textContent = money(now);
+      $('s-wastext').textContent = was ? money(was) : '';
+      $('s-was').style.display = was ? '' : 'none';
+      $('s-save').innerHTML = was ? `SAVE<br>${money(was - now)}` : 'BLACK<br>FRIDAY';
+      $('s-count').textContent = `${String(i + 1).padStart(2, '0')} / ${DEALS.length}`;
+      $('s-bg').style.background = `${BGS[i % BGS.length]} repeating-linear-gradient(135deg, rgba(255,255,255,.2) 0 30px, transparent 30px 60px)`;
+    }
+    $('stage').style.background = i === 0 ? '#141210' : BGS[(i - 1) % BGS.length];
+    const tilt = i % 2 ? 2.5 : -2.5;
+    $('slide').style.clipPath = `inset(0 0 0 ${(1 - outCubic(prog(lt, 0, 0.22))) * 100}%)`;
+    const a = prog(lt, 0.05, 0.45);
+    tf('s-card', `translateX(${(1 - outBack(a)) * 700}px) rotate(${tilt + (1 - a) * 10}deg)`);
+    tf('s-count', '', prog(lt, 0.1, 0.25));
+    const b = outCubic(prog(lt, 0.3, 0.55));
+    tf('s-name', `translateY(${(1 - b) * 70}px)`, b);
+    const c = prog(lt, 0.45, 0.75);
+    tf('s-now', `scale(${0.3 + 0.7 * outBack(c)})`, c > 0 ? 1 : 0);
+    $('s-now').style.transformOrigin = 'left bottom';
+    tf('s-was', '', outCubic(prog(lt, 0.5, 0.7)));
+    $('s-strike').style.width = `${outCubic(prog(lt, 0.7, 0.9)) * 106}%`;
+    const d = prog(lt, 0.75, 1.0);
+    tf('s-burst', `scale(${outBack(d)}) rotate(${10 + Math.sin(lt * 4) * 5}deg)`, d > 0 ? 1 : 0);
+  };
+  window.render(0);
+</script>
+</body>
+</html>
