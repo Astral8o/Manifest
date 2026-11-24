@@ -18,11 +18,14 @@ export function DealRow({ deals }: { deals: Deal[] }) {
   );
 }
 
-function SectionHead({ title, sub, onAll, allLabel = 'See all' }: { title: string; sub?: string; onAll?: () => void; allLabel?: string }) {
+function SectionHead({ title, sub, onAll, allLabel = 'See all', color }: { title: string; sub?: string; onAll?: () => void; allLabel?: string; color?: string }) {
   return (
     <div className="wrap sec-head">
       <div style={{ minWidth: 0 }}>
-        <h2 className="display">{title}</h2>
+        <h2 className="display" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {color && <span aria-hidden="true" style={{ width: 18, height: 18, borderRadius: '50%', background: color, border: `2px solid ${INK}`, flex: 'none' }} />}
+          {title}
+        </h2>
         {sub && <p className="sub">{sub}</p>}
       </div>
       {onAll && <button type="button" className="see-all" onClick={onAll}>{allLabel} →</button>}
@@ -30,11 +33,11 @@ function SectionHead({ title, sub, onAll, allLabel = 'See all' }: { title: strin
   );
 }
 
-function RowSection({ title, sub, deals, onAll, min = 2 }: { title: string; sub?: string; deals: Deal[]; onAll: () => void; min?: number }) {
+function RowSection({ title, sub, deals, onAll, min = 2, color }: { title: string; sub?: string; deals: Deal[]; onAll: () => void; min?: number; color?: string }) {
   if (deals.length < min) return null;
   return (
     <section style={{ paddingTop: 28 }}>
-      <SectionHead title={title} sub={sub} onAll={onAll} allLabel={`All ${deals.length}`} />
+      <SectionHead title={title} sub={sub} onAll={onAll} allLabel={`All ${deals.length}`} color={color} />
       <DealRow deals={deals.slice(0, 12)} />
     </section>
   );
@@ -65,7 +68,7 @@ function Top({ spotlight }: { spotlight: Deal[] }) {
             style={{ flex: '1 1 340px', maxWidth: 560, display: 'flex', alignItems: 'center', gap: 8, background: CREAM, border: `2px solid ${INK}`, borderRadius: 999, padding: '4px 4px 4px 16px', boxShadow: `4px 4px 0 ${INK}` }}
           >
             <SearchIcon />
-            <input value={q} onChange={(e) => setQ(e.target.value)} type="search" placeholder="Search pizza, burgers, delivery…" aria-label="Search deals" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: 16, minHeight: 44, outline: 'none' }} />
+            <input value={q} onChange={(e) => setQ(e.target.value)} type="search" placeholder="Search deals, stores, products…" aria-label="Search deals" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: 16, minHeight: 44, outline: 'none' }} />
             <button type="submit" className="pill btn-dark" style={{ minHeight: 44, padding: '0 16px', fontSize: 14, border: 'none' }}>Search</button>
           </form>
         </div>
@@ -104,12 +107,13 @@ function BizStrip() {
   if (!BUSINESSES.length) return null;
   return (
     <section style={{ paddingTop: 24 }}>
-      <SectionHead title="Shop by business" onAll={() => go('directory')} allLabel="Directory" />
+      <SectionHead title="Shop by business" sub="Every business here is checked by our team." onAll={() => go('directory')} allLabel="Directory" />
       <div className="deal-row" style={{ gap: 14 }}>
-        {BUSINESSES.map((b) => (
+        {[...BUSINESSES].filter((b) => DEALS.some((d) => d.biz === b.name)).sort((a, c) => DEALS.filter((d) => d.biz === c.name).length - DEALS.filter((d) => d.biz === a.name).length).map((b) => (
           <button key={b.name} type="button" className="biz-chip" style={{ flexBasis: 84 }} onClick={() => browse({ biz: b.name })}>
             <span className="logo" style={b.logo ? undefined : { background: CATS[b.cat].color, display: 'grid', placeItems: 'center', fontFamily: 'var(--display)', fontSize: 30, color: INK }}>{b.logo ? <img src={b.logo} alt="" /> : b.name.charAt(0)}</span>
             <span>{b.name}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginTop: -4 }}>{DEALS.filter((d) => d.biz === b.name).length} deals</span>
           </button>
         ))}
         <button type="button" className="biz-chip" style={{ flexBasis: 84 }} onClick={() => go('submit')}>
@@ -125,10 +129,12 @@ const SORTS: [Filters['sort'], string][] = [['popular', 'Popular'], ['price', 'L
 
 function AllDeals() {
   const [sort, setSort] = useState<Filters['sort']>('popular');
-  const deals = filterDeals(DEALS, { ...DEFAULT_FILTERS, sort });
+  const [shown, setShown] = useState(12);
+  const all = filterDeals(DEALS, { ...DEFAULT_FILTERS, sort });
+  const deals = all.slice(0, shown);
   return (
     <section style={{ paddingTop: 32 }}>
-      <SectionHead title={`All deals · ${deals.length}`} sub="Every live offer, checked by our team." />
+      <SectionHead title={`All deals · ${all.length}`} sub="Every live offer, checked by our team." />
       <div className="wrap">
         <div className="scroll-x" role="group" aria-label="Sort" style={{ gap: 8, marginBottom: 14 }}>
           {SORTS.map(([v, l]) => (
@@ -138,6 +144,13 @@ function AllDeals() {
         <div className="deal-grid">
           {deals.map((d) => <DealCard key={d.id} d={d} />)}
         </div>
+        {shown < all.length && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 22 }}>
+            <button type="button" className="pill btn-dark" onClick={() => setShown((n) => n + 12)} style={{ minHeight: 50, padding: '0 28px', fontSize: 15 }}>
+              Show {Math.min(12, all.length - shown)} more · {all.length - shown} left
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -196,21 +209,46 @@ function Digest() {
   );
 }
 
+/**
+ * Round-robin across businesses so no single business fills a row,
+ * keeping each business's own order (best first).
+ */
+function spread(list: Deal[]): Deal[] {
+  const groups = new Map<string, Deal[]>();
+  list.forEach((d) => groups.set(d.biz, [...(groups.get(d.biz) ?? []), d]));
+  const queues = [...groups.values()];
+  const out: Deal[] = [];
+  while (out.length < list.length) queues.forEach((q) => { const d = q.shift(); if (d) out.push(d); });
+  return out;
+}
+
 export function Home() {
   const { browse } = useStore();
-  const byHot = [...DEALS].filter((d) => d.startsIn <= 0).sort((a, b) => b.hot - a.hot);
-  const spotlight = [...byHot.filter((d) => d.featured), ...byHot.filter((d) => !d.featured)].slice(0, 5);
+  const live = DEALS.filter((d) => d.startsIn <= 0);
+  const byHot = [...live].sort((a, b) => b.hot - a.hot);
+  const spotlight = spread([...byHot.filter((d) => d.featured), ...byHot.filter((d) => !d.featured)]).slice(0, 6);
   const b = (p: Partial<Filters>) => () => browse(p);
-  const ending = byHot.filter((d) => d.daysLeft <= 5).sort((a, c) => a.daysLeft - c.daysLeft);
+  const upcoming = DEALS.filter((d) => d.startsIn > 0).sort((a, c) => a.startsIn - c.startsIn);
+  const ending = live.filter((d) => d.daysLeft <= 5).sort((a, c) => a.daysLeft - c.daysLeft);
+  const savings = spread(live.filter((d) => d.was > d.price && d.pct >= 10).sort((a, c) => c.pct - a.pct || (c.was - c.price) - (a.was - a.price)));
 
   return (
     <>
       <Top spotlight={spotlight} />
       <QuickRail />
-      <BizStrip />
-      <RowSection title="Coming up" sub="Sales that haven't started yet. Save one and we’ll keep it in your Saved tab." deals={DEALS.filter((d) => d.startsIn > 0).sort((a, c) => a.startsIn - c.startsIn)} onAll={b({ sort: 'new' })} min={1} />
+      <RowSection title="Coming up" sub="Sales that haven't started yet. Save one to find it later." deals={upcoming} onAll={b({ sort: 'new' })} min={1} />
       <RowSection title="Ending soon" sub="Real end dates only." deals={ending} onAll={b({ sort: 'ending', ends: '7' })} min={1} />
-      <RowSection title="Top picks today" sub="Our team’s picks for today." deals={byHot.slice(spotlight.length)} onAll={b({ sort: 'popular' })} />
+      <RowSection title="Biggest savings" sub={savings.length ? `Up to ${savings[0].pct}% off. Only deals with a verified original price.` : ''} deals={savings} onAll={b({ sort: 'saving', disc: '20' })} color={TOMATO} />
+      <BizStrip />
+      {ACTIVE_CATS.map((k) => {
+        const deals = spread(byHot.filter((d) => d.cat === k));
+        const bizCount = new Set(deals.map((d) => d.biz)).size;
+        return (
+          <RowSection key={k} title={CATS[k].label} color={CATS[k].color}
+            sub={`${deals.length} ${deals.length === 1 ? 'deal' : 'deals'} from ${bizCount} ${bizCount === 1 ? 'business' : 'businesses'}`}
+            deals={deals} onAll={b({ cat: k })} min={1} />
+        );
+      })}
       <AllDeals />
       <ThingsTeaser />
       <Digest />

@@ -112,7 +112,7 @@ export function FeatureCard({ d, label }: { d: Deal; label: string }) {
   return (
     <article className="feature-deal" onClick={a.open} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) a.open(); }} aria-label={`${label}: ${d.title}, ${d.priceLabel}`}>
       <div style={{ position: 'relative' }}>
-        <DealImage d={d} eager />
+        <DealImage d={d} eager ratio="4 / 3" />
         <span className="feature-label">{label}</span>
         <div style={{ position: 'absolute', top: 10, right: 10 }}><SaveButton d={d} /></div>
       </div>
