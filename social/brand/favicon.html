@@ -1,0 +1,15 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  html, body { width: 512px; height: 512px; background: transparent; }
+  /* Favicon version of the E + TT monogram: bigger shapes so it reads at 16-32px */
+  #icon { position: relative; width: 512px; height: 512px; background: #F0412F; border-radius: 112px; overflow: hidden; }
+  body.square #icon { border-radius: 0; }
+  #e { position: absolute; left: 70px; top: 22px; font-family: Anton; font-size: 470px; line-height: .9; color: #FFF6E5; }
+  #tt { position: absolute; right: 26px; bottom: 26px; width: 250px; height: 250px; border-radius: 50%; background: #FFC531; border: 22px solid #141210;
+    display: grid; place-items: center; font-family: Anton; font-size: 118px; line-height: 1; color: #141210; transform: rotate(-12deg); }
+</style></head>
+<body><div id="icon"><span id="e">E</span><span id="tt">TT</span></div>
+<script>if (location.search.includes('square')) document.body.classList.add('square');</script></body></html>
