@@ -9,7 +9,7 @@ import { useStore } from '../store';
 
 /** Every filter group and its options. Options matching no deals are hidden; groups left with one option are hidden too. */
 const GROUPS: { label: string; key: FilterKey; opts: [string, string][] }[] = [
-  { label: 'Price', key: 'price', opts: [['free', 'Free'], ['u50', 'Under TT$50'], ['u100', 'Under TT$100'], ['u200', 'Under TT$200'], ['o200', 'TT$200+']] },
+  { label: 'Price', key: 'price', opts: [['free', 'Free'], ['u50', 'Under TT$50'], ['u100', 'Under TT$100'], ['u200', 'Under TT$200'], ['u500', 'Under TT$500'], ['o200', 'TT$200+']] },
   { label: 'Type', key: 'kind', opts: Object.entries(KINDS) },
   { label: 'Size', key: 'size', opts: Object.entries(SIZES) },
   { label: 'Get it by', key: 'format', opts: [['online', 'Delivery'], ['store', 'Pickup / in store']] },

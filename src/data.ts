@@ -563,7 +563,7 @@ export interface Filters {
   q: string;
   cat: 'all' | CatKey;
   region: 'all' | Region;
-  price: 'any' | 'free' | 'u50' | 'u100' | 'u200' | 'o200';
+  price: 'any' | 'free' | 'u50' | 'u100' | 'u200' | 'u500' | 'o200';
   kind: 'any' | Kind;
   size: 'any' | Size;
   biz: string;
@@ -585,6 +585,7 @@ const PRICE: Record<string, (d: Deal) => boolean> = {
   u50: (d) => d.price <= 50,
   u100: (d) => d.price <= 100,
   u200: (d) => d.price <= 200,
+  u500: (d) => d.price <= 500,
   o200: (d) => d.price > 200,
 };
 

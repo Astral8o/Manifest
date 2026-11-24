@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { DealCard, FeatureCard } from '../components/DealCard';
 import { SearchIcon } from '../components/Chrome';
 import {
-  ACTIVE_COLLS, BUSINESSES, CATS, CREAM, DEALS, INK, KINDS, LILAC, SIZES, SUN, TOMATO,
-  filterDeals, inColl, todayLabel, DEFAULT_FILTERS, type Deal, type Filters, type Kind, type Size,
+  ACTIVE_CATS, ACTIVE_COLLS, BUSINESSES, CATS, CREAM, DEALS, INK, LILAC, SUN, TOMATO,
+  filterDeals, inColl, todayLabel, DEFAULT_FILTERS, type Deal, type Filters,
 } from '../data';
 import { useStore } from '../store';
 
@@ -81,11 +81,9 @@ function Top({ spotlight }: { spotlight: Deal[] }) {
 function QuickRail() {
   const { browse } = useStore();
   const opts: [string, Partial<Filters>][] = [
-    ['Under TT$50', { price: 'u50' }],
+    ...ACTIVE_CATS.map((k) => [CATS[k].label, { cat: k }] as [string, Partial<Filters>]),
     ['Under TT$100', { price: 'u100' }],
-    ...(Object.keys(SIZES) as Size[]).map((k) => [SIZES[k], { size: k }] as [string, Partial<Filters>]),
-    ...(Object.keys(KINDS) as Kind[]).map((k) => [KINDS[k], { kind: k }] as [string, Partial<Filters>]),
-    ['Delivery only', { format: 'online' }],
+    ['Under TT$500', { price: 'u500' }],
   ];
   return (
     <nav className="quick-rail" aria-label="Quick filters">
@@ -204,7 +202,6 @@ export function Home() {
   const spotlight = [...byHot.filter((d) => d.featured), ...byHot.filter((d) => !d.featured)].slice(0, 5);
   const b = (p: Partial<Filters>) => () => browse(p);
   const ending = byHot.filter((d) => d.daysLeft <= 5).sort((a, c) => a.daysLeft - c.daysLeft);
-  const rows = (p: Partial<Filters>) => filterDeals(DEALS, { ...DEFAULT_FILTERS, ...p });
 
   return (
     <>
@@ -214,9 +211,6 @@ export function Home() {
       <RowSection title="Coming up" sub="Sales that haven't started yet. Save one and we’ll keep it in your Saved tab." deals={DEALS.filter((d) => d.startsIn > 0).sort((a, c) => a.startsIn - c.startsIn)} onAll={b({ sort: 'new' })} min={1} />
       <RowSection title="Ending soon" sub="Real end dates only." deals={ending} onAll={b({ sort: 'ending', ends: '7' })} min={1} />
       <RowSection title="Top picks today" sub="Our team’s picks for today." deals={byHot.slice(spotlight.length)} onAll={b({ sort: 'popular' })} />
-      <RowSection title="Under TT$100" sub="Big flavour, small spend." deals={rows({ price: 'u100', sort: 'price' })} onAll={b({ price: 'u100', sort: 'price' })} />
-      <RowSection title="Family meals" sub="Feed everybody in one order." deals={rows({ size: 'family', sort: 'price' })} onAll={b({ size: 'family', sort: 'price' })} />
-      <RowSection title="Delivered, fee included" sub="The price you see is the price at your door." deals={rows({ format: 'online' })} onAll={b({ format: 'online' })} />
       <AllDeals />
       <ThingsTeaser />
       <Digest />
