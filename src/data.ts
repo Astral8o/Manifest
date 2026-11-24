@@ -1,4 +1,4 @@
-// Deal content and derived fields. All offers are real and checked by the EventoryTT team.
+// Deal content and derived fields. All offers are real offers from local businesses.
 
 /** "Today" for labels such as "Added today" and "Ends in N days". */
 export const TODAY = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
@@ -540,7 +540,7 @@ export const BUSINESSES: Business[] = [
 
 export type CollKey = 'weekend' | 'free' | 'date' | 'family' | 'food' | 'outdoor' | 'events' | 'budget';
 export const COLLS: { k: CollKey; label: string; color: string; intro: string }[] = [
-  { k: 'weekend', label: 'This Weekend', color: TOMATO, intro: `${weekendLabel}. The best of what’s on, picked by our team.` },
+  { k: 'weekend', label: 'This Weekend', color: TOMATO, intro: `${weekendLabel}. The best of what’s on this weekend.` },
   { k: 'free', label: 'Free Things to Do', color: LIME, intro: 'Good days out that cost nothing.' },
   { k: 'date', label: 'Date Ideas', color: PINK, intro: 'Easy plans for two.' },
   { k: 'family', label: 'Family Activities', color: SUN, intro: 'Plans that work for every age in the car.' },

@@ -138,7 +138,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const has = cur.includes(id);
       const next = has ? cur.filter((x) => x !== id) : [...cur, id];
       try { localStorage.setItem(SAVED_KEY, JSON.stringify(next)); } catch { /* storage unavailable */ }
-      showToast(has ? 'Removed from Saved' : 'Saved. Find it in the Saved tab.');
+      showToast(has ? 'Removed from Saved' : 'Saved. It’s waiting in your Saved tab.');
       return next;
     });
   }, [showToast]);

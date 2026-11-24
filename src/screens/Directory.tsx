@@ -12,7 +12,7 @@ export function Directory() {
           <span className="eyebrow">{list.length} {list.length === 1 ? 'business' : 'businesses'} · A–Z</span>
           <h1 className="display" style={{ fontSize: 'clamp(56px,11vw,132px)', lineHeight: 0.85 }}>Business<br />Directory</h1>
           <p style={{ margin: 0, fontSize: 17, lineHeight: 1.45, maxWidth: 560, fontWeight: 500 }}>
-            Every business with live deals on EventoryTT. Tap one to see all of its offers.
+            Every store with deals on right now. Tap one to see everything they’ve got.
           </p>
         </div>
       </section>
@@ -53,7 +53,7 @@ export function Directory() {
         <div style={{ marginTop: 32, border: `2px dashed ${INK}`, borderRadius: 22, padding: '28px 22px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 260px' }}>
             <div className="display" style={{ fontSize: 28 }}>Run a business in T&amp;T?</div>
-            <div style={{ fontSize: 15, color: 'var(--muted)', marginTop: 4 }}>Send us a deal and you’ll be listed here once it’s approved. Free, no account needed.</div>
+            <div style={{ fontSize: 15, color: 'var(--muted)', marginTop: 4 }}>List your deal and your business shows up here. Free, no account needed.</div>
           </div>
           <button type="button" className="pill btn-shadow btn-press" onClick={() => go('submit')} style={{ background: 'var(--tomato)', minHeight: 48, padding: '0 20px', fontWeight: 800 }}>Submit a deal</button>
         </div>

@@ -17,7 +17,7 @@ const RULES = [
   'Each category owns one colour, used on chips, headers and image grounds.',
   'Every card has exactly one action, matched to how the business takes customers.',
   'Urgency comes only from real expiry dates. No countdown timers or fake stock.',
-  'Prices are always in TTD. Original price and savings appear only when verified.',
+  'Prices are always in TTD. Original price and savings show only when the business gives them.',
   'Browsing, saving and sharing never require an account.',
 ];
 
