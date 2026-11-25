@@ -301,3 +301,31 @@ select.field { padding: 0 12px; }
 .cal-ev-t { font-size: 12px; font-weight: 700; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .cal-more { align-self: flex-start; background: none; border: none; padding: 0 4px; font: inherit; font-size: 12px; font-weight: 800; text-decoration: underline; cursor: pointer; color: inherit; }
 .cal-day.big.sel .cal-more { color: var(--cream); }
+
+/* ---------- Scroll arrows (mouse users only) ---------- */
+.scroller { position: relative; --sa-bg: var(--cream); --sa-inset: 6px; --sa-size: 46px; }
+.scroller:has(> .deal-row) { --sa-inset: max(6px, calc((100% - 1200px) / 2 - 24px)); }
+.scroller-sm { --sa-size: 36px; --sa-inset: -4px; }
+.sa { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .sa {
+    display: grid; place-items: center; position: absolute; top: 50%; transform: translateY(-50%); z-index: 5;
+    width: var(--sa-size); height: var(--sa-size); border-radius: 50%; border: 2px solid var(--ink); background: var(--cream);
+    color: var(--ink); font-size: calc(var(--sa-size) * .55); line-height: 1; padding: 0 0 3px; cursor: pointer; box-shadow: 3px 3px 0 var(--ink);
+    transition: transform .12s ease, background .12s ease;
+  }
+  .sa:hover { background: var(--sun); }
+  .sa:active { transform: translateY(-50%) translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+  .sa-prev { left: var(--sa-inset); }
+  .sa-next { right: var(--sa-inset); }
+  .scroller::before, .scroller::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 56px; pointer-events: none; z-index: 4; opacity: 0; transition: opacity .2s;
+  }
+  .scroller::before { left: 0; background: linear-gradient(90deg, var(--sa-bg), transparent); }
+  .scroller::after { right: 0; background: linear-gradient(270deg, var(--sa-bg), transparent); }
+  .scroller.more-start::before, .scroller.more-end::after { opacity: 1; }
+  .scroller-sm::before, .scroller-sm::after { width: 40px; }
+}
+.scroller:has(> .chip-scroll) { --sa-bg: var(--lilac); --sa-inset: -10px; }
+.scroller:has(> .rail) { --sa-inset: max(6px, calc((100% - 1200px) / 2 - 18px)); }
+.scroller:has(> .rail)::before, .scroller:has(> .rail)::after { background: none; }
