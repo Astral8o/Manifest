@@ -17,6 +17,16 @@ interface Field {
   name: string; label: string; ph?: string; type?: string; req?: boolean; wide?: boolean; area?: boolean; opts?: string[];
 }
 
+export type Plan = 'free' | 'featured' | 'spotlight';
+let nextPlan: Plan = 'free';
+/** Lets the How it works page open the form with a plan already picked. */
+export const setNextPlan = (p: Plan) => { nextPlan = p; };
+const PLAN_OPTS: { k: Plan; label: string; sub: string }[] = [
+  { k: 'free', label: 'Free', sub: 'Up to 3 live at a time' },
+  { k: 'featured', label: 'Featured', sub: 'TT$300/month · founding TT$150' },
+  { k: 'spotlight', label: 'Spotlight boost', sub: 'TT$100 for 7 days' },
+];
+
 const STEPS = [
   { n: 1, title: 'Send your offer', sub: 'Takes about 5 minutes.' },
   { n: 2, title: 'We get it ready', sub: 'We set up your deal page within 2 business days.' },
@@ -52,6 +62,7 @@ export function Submit() {
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
   const [ref, setRef] = useState('');
+  const [plan, setPlan] = useState<Plan>(() => { const p = nextPlan; nextPlan = 'free'; return p; });
 
   const groups: { n: number; title: string; fields: Field[]; linkTypes?: boolean; hasImage?: boolean }[] = [
     {
@@ -103,7 +114,7 @@ export function Submit() {
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.ok) throw new Error(body.error || 'Something went wrong.');
       setRef(body.ref);
-      track('submit_listing');
+      track('submit_listing', { plan });
       setSubmitted(true);
       window.scrollTo(0, 0);
     } catch (err) {
@@ -122,6 +133,10 @@ export function Submit() {
             <h1 className="display" style={{ fontSize: 'clamp(50px,9vw,104px)', lineHeight: 0.88 }}>Put your deal in front of T&amp;T.</h1>
             <p style={{ margin: 0, fontSize: 17, lineHeight: 1.45, maxWidth: 500, fontWeight: 500 }}>
               One form. No account or login. Customers contact you directly through your website, WhatsApp or booking page.
+            </p>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>
+              Rather send it on WhatsApp or tag us on Instagram?{' '}
+              <button type="button" className="link-btn" style={{ fontSize: 15, padding: 0 }} onClick={() => go('how-it-works')}>See how it works</button>
             </p>
           </div>
           <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -154,6 +169,23 @@ export function Submit() {
         ) : (
           <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
             {/* Honeypot for bots: hidden from people and screen readers */}
+            <input type="hidden" name="plan" value={plan} />
+            <fieldset style={{ border: `2px solid ${INK}`, borderRadius: 24, padding: 22, margin: 0, background: PAPER, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+              <legend className="display" style={{ fontSize: 26, padding: '0 10px', background: CREAM, border: `2px solid ${INK}`, borderRadius: 999 }}>Your plan</legend>
+              <div role="radiogroup" aria-label="Plan" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,180px),1fr))', gap: 10 }}>
+                {PLAN_OPTS.map((o) => (
+                  <button key={o.k} type="button" role="radio" aria-checked={plan === o.k} onClick={() => setPlan(o.k)}
+                    style={{ textAlign: 'left', border: `2px solid ${INK}`, borderRadius: 16, padding: '12px 14px', cursor: 'pointer', font: 'inherit', color: INK, background: plan === o.k ? SUN : CREAM, boxShadow: plan === o.k ? `3px 3px 0 ${INK}` : 'none', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontWeight: 800, fontSize: 16 }}>{plan === o.k ? '● ' : '○ '}{o.label}</span>
+                    <span style={{ fontSize: 13, color: 'var(--muted)' }}>{o.sub}</span>
+                  </button>
+                ))}
+              </div>
+              <span style={{ fontSize: 13.5, color: 'var(--muted)' }}>
+                {plan === 'free' ? 'Free to list. No follower minimum.' : 'No payment now. We’ll send you an invoice once your deal is approved.'}{' '}
+                <button type="button" className="link-btn" style={{ fontSize: 13.5, padding: 0 }} onClick={() => go('how-it-works')}>Compare plans</button>
+              </span>
+            </fieldset>
             <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: -9999, width: 1, height: 1, opacity: 0 }} />
             {groups.map((g) => (
               <fieldset key={g.n} style={{ border: `2px solid ${INK}`, borderRadius: 24, padding: 22, margin: 0, background: PAPER, display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
