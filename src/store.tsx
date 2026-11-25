@@ -1,6 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { DEALS, DEFAULT_FILTERS, type CollKey, type Deal, type Filters, type Region } from './data';
 
+/** Send an event to Google Analytics, if it has loaded. */
+const track = (name: string, params: Record<string, string>) => {
+  const g = (window as unknown as { gtag?: (...a: unknown[]) => void }).gtag;
+  if (g) g('event', name, params);
+};
+
 export type Screen = 'home' | 'browse' | 'deal' | 'things' | 'directory' | 'saved' | 'submit';
 const SCREENS: Screen[] = ['home', 'browse', 'deal', 'things', 'directory', 'saved', 'submit'];
 
@@ -154,6 +160,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [showToast]);
 
   const claim = useCallback((d: Deal) => {
+    track('deal_click', { deal_id: d.id, business: d.biz, category: d.cat, action: d.action });
     if (d.url) window.open(d.url, '_blank', 'noopener,noreferrer');
     else if (d.action === 'Show In Store') setPassId(d.id);
     else showToast(`Demo: this would open ${d.destShort} for ${d.biz}`);
