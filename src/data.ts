@@ -577,7 +577,7 @@ const EVENTS = [
     blurb: 'A guided hike on Gaspar Grande, an underground tour of the caves, and a swim at Biscayne Bay. Boat, guides and entrance fees included.',
     area: 'Departs Alcan Bay, Chaguaramas', region: 'POS & West', url: ISLAND('Gasparee-Caves-Monos-Island-Tour'), tags: ['outdoor', 'family'] }),
   ev({ id: 'black-cake-sorrel-3', image: '/events/black-cake-sorrel.webp', title: 'Black Cake & Sorrel III', biz: 'TASSO', date: on(12, 18), price: 175,
-    blurb: 'A Christmas lime with pan, parang, black cake and sorrel, presented by TASSO at the Trinidad All Stars panyard.',
+    blurb: 'A Christmas night of pan, parang, black cake and sorrel, presented by TASSO at the Trinidad All Stars panyard.',
     area: 'Trinidad All Stars Panyard, Neville Jules Junction, 46-48 Duke Street, Port of Spain', region: 'POS & West', url: ISLAND('blackcakesorrel3'),
     tags: ['parang', 'date', 'events'], terms: ['TT$175 general, or TT$300 for two.'] }),
   ev({ id: 'legend-of-santa', image: '/events/legend-of-santa.webp', title: 'The Legend of Santa', biz: 'D C Shell Theatre', date: on(12, 19), end: on(12, 20),
