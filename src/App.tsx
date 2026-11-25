@@ -8,6 +8,7 @@ import { Saved } from './screens/Saved';
 import { Submit } from './screens/Submit';
 import { Things } from './screens/Things';
 import { Privacy } from './screens/Privacy';
+import { HowItWorks } from './screens/HowItWorks';
 import { useStore } from './store';
 import { DEALS } from './data';
 import { trackDeal } from './analytics';
@@ -20,6 +21,7 @@ const TITLES: Record<string, string> = {
   saved: 'Saved deals | EventoryTT',
   submit: 'List your deal for free | EventoryTT',
   privacy: 'Privacy | EventoryTT',
+  'how-it-works': 'How it works: list your deal free | EventoryTT',
 };
 
 export function App() {
@@ -51,6 +53,7 @@ export function App() {
         {screen === 'home' && <Home />}
         {screen === 'browse' && <Browse />}
         {screen === 'privacy' && <Privacy />}
+        {screen === 'how-it-works' && <HowItWorks />}
         {screen === 'deal' && <DealPage key={dealId} />}
         {screen === 'things' && <Things />}
         {screen === 'directory' && <Directory />}

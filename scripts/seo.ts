@@ -66,6 +66,7 @@ export function writeSeo(outDir: string) {
       body: `<h1>Things to do in Trinidad &amp; Tobago</h1><ul>${events.map((d) => `<li><a href="/deal/${d.id}">${esc(d.title)}</a> · ${esc(d.validity)} · ${esc(d.area)}</li>`).join('')}</ul>` },
     { path: '/directory', title: 'Business directory | EventoryTT', description: 'Stores and businesses in Trinidad & Tobago with deals on EventoryTT.', body: '<h1>Business directory</h1>' },
     { path: '/submit', title: 'List your deal for free | EventoryTT', description: 'Have a sale, offer or event in Trinidad & Tobago? Send it to EventoryTT and we’ll list it.', body: '<h1>List your deal</h1>' },
+    { path: '/how-it-works', title: 'How it works: list your deal free | EventoryTT', description: 'List your deal or event on EventoryTT for free. No follower minimum. Featured plans from TT$100. Send it by form, WhatsApp or tag @eventorytt.', body: '<h1>Your deal, in front of all of T&amp;T</h1><p>List free. No follower minimum. No like count.</p>' },
     { path: '/privacy', title: 'Privacy | EventoryTT', description: 'What EventoryTT collects, why, and the choices you have.', body: '<h1>Privacy</h1><p>EventoryTT uses Google Analytics to count visits and see which deals are viewed and clicked. Saved deals stay on your device. We never sell personal information.</p>' },
     { path: '/saved', title: 'Saved deals | EventoryTT', description: TAGLINE, body: '<h1>Saved</h1>', noindex: true },
     ...DEALS.map(dealPage),

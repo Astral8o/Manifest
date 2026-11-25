@@ -114,7 +114,7 @@ export function Footer() {
   const { go, browse } = useStore();
   const cols: { title: string; links: [string, () => void][] }[] = [
     { title: 'Explore', links: [['Today’s deals', () => go('home')], ['Browse all', () => browse()], ['Things to Do', () => go('things')], ['Business Directory', () => go('directory')], ['Saved', () => go('saved')]] },
-    { title: 'Businesses', links: [['Submit a deal', () => go('submit')], ['How review works', () => go('submit')]] },
+    { title: 'Businesses', links: [['How it works', () => go('how-it-works')], ['Pricing', () => go('how-it-works')], ['List your deal', () => go('submit')]] },
     { title: 'About', links: [['Privacy', () => go('privacy')], ['Friday Five on WhatsApp', () => window.open(`https://wa.me/18687177720?text=${encodeURIComponent('Hi EventoryTT, add me to the Friday Five.')}`, '_blank', 'noopener,noreferrer')]] },
   ];
   return (
