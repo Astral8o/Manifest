@@ -1,0 +1,75 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}html,body{width:1080px;height:1920px;overflow:hidden}
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;font-family:Archivo,sans-serif;color:#141210;background:#B79CF0}
+#stripes{position:absolute;inset:-100px;background:repeating-linear-gradient(135deg,rgba(255,255,255,.18) 0 30px,transparent 30px 60px)}
+.abs{position:absolute}.d{font-family:Anton;text-transform:uppercase;line-height:.86}
+.chip{border:6px solid #141210;border-radius:999px;background:#FFF6E5;font-weight:900;font-size:56px;padding:12px 40px;white-space:nowrap}
+.card{left:110px;top:330px;width:860px;height:860px;border:8px solid #141210;border-radius:56px;overflow:hidden;box-shadow:18px 18px 0 #141210;background:#141210}
+.card img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.card img.f{object-fit:cover;filter:blur(30px);transform:scale(1.2);opacity:.6}
+.tile{left:60px;top:200px;background:#FFC531;border:7px solid #141210;border-radius:36px;padding:16px 34px;text-align:center;box-shadow:10px 10px 0 #141210}
+.title{left:90px;top:1280px;width:900px;font-size:120px}
+.price{left:90px;top:1590px}
+.conf{position:absolute;left:0;top:0;width:26px;height:40px;border:3px solid #141210;border-radius:6px}
+.letter{display:inline-block}
+</style></head><body><div id="stage"><div id="stripes"></div>
+ <div id="intro">
+  <div class="abs d" id="t1" style="left:80px;top:420px;font-size:250px"></div>
+  <div class="abs d" id="t2" style="left:80px;top:640px;font-size:250px;color:#FFF6E5;-webkit-text-stroke:9px #141210"></div>
+  <div class="abs chip" id="stamp" style="left:90px;top:960px;font-size:84px;background:#F0412F;color:#FFF6E5;box-shadow:12px 12px 0 #141210">End of November</div>
+ </div>
+ <div id="evs"></div>
+ <div id="outro" class="abs" style="inset:0">
+  <div class="abs d" id="o1" style="left:80px;top:560px;font-size:240px">See you<br>there.</div>
+  <div class="abs chip" id="o2" style="left:90px;top:1080px;background:#141210;color:#FFF6E5;font-size:66px;padding:20px 50px;box-shadow:12px 12px 0 #FFC531">Link in bio</div>
+ </div>
+ <div id="conf"></div>
+</div>
+<script>
+const P='/home/claude/repo/public';
+const E=[[P+'/events/ttma-popup.webp','SAT–SUN','28','NOV','TTMA Christmas Pop-Up','Shop local · Macoya','#FFC531'],
+ [P+'/events/parang-lanterns.webp','SATURDAY','28','NOV','Parang Under the Lanterns','TT$350 · food included','#FF8FB8'],
+ [P+'/events/house-parang.webp','SUNDAY','29','NOV','House Parang','Coolers welcome','#C6E83C'],
+ [P+'/events/taste-of-moruga.webp','SUNDAY','29','NOV','Taste of Moruga Tour','Day trip down south','#7CC6F2']];
+const box=document.getElementById('evs');
+E.forEach(([src,dow,day,mon,title,price],i)=>box.insertAdjacentHTML('beforeend',`<div class="abs" id="e${i}" style="inset:0">
+ <div class="abs card"><img class="f" src="file://${src}"><img src="file://${src}"></div>
+ <div class="abs tile"><div style="font-weight:900;font-size:34px;letter-spacing:.1em">${dow}</div><div class="d" style="font-size:150px">${day}</div><div class="d" style="font-size:52px">${mon}</div></div>
+ <div class="abs d title">${title}</div><div class="abs chip price">${price}</div></div>`));
+const split=(id,txt)=>{document.getElementById(id).innerHTML=[...txt].map(c=>`<span class="letter">${c===' '?'&nbsp;':c}</span>`).join('')};
+split('t1','Things'); split('t2','to do');
+let seed=7; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const COLS=['#F0412F','#FFC531','#FF8FB8','#C6E83C','#7CC6F2','#FFF6E5'];
+const C=[...Array(60)].map(()=>({x:rnd()*1080,d:rnd()*2.4,sp:450+rnd()*600,sw:40+rnd()*80,f:1+rnd()*2,r:rnd()*360,rv:200+rnd()*400,c:COLS[Math.floor(rnd()*6)],burst:rnd()<.6}));
+document.getElementById('conf').innerHTML=C.map((c,i)=>`<div class="conf" id="c${i}" style="background:${c.c}"></div>`).join('');
+const cl=x=>Math.min(Math.max(x,0),1), ease=x=>1-Math.pow(1-cl(x),3);
+const back=x=>{x=cl(x);const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2)};
+const pop=x=>{x=cl(x);return x<.6?1.25*ease(x/.6):1.25-.25*ease((x-.6)/.4)};
+window.DURATION=9;
+const IN=1.6, EACH=1.45, OUT=IN+4*EACH;
+const g=id=>document.getElementById(id);
+window.render=(t)=>{
+  g('stage').style.background = t<IN ? '#B79CF0' : t<OUT ? E[Math.min(3,Math.floor((t-IN)/EACH))][6] : '#F0412F';
+  g('stripes').style.transform=`translateX(${(t*60)%85}px)`;
+  g('intro').style.display=t<IN?'block':'none';
+  [...document.querySelectorAll('#t1 .letter, #t2 .letter')].forEach((el,i)=>{const k=(t-.05-i*.06)/.35;
+    el.style.transform=`translateY(${(1-back(k))*-700}px) rotate(${(1-ease(k))*(i%2?20:-20)}deg)`;el.style.opacity=k>0?1:0});
+  g('stamp').style.transform=`scale(${pop((t-.85)/.35)}) rotate(${-6+6*ease((t-.85)/.3)}deg)`;g('stamp').style.transformOrigin='left center';
+  E.forEach((_,i)=>{const s=IN+i*EACH,el=g('e'+i),on=t>=s&&t<s+EACH;el.style.display=on?'block':'none';if(!on)return;const k=t-s;
+    el.querySelector('.card').style.transform=`translateX(${(1-back(k/.4))*(i%2?1200:-1200)}px) rotate(${(i%2?-3:3)+(1-ease(k/.5))*(i%2?18:-18)}deg) scale(${1+0.02*Math.sin(k*6)})`;
+    el.querySelector('.tile').style.transform=`translateY(${(1-back((k-.15)/.35))*-600}px) rotate(${-8+Math.sin(k*5)*3}deg)`;
+    const ti=el.querySelector('.title');ti.style.transform=`scale(${pop((k-.25)/.35)})`;ti.style.transformOrigin='left top';
+    el.querySelector('.price').style.transform=`translateX(${(1-ease((k-.4)/.3))*-1100}px)`;});
+  g('outro').style.display=t>=OUT?'block':'none';
+  g('o1').style.transform=`scale(${pop((t-OUT)/.4)})`;g('o1').style.transformOrigin='left center';
+  g('o2').style.transform=`translateY(${(1-back((t-OUT-.3)/.4))*600}px)`;
+  C.forEach((c,i)=>{const el=g('c'+i);let y,x;
+    const inB = c.burst && (t<1.4 || t>=OUT);
+    if(inB){const t0=t<1.4?0:OUT,k=t-t0;const vx=(c.x-540)*1.4,vy=-1500+c.sp*.5;x=540+vx*k;y=1300+vy*k+1700*k*k;}
+    else{const k=((t+c.d)*c.sp/1000)%2.4;y=-80+k*1000;x=c.x+Math.sin((t+c.d)*c.f*2)*c.sw;}
+    el.style.transform=`translate(${x}px,${y}px) rotate(${c.r+t*c.rv}deg) scaleX(${Math.cos((t+c.d)*c.f*4)})`;});
+};
+window.READY=Promise.all([...document.images].map(im=>im.decode().catch(()=>{})));
+window.render(0);
+</script></body></html>
