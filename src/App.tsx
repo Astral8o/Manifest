@@ -7,6 +7,7 @@ import { Home } from './screens/Home';
 import { Saved } from './screens/Saved';
 import { Submit } from './screens/Submit';
 import { Things } from './screens/Things';
+import { Privacy } from './screens/Privacy';
 import { useStore } from './store';
 import { DEALS } from './data';
 import { trackDeal } from './analytics';
@@ -18,6 +19,7 @@ const TITLES: Record<string, string> = {
   directory: 'Business directory | EventoryTT',
   saved: 'Saved deals | EventoryTT',
   submit: 'List your deal for free | EventoryTT',
+  privacy: 'Privacy | EventoryTT',
 };
 
 export function App() {
@@ -48,6 +50,7 @@ export function App() {
       <main>
         {screen === 'home' && <Home />}
         {screen === 'browse' && <Browse />}
+        {screen === 'privacy' && <Privacy />}
         {screen === 'deal' && <DealPage key={dealId} />}
         {screen === 'things' && <Things />}
         {screen === 'directory' && <Directory />}
