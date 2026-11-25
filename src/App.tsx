@@ -8,6 +8,16 @@ import { Saved } from './screens/Saved';
 import { Submit } from './screens/Submit';
 import { Things } from './screens/Things';
 import { useStore } from './store';
+import { DEALS } from './data';
+
+const TITLES: Record<string, string> = {
+  home: 'EventoryTT · Today’s best deals in T&T',
+  browse: 'All deals in Trinidad & Tobago | EventoryTT',
+  things: 'Things to do in Trinidad & Tobago: events calendar | EventoryTT',
+  directory: 'Business directory | EventoryTT',
+  saved: 'Saved deals | EventoryTT',
+  submit: 'List your deal for free | EventoryTT',
+};
 
 export function App() {
   const { screen, dealId, isMobile, pass, closePass } = useStore();
@@ -18,6 +28,14 @@ export function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [pass, closePass]);
+
+  // Keep the tab title in step with the page (search engines and analytics read it).
+  useEffect(() => {
+    const d = screen === 'deal' ? DEALS.find((x) => x.id === dealId) : undefined;
+    document.title = d ? `${d.title}${d.eventDate ? '' : ` at ${d.biz}`} | EventoryTT` : TITLES[screen] ?? TITLES.home;
+    const c = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (c) c.href = `https://www.eventorytt.com${location.pathname}`;
+  }, [screen, dealId]);
 
   const showTabBar = isMobile && screen !== 'deal';
   const showFooter = screen !== 'deal' || !isMobile;
