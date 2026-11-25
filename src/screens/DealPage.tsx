@@ -4,6 +4,7 @@ import { DealCard, DealImage, dealFacts, useDealActions } from '../components/De
 import { Starburst } from '../components/Starburst';
 import { CREAM, DEALS, KINDS, INK, LIME, PAPER, PINK, SUN, TOMATO, dealUrl, googleCalUrl, icsFile, whatsappShareUrl } from '../data';
 import { useStore } from '../store';
+import { trackDeal } from '../analytics';
 
 const panel: CSSProperties = { border: `2px solid ${INK}`, borderRadius: 22, padding: 22, background: PAPER };
 const h3: CSSProperties = { margin: '0 0 14px', fontSize: 28 };
@@ -29,6 +30,7 @@ export function DealPage() {
   const shareUrl = whatsappShareUrl(deal);
 
   const copyLink = async () => {
+    trackDeal('share_deal', deal, { method: 'copy_link' });
     try {
       await navigator.clipboard.writeText(dealUrl(deal.id));
       showToast('Link copied');
@@ -91,15 +93,15 @@ export function DealPage() {
               <span style={{ fontSize: 13, fontWeight: 600 }}>{deal.destLabel}</span>
             </button>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <a href={shareUrl} target="_blank" rel="noopener noreferrer" style={{ flex: '1 1 180px', minHeight: 48, border: `2px solid ${INK}`, borderRadius: 999, background: LIME, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, textDecoration: 'none', color: INK }}>Share on WhatsApp</a>
+              <a href={shareUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackDeal('share_deal', deal, { method: 'whatsapp' })} style={{ flex: '1 1 180px', minHeight: 48, border: `2px solid ${INK}`, borderRadius: 999, background: LIME, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, textDecoration: 'none', color: INK }}>Share on WhatsApp</a>
               <button type="button" className="pill" aria-pressed={a.isSaved} onClick={a.toggleSave} style={{ flex: '0 1 auto', minHeight: 48, background: a.saveBg, padding: '0 18px', fontWeight: 800, fontSize: 15 }}>{a.heart} {a.saveText}</button>
               <button type="button" className="pill" onClick={copyLink} style={{ flex: '0 1 auto', minHeight: 48, padding: '0 18px', fontWeight: 800, fontSize: 15 }}>Copy link</button>
             </div>
             {deal.eventDate && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 <span style={{ fontWeight: 800, fontSize: 14 }}>Add to calendar:</span>
-                <a className="pill" href={googleCalUrl(deal)} target="_blank" rel="noopener noreferrer" style={calBtn}>Google</a>
-                <a className="pill" href={`data:text/calendar;charset=utf-8,${encodeURIComponent(icsFile(deal))}`} download={`${deal.id}.ics`} style={calBtn}>Apple / Outlook</a>
+                <a className="pill" href={googleCalUrl(deal)} target="_blank" rel="noopener noreferrer" onClick={() => trackDeal('add_to_calendar', deal, { method: 'google' })} style={calBtn}>Google</a>
+                <a className="pill" href={`data:text/calendar;charset=utf-8,${encodeURIComponent(icsFile(deal))}`} download={`${deal.id}.ics`} onClick={() => trackDeal('add_to_calendar', deal, { method: 'ics' })} style={calBtn}>Apple / Outlook</a>
               </div>
             )}
             <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--muted)' }}>
@@ -157,7 +159,7 @@ export function DealPage() {
             <span style={{ fontFamily: 'var(--display)', fontSize: 26, lineHeight: 1 }}>{deal.priceLabel}</span>
             {deal.endsLabel && <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>{deal.endsLabel}</span>}
           </div>
-          <a href={shareUrl} target="_blank" rel="noopener noreferrer" aria-label="Share on WhatsApp" style={{ marginLeft: 'auto', width: 48, height: 48, borderRadius: '50%', border: `2px solid ${INK}`, background: LIME, display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 12, textDecoration: 'none', color: INK }}>Share</a>
+          <a href={shareUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackDeal('share_deal', deal, { method: 'whatsapp' })} aria-label="Share on WhatsApp" style={{ marginLeft: 'auto', width: 48, height: 48, borderRadius: '50%', border: `2px solid ${INK}`, background: LIME, display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 12, textDecoration: 'none', color: INK }}>Share</a>
           <button type="button" className="pill" onClick={a.claim} style={{ minHeight: 52, background: TOMATO, padding: '0 20px', fontWeight: 800, fontSize: 15 }}>{deal.action}</button>
         </div>
       )}
