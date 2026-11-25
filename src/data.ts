@@ -517,7 +517,7 @@ const EVENTS_CHECKED = new Date(2026, 10, 25);
 interface EventInput {
   id: string; title: string; biz: string; blurb: string; date: Date; end?: Date; time?: string;
   area: string; region: DealRegion; url: string; destShort?: string; action?: Action; cat?: CatKey;
-  price?: number; priceLabel?: string; tags: string[]; image?: string; terms?: string[];
+  price?: number; priceLabel?: string; tags: string[]; image?: string; imageRatio?: string; terms?: string[];
 }
 
 const STEPS: Partial<Record<Action, string[]>> = {
@@ -533,7 +533,7 @@ const ev = (o: EventInput) => {
     destShort: o.destShort ?? 'islandetickets.com', action, price: o.price, priceLabel: o.priceLabel ?? (o.price === undefined ? 'TICKETS' : undefined),
     region: o.region, area: o.area, address: o.area, format: 'In-store',
     getIt: o.price === 0 ? 'Free entry' : action === 'Book Now' ? 'Book online' : action === 'View Offer' ? 'More info' : 'Tickets online',
-    checked: EVENTS_CHECKED, start: o.date, end: o.end ?? o.date, time: o.time, hot: 40, tags: o.tags, image: o.image,
+    checked: EVENTS_CHECKED, start: o.date, end: o.end ?? o.date, time: o.time, hot: 40, tags: o.tags, image: o.image, imageRatio: o.imageRatio,
     claimSteps: STEPS[action] ?? [], hours: o.time ? `${o.time}` : undefined,
     terms: [...(o.terms ?? []), 'Times, prices and line-up are set by the organiser and can change.', 'EventoryTT doesn’t sell tickets.'],
     live: true,
@@ -541,7 +541,7 @@ const ev = (o: EventInput) => {
 };
 
 const EVENTS = [
-  ev({ id: 'iconography-david-rudder', title: 'Iconography: David Rudder', biz: 'Iconography', date: on(11, 25), time: 'Doors 6pm · Show 7pm',
+  ev({ id: 'iconography-david-rudder', image: '/events/david-rudder.webp', title: 'Iconography: David Rudder', biz: 'Iconography', date: on(11, 25), time: 'Doors 6pm · Show 7pm',
     blurb: 'A screening of the fourth episode of the documentary series on the life and music of calypsonian King David Rudder, with an exhibition by The Sign Man.',
     area: 'Queen’s Hall, St. Ann’s', region: 'POS & West', url: ISLAND('ICONOGRAPHY-David-Rudder'), tags: ['date', 'events'] }),
   ev({ id: 'ttma-christmas-popup', title: 'TTMA Christmas Pop-Up Shop', biz: 'TTMA', date: on(11, 28), end: on(11, 29), time: '10am–6pm',
@@ -550,7 +550,7 @@ const EVENTS = [
   ev({ id: 'parang-under-the-lanterns', title: 'Parang Under the Lanterns', biz: 'Immortelle', date: on(11, 28), time: '6pm–midnight', price: 350,
     blurb: 'A holiday garden party with live parang from Los Angeles de San Miguel and DJ David868. A buffet of Trini holiday food is included. Bring your cooler; ice provided.',
     area: 'Immortelle, Juniper Terrace, Santa Cruz', region: 'POS & West', url: ISLAND('ParangUnderTheLanterns'), tags: ['parang', 'date', 'food', 'events'], terms: ['18+ only.'] }),
-  ev({ id: 'taste-of-moruga-tour', title: 'A Taste of Moruga Tour', biz: 'A Taste of Moruga', cat: 'experiences', date: on(11, 29), action: 'Book Now',
+  ev({ id: 'taste-of-moruga-tour', image: '/events/taste-of-moruga.webp', title: 'A Taste of Moruga Tour', biz: 'A Taste of Moruga', cat: 'experiences', date: on(11, 29), action: 'Book Now',
     blurb: 'Day trip from Curepe to the Moruga Museum, Digity Mud Volcano and Moruga Bay, with transport, a cocoa dancing session, cocoa rum and cocoa tea tastings, and a First Peoples’ lunch.',
     area: 'Departs Curepe', region: 'East', url: ISLAND('A-Taste-of-Moruga-Tour'), tags: ['outdoor', 'food'] }),
   ev({ id: 'house-parang', title: 'House Parang', biz: 'House Parang', date: on(11, 29), time: '4–11pm',
@@ -562,15 +562,15 @@ const EVENTS = [
   ev({ id: 'magdalena-tree-lighting', title: 'Christmas Tree Lighting & Craft Market', biz: 'Magdalena Grand', date: on(12, 5),
     blurb: 'The Magdalena Grand lights its Christmas tree, with a craft market. Check the listing for times.', area: 'Magdalena Grand, Tobago', region: 'Tobago',
     url: 'https://tobagobeyond.com/calendar-events-things-to-do-in-tobago', destShort: 'tobagobeyond.com', action: 'View Offer', priceLabel: 'CRAFT MARKET', tags: ['family', 'parang'] }),
-  ev({ id: 'paramin-paradise-tour', title: 'Paramin Paradise Tour', biz: 'Paramin Paradise Tour', cat: 'experiences', date: on(12, 6), action: 'Book Now',
+  ev({ id: 'paramin-paradise-tour', image: '/events/paramin-tour.webp', title: 'Paramin Paradise Tour', biz: 'Paramin Paradise Tour', cat: 'experiences', date: on(12, 6), action: 'Book Now',
     blurb: 'Jeep tour of Paramin: the La Vigie lookout (about 2,000 ft), Colosseum Cave, and stops to buy green seasoning. Coconut bake with saltfish or choka and cocoa tea included.',
     area: 'Paramin', region: 'POS & West', url: ISLAND('ParaminParadiseTour'), tags: ['outdoor', 'food'] }),
-  ev({ id: 'midnight-robber-live', title: 'Midnight Robber Live', biz: 'Midnight Robber', date: on(12, 6), time: '7–10pm', price: 100,
+  ev({ id: 'midnight-robber-live', image: '/events/midnight-robber.webp', title: 'Midnight Robber Live', biz: 'Midnight Robber', date: on(12, 6), time: '7–10pm', price: 100,
     blurb: 'A live band concert at Alice Yard.', area: 'Alice Yard, Belmont', region: 'POS & West', url: ISLAND('Midnight-Robber-Live'), tags: ['date', 'events', 'budget'], terms: ['Advance tickets only.'] }),
   ev({ id: 'de-pan-man-parang', title: 'De Pan Man Parang', biz: 'De Pan Man', date: on(12, 11), time: '7pm', price: 250, priceLabel: 'FROM TT$250',
     blurb: 'Live parang bands and special guests. Food and drinks sold separately.', area: 'The Royal Hotel, San Fernando', region: 'South',
     url: ISLAND('PanManParang'), tags: ['parang', 'events'], terms: ['TT$250 early bird, TT$300 general.'] }),
-  ev({ id: 'parang-on-d-hills', title: 'Parang on D Hills', biz: 'Parang on D Hills', date: on(12, 12), time: 'From 7pm', price: 0,
+  ev({ id: 'parang-on-d-hills', image: '/events/parang-on-d-hills.webp', imageRatio: '3 / 2', title: 'Parang on D Hills', biz: 'Parang on D Hills', date: on(12, 12), time: 'From 7pm', price: 0,
     blurb: 'Ten parang bands up in the Paramin hills. Free to attend.', area: 'John Mader Grounds, Paramin', region: 'POS & West',
     url: 'https://www.cnc3.co.tt/blue-waters-rescues-parang-on-d-hills/', destShort: 'cnc3.co.tt', action: 'View Offer', tags: ['parang', 'family', 'events'] }),
   ev({ id: 'gasparee-caves-monos-tour', title: 'Gasparee Caves & Monos Island Tour', biz: 'Gasparee Caves Tour', cat: 'experiences', date: on(12, 12), action: 'Book Now',
