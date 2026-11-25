@@ -119,11 +119,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  useEffect(() => {
-    const deal = route.screen === 'deal' ? DEALS.find((d) => d.id === route.dealId) : null;
-    document.title = deal ? `${deal.title} · ${deal.biz} · EventoryTT` : 'EventoryTT · Today’s best deals in T&T';
-  }, [route]);
-
   const showToast = useCallback((msg: string) => {
     window.clearTimeout(toastTimer.current);
     setToast(msg);
