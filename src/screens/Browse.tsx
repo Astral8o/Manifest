@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Scroller } from '../components/Scroller';
 import { SearchIcon } from '../components/Chrome';
 import { DealCard } from '../components/DealCard';
 import {
@@ -81,16 +82,16 @@ export function Browse() {
             {f.q && <button type="button" className="pill btn-dark" onClick={() => setFilters({ q: '' })} style={{ padding: '0 14px', minHeight: 38, fontWeight: 700, border: 'none' }}>Clear</button>}
           </form>
           {catOpts.length > 0 && (
-            <div className="scroll-x" role="group" aria-label="Category" style={{ gap: 8 }}>
+            <Scroller small className="scroll-x" role="group" label="Category" style={{ gap: 8 }}>
               {catOpts.map(([k, l]) => <button key={k} type="button" className="qchip" aria-pressed={f.cat === k} onClick={() => setFilters({ cat: k })}>{l}</button>)}
-            </div>
+            </Scroller>
           )}
         </div>
       </section>
 
       {/* Sticky toolbar: filters button (phones), sort, and the filters in use */}
       <div className="quick-rail">
-        <div className="rail" style={{ alignItems: 'center' }}>
+        <Scroller small className="rail" style={{ alignItems: 'center' }}>
           {isMobile && (
             <button type="button" className="qchip" aria-expanded={sheetOpen} onClick={() => setSheetOpen(true)} style={{ background: INK, color: CREAM }}>
               Filters{active.length ? ` · ${active.length}` : ''}
@@ -108,7 +109,7 @@ export function Browse() {
             </button>
           ))}
           {active.length > 1 && <button type="button" className="see-all" onClick={() => resetFilters()} style={{ minHeight: 40 }}>Clear all</button>}
-        </div>
+        </Scroller>
       </div>
 
       <div className="wrap" style={{ paddingTop: 18, paddingBottom: 48 }}>

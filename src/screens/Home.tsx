@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Scroller } from '../components/Scroller';
 import { DealCard, DealImage, FeatureCard } from '../components/DealCard';
 import { SearchIcon } from '../components/Chrome';
 import {
@@ -16,9 +17,9 @@ const count = (p: Partial<Filters>) => filterDeals(DEALS, { ...DEFAULT_FILTERS, 
 /** Horizontal, swipeable row of deal cards. */
 export function DealRow({ deals }: { deals: Deal[] }) {
   return (
-    <div className="deal-row">
+    <Scroller className="deal-row">
       {deals.map((d) => <div key={d.id}><DealCard d={d} /></div>)}
-    </div>
+    </Scroller>
   );
 }
 
@@ -77,9 +78,9 @@ function Top({ spotlight }: { spotlight: Deal[] }) {
           </form>
         </div>
       </div>
-      <div className="deal-row feature-row" style={{ paddingBottom: 22 }}>
+      <Scroller className="deal-row feature-row" style={{ paddingBottom: 22 }}>
         {spotlight.map((d, i) => <div key={d.id}><FeatureCard d={d} label={i === 0 ? 'Deal of the day' : 'Hot right now'} /></div>)}
-      </div>
+      </Scroller>
     </section>
   );
 }
@@ -94,14 +95,14 @@ function QuickRail() {
   ];
   return (
     <nav className="quick-rail" aria-label="Quick filters">
-      <div className="rail">
+      <Scroller small className="rail">
         <button type="button" className="qchip" aria-pressed="true" onClick={() => browse()}>All deals <span className="n">{DEALS.length}</span></button>
         {opts.map(([label, p]) => {
           const n = count(p);
           if (!n || n === DEALS.length) return null;
           return <button key={label} type="button" className="qchip" onClick={() => browse(p)}>{label} <span className="n">{n}</span></button>;
         })}
-      </div>
+      </Scroller>
     </nav>
   );
 }
@@ -112,7 +113,7 @@ function BizStrip() {
   return (
     <section style={{ paddingTop: 24 }}>
       <SectionHead title="Shop by store" sub="Your go-to spots. Every deal they’ve got, one tap." onAll={() => go('directory')} allLabel="All stores" />
-      <div className="deal-row" style={{ gap: 14 }}>
+      <Scroller className="deal-row" style={{ gap: 14 }}>
         {[...BUSINESSES].filter((b) => DEALS.some((d) => d.biz === b.name)).sort((a, c) => DEALS.filter((d) => d.biz === c.name).length - DEALS.filter((d) => d.biz === a.name).length).map((b) => (
           <button key={b.name} type="button" className="biz-chip" style={{ flexBasis: 84 }} onClick={() => browse({ biz: b.name })}>
             <span className="logo" style={b.logo ? undefined : { background: CATS[b.cat].color, display: 'grid', placeItems: 'center', fontFamily: 'var(--display)', fontSize: 30, color: INK }}>{b.logo ? <img src={b.logo} alt="" /> : b.name.charAt(0)}</span>
@@ -124,7 +125,7 @@ function BizStrip() {
           <span className="logo" style={{ background: CREAM, display: 'grid', placeItems: 'center', fontFamily: 'var(--display)', fontSize: 30, boxShadow: 'none', borderStyle: 'dashed' }}>+</span>
           <span>Add yours</span>
         </button>
-      </div>
+      </Scroller>
     </section>
   );
 }
@@ -140,11 +141,11 @@ function AllDeals() {
     <section style={{ paddingTop: 32 }}>
       <SectionHead title={`Every deal · ${all.length}`} sub="Everything on right now, best first." />
       <div className="wrap">
-        <div className="scroll-x" role="group" aria-label="Sort" style={{ gap: 8, marginBottom: 14 }}>
+        <Scroller small className="scroll-x" role="group" label="Sort" style={{ gap: 8, marginBottom: 14 }}>
           {SORTS.map(([v, l]) => (
             <button key={v} type="button" className="qchip" aria-pressed={sort === v} onClick={() => setSort(v)} style={{ minHeight: 36, fontSize: 13 }}>{l}</button>
           ))}
-        </div>
+        </Scroller>
         <div className="deal-grid">
           {deals.map((d) => <DealCard key={d.id} d={d} />)}
         </div>

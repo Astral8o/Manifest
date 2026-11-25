@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { Scroller } from '../components/Scroller';
 import { DealCard, DealImage, dealFacts, useDealActions } from '../components/DealCard';
 import { Starburst } from '../components/Starburst';
 import { CREAM, DEALS, KINDS, INK, LIME, PAPER, PINK, SUN, TOMATO, dealUrl, googleCalUrl, icsFile, whatsappShareUrl } from '../data';
@@ -141,11 +142,11 @@ export function DealPage() {
         {related.length > 0 && (
           <div style={{ marginTop: 52 }}>
             <h2 className="display" style={{ margin: '0 0 16px', fontSize: 'clamp(28px,5vw,42px)' }}>{related.every((d) => d.biz === deal.biz) ? `More from ${deal.biz}` : 'More like this'}</h2>
-            <div className="scroll-x" style={{ gap: 16, padding: '4px 4px 16px', scrollSnapType: 'x mandatory' }}>
+            <Scroller className="scroll-x" style={{ gap: 16, padding: '4px 4px 16px', scrollSnapType: 'x mandatory' }}>
               {related.map((d) => (
                 <div key={d.id} style={{ flex: '0 0 min(44vw, 220px)', scrollSnapAlign: 'start' }}><DealCard d={d} /></div>
               ))}
-            </div>
+            </Scroller>
           </div>
         )}
       </div>

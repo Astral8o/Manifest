@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Scroller } from '../components/Scroller';
 import { DealImage } from '../components/DealCard';
 import { ACTIVE_COLLS, INK, LILAC, SUN, TODAY, inColl, type Deal } from '../data';
 import { useStore } from '../store';
@@ -93,18 +94,18 @@ export function Things() {
           <p className="hide-sm" style={{ margin: 0, fontSize: 17, lineHeight: 1.45, maxWidth: 560, fontWeight: 500 }}>
             Parang, concerts, tours and parties across Trinidad &amp; Tobago. Pick a date, or see what’s coming up.
           </p>
-          <div className="chip-scroll" role="group" aria-label="When">
+          <Scroller small className="chip-scroll" role="group" label="When">
             {QUICK.map((q) => (
               <button key={q.k} type="button" className="qchip" aria-pressed={!day && quick === q.k} onClick={() => pickQuick(q.k)}>{q.label}</button>
             ))}
-          </div>
-          <div className="chip-scroll" role="group" aria-label="Type of event">
+          </Scroller>
+          <Scroller small className="chip-scroll" role="group" label="Type of event">
             {topics.map((c) => (
               <button key={c.k} type="button" className="qchip" aria-pressed={c.k === topic.k} onClick={() => setColl(c.k)}>
                 {c.k === 'all' ? 'Everything' : c.label} <span className="n">{countOf(c.k)}</span>
               </button>
             ))}
-          </div>
+          </Scroller>
         </div>
       </section>
 
