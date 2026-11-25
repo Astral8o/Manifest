@@ -19,18 +19,21 @@ New deals and events every week. Follow so you don’t miss them.
 
 ---
 
-## 2. List your deal free (06-list-free, 1 slide). Post second, then pin it.
+## 2. For businesses (06-list-free, 5 slides). Post second, then pin it.
 
-Got a sale, special or event in Trinidad & Tobago? List it on EventoryTT for free.
+People in T&T are looking for a deal right now. Make sure they find yours.
 
-No follower minimum. No like count. If it’s a real deal in T&T, it goes up.
+List your sale, special or event on EventoryTT and you get:
+📸 Your own deal page, with your photo and price
+👉 One tap from customers to your WhatsApp, website or store
+🔎 A spot in search, categories, the events calendar and the Business Directory
+💸 No commission. Customers buy straight from you
 
-3 ways to send it:
-1. The form at eventorytt.com
-2. WhatsApp 1-868-717-7720
-3. Tag @eventory_tt in your post and we’ll take it from there
+It’s free to list. No follower minimum, no like count.
 
-Live within 2 business days. Want more eyes on it? Featured plans start at TT$100.
+Tag @eventory_tt in your post, WhatsApp 1-868-717-7720, or go to eventorytt.com/how-it-works
+
+Want it on our home page, Instagram and the WhatsApp Friday Five? Featured from TT$100.
 
 #SmallBusinessTT #TrinidadBusiness #SupportLocalTT #Trinidad #Tobago #868
 
