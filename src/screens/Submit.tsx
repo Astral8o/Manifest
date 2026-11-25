@@ -184,6 +184,7 @@ export function Submit() {
             </label>
             {error && <div role="alert" style={{ border: `2px solid ${INK}`, background: '#FFE1DC', borderRadius: 14, padding: '12px 16px', fontWeight: 700 }}>{error}</div>}
             <button type="submit" disabled={sending} className="pill btn-press display" style={{ minHeight: 60, background: TOMATO, boxShadow: `5px 5px 0 ${INK}`, fontSize: 24, opacity: sending ? 0.6 : 1 }}>{sending ? 'Sending…' : 'Send my deal'}</button>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>We use your details only to review and list your deal. See our <button type="button" className="link-btn" style={{ fontSize: 13, padding: 0 }} onClick={() => go('privacy')}>privacy page</button>.</p>
           </form>
         )}
       </div>

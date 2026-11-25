@@ -3,8 +3,8 @@ import { DEALS, DEFAULT_FILTERS, type CollKey, type Deal, type Filters, type Reg
 
 import { track, trackDeal } from './analytics';
 
-export type Screen = 'home' | 'browse' | 'deal' | 'things' | 'directory' | 'saved' | 'submit';
-const SCREENS: Screen[] = ['home', 'browse', 'deal', 'things', 'directory', 'saved', 'submit'];
+export type Screen = 'home' | 'browse' | 'deal' | 'things' | 'directory' | 'saved' | 'submit' | 'privacy';
+const SCREENS: Screen[] = ['home', 'browse', 'deal', 'things', 'directory', 'saved', 'submit', 'privacy'];
 
 interface Route { screen: Screen; dealId: string }
 
