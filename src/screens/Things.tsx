@@ -13,6 +13,7 @@ import { useStore } from '../store';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const DOW_LONG = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(d.getDate() + n); return x; };
 const same = (a: Date, b: Date) => +a === +b;
@@ -109,7 +110,7 @@ export function Things() {
 
       <div className="wrap things-layout" style={{ paddingTop: 24, paddingBottom: 48 }}>
         <aside className="things-cal">
-          <MonthGrid month={month} setMonth={setMonth} events={events} range={range} picked={day} onPick={pickDay} last={lastEvent} />
+          <MonthGrid month={month} setMonth={setMonth} events={events} range={range} picked={day} onPick={pickDay} last={lastEvent} big={!isMobile} onOpen={openDeal} />
         </aside>
 
         <div ref={listRef} style={{ minWidth: 0, scrollMarginTop: 80 }}>
@@ -171,15 +172,17 @@ function EventRow({ t, onOpen }: { t: Deal; onOpen: () => void }) {
   );
 }
 
-function MonthGrid({ month, setMonth, events, range, picked, onPick, last }: {
+function MonthGrid({ month, setMonth, events, range, picked, onPick, last, big, onOpen }: {
   month: Date; setMonth: (d: Date) => void; events: Deal[]; range: Range; picked: Date | null; onPick: (d: Date) => void; last: Date;
+  big: boolean; onOpen: (id: string) => void;
 }) {
   const y = month.getFullYear(), m = month.getMonth();
   const first = new Date(y, m, 1);
   const days = new Date(y, m + 1, 0).getDate();
   const cells: (Date | null)[] = [...Array(first.getDay()).fill(null), ...Array.from({ length: days }, (_, i) => new Date(y, m, i + 1))];
   // Skip weeks that are already over, so the useful days sit at the top.
-  while (cells.length > 7 && cells.slice(0, 7).every((c) => !c || +c < +TODAY)) cells.splice(0, 7);
+  // (On a full-size calendar, keep the whole month, like a wall calendar.)
+  while (!big && cells.length > 7 && cells.slice(0, 7).every((c) => !c || +c < +TODAY)) cells.splice(0, 7);
   const canBack = +first > +new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
   const canFwd = +new Date(y, m + 1, 1) <= +last;
   const on = (d: Date) => events.filter((e) => overlaps(e, d, d));
@@ -190,13 +193,13 @@ function MonthGrid({ month, setMonth, events, range, picked, onPick, last }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <button type="button" className="cal-nav" aria-label="Previous month" disabled={!canBack} onClick={() => setMonth(new Date(y, m - 1, 1))}>‹</button>
         <div style={{ flex: 1, textAlign: 'center' }}>
-          <div className="display" style={{ fontSize: 26, lineHeight: 1 }}>{MONTHS[m]} {y}</div>
+          <div className="display" style={{ fontSize: big ? 40 : 26, lineHeight: 1 }}>{MONTHS[m]} {y}</div>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginTop: 2 }}>{inMonth} {inMonth === 1 ? 'event' : 'events'}</div>
         </div>
         <button type="button" className="cal-nav" aria-label="Next month" disabled={!canFwd} onClick={() => setMonth(new Date(y, m + 1, 1))}>›</button>
       </div>
-      <div className="cal-grid">
-        {DOW.map((d, i) => <span key={i} className="cal-dow" aria-hidden="true">{d}</span>)}
+      <div className={big ? 'cal-grid big' : 'cal-grid'}>
+        {(big ? DOW_LONG : DOW).map((d, i) => <span key={i} className="cal-dow" aria-hidden="true">{d}</span>)}
         {cells.map((d, i) => {
           if (!d) return <span key={`x${i}`} />;
           const list = on(d);
@@ -204,9 +207,26 @@ function MonthGrid({ month, setMonth, events, range, picked, onPick, last }: {
           const sel = picked ? same(d, picked) : false;
           const inRange = !picked && !!range && +d >= +range.from && +d <= +range.to;
           const label = `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[m]}: ${list.length ? `${list.length} ${list.length === 1 ? 'event' : 'events'}` : 'nothing listed'}`;
+          const cls = ['cal-day', past && 'past', list.length && 'busy', sel && 'sel', inRange && 'range', same(d, TODAY) && 'today'].filter(Boolean).join(' ');
+          if (big) {
+            return (
+              <div key={key(d)} className={cls + ' big'} onClick={() => !past && list.length && onPick(d)}>
+                <button type="button" className="cal-num" aria-label={label} aria-pressed={sel} disabled={past || !list.length} onClick={(e) => { e.stopPropagation(); onPick(d); }}>
+                  {d.getDate()}{same(d, TODAY) && <span className="cal-today">Today</span>}
+                </button>
+                {list.slice(0, 2).map((e) => (
+                  <button key={e.id} type="button" className="cal-ev" onClick={(ev) => { ev.stopPropagation(); onOpen(e.id); }} title={e.title}>
+                    <span className="cal-ev-img"><DealImage d={e} compact /></span>
+                    <span className="cal-ev-t">{e.title}</span>
+                  </button>
+                ))}
+                {list.length > 2 && <button type="button" className="cal-more" onClick={(e) => { e.stopPropagation(); onPick(d); }}>+{list.length - 2} more</button>}
+              </div>
+            );
+          }
           return (
             <button key={key(d)} type="button" aria-label={label} aria-pressed={sel}
-              className={['cal-day', past && 'past', list.length && 'busy', sel && 'sel', inRange && 'range', same(d, TODAY) && 'today'].filter(Boolean).join(' ')}
+              className={cls}
               disabled={past || !list.length} onClick={() => onPick(d)}>
               <span>{d.getDate()}</span>
               {list.length > 0 && (
@@ -218,7 +238,7 @@ function MonthGrid({ month, setMonth, events, range, picked, onPick, last }: {
           );
         })}
       </div>
-      <p style={{ margin: '10px 2px 0', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.4 }}>Dots mark days with events. Tap a day to see what’s on.</p>
+      <p style={{ margin: '10px 2px 0', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.4 }}>{big ? 'Click a day to see everything on, or an event to open it.' : 'Dots mark days with events. Tap a day to see what’s on.'}</p>
     </div>
   );
 }
