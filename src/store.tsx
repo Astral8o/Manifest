@@ -1,11 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { DEALS, DEFAULT_FILTERS, type CollKey, type Deal, type Filters, type Region } from './data';
 
-/** Send an event to Google Analytics, if it has loaded. */
-const track = (name: string, params: Record<string, string>) => {
-  const g = (window as unknown as { gtag?: (...a: unknown[]) => void }).gtag;
-  if (g) g('event', name, params);
-};
+import { track, trackDeal } from './analytics';
 
 export type Screen = 'home' | 'browse' | 'deal' | 'things' | 'directory' | 'saved' | 'submit';
 const SCREENS: Screen[] = ['home', 'browse', 'deal', 'things', 'directory', 'saved', 'submit'];
@@ -144,10 +140,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     go('browse', { focusSearch: focus });
   }, [go]);
 
+  // Searches (once typing pauses) and store pages, for analytics.
+  useEffect(() => {
+    const q = filters.q.trim();
+    if (q.length < 2) return;
+    const t = window.setTimeout(() => track('search', { search_term: q.toLowerCase() }), 1200);
+    return () => window.clearTimeout(t);
+  }, [filters.q]);
+  useEffect(() => {
+    if (filters.biz && filters.biz !== 'any') track('view_business', { business: filters.biz });
+  }, [filters.biz]);
+
   const toggleSave = useCallback((id: string) => {
     setSaved((cur) => {
       const has = cur.includes(id);
       const next = has ? cur.filter((x) => x !== id) : [...cur, id];
+      const d = DEALS.find((x) => x.id === id);
+      if (d && !has) trackDeal('save_deal', d);
       try { localStorage.setItem(SAVED_KEY, JSON.stringify(next)); } catch { /* storage unavailable */ }
       showToast(has ? 'Removed from Saved' : 'Saved. It’s waiting in your Saved tab.');
       return next;
@@ -155,7 +164,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [showToast]);
 
   const claim = useCallback((d: Deal) => {
-    track('deal_click', { deal_id: d.id, business: d.biz, category: d.cat, action: d.action });
+    trackDeal('deal_click', d, { button: d.action, destination: d.destShort ?? '' });
     if (d.url) window.open(d.url, '_blank', 'noopener,noreferrer');
     else if (d.action === 'Show In Store') setPassId(d.id);
     else showToast(`Demo: this would open ${d.destShort} for ${d.biz}`);

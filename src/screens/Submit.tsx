@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { track } from '../analytics';
 
 const SUBMIT_URL = 'https://oiwjuvzsydhuhmetcuqk.supabase.co/functions/v1/submit-deal';
 import { CATS, CREAM, INK, LIME, PAPER, SUN, TOMATO } from '../data';
@@ -102,6 +103,7 @@ export function Submit() {
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.ok) throw new Error(body.error || 'Something went wrong.');
       setRef(body.ref);
+      track('submit_listing');
       setSubmitted(true);
       window.scrollTo(0, 0);
     } catch (err) {

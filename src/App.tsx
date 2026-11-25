@@ -9,6 +9,7 @@ import { Submit } from './screens/Submit';
 import { Things } from './screens/Things';
 import { useStore } from './store';
 import { DEALS } from './data';
+import { trackDeal } from './analytics';
 
 const TITLES: Record<string, string> = {
   home: 'EventoryTT · Today’s best deals in T&T',
@@ -32,6 +33,7 @@ export function App() {
   // Keep the tab title in step with the page (search engines and analytics read it).
   useEffect(() => {
     const d = screen === 'deal' ? DEALS.find((x) => x.id === dealId) : undefined;
+    if (d) trackDeal('view_deal', d);
     document.title = d ? `${d.title}${d.eventDate ? '' : ` at ${d.biz}`} | EventoryTT` : TITLES[screen] ?? TITLES.home;
     const c = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (c) c.href = `https://www.eventorytt.com${location.pathname}`;
