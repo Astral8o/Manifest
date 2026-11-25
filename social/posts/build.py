@@ -144,14 +144,56 @@ page('05-black-friday', [cover(SUN, 'Black Friday', ['Biggest', 'savings', 'righ
      + [end(SUN, 'More Black<br>Friday deals', ['Courts, Sacha, Beauté by KNJ and more', 'Sorted by biggest savings', 'Tap through to buy direct'], 'Link in bio')])
 
 # ---------- 6. For businesses ----------
-page('06-list-free', [f'''<div class="s stripes" style="background-color:{TOMATO}">
-  <div style="position:absolute;left:70px;right:70px;top:70px">{logo()}
-    <div class="chip" style="margin-top:44px">For businesses</div>
-    <h1 class="d" style="font-size:150px;margin-top:34px">List your<br>deal free</h1>
-    <div style="margin-top:40px;display:flex;flex-direction:column;gap:18px;font-size:44px;font-weight:800">
-      <div>✓ No follower minimum</div><div>✓ No like count</div><div>✓ Live in 2 business days</div></div>
-    <div class="card" style="margin-top:56px;padding:30px 36px;box-shadow:10px 10px 0 {INK}">
-      <div style="font-size:30px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.7">3 ways to send it</div>
-      <div style="font-size:38px;font-weight:700;margin-top:14px;line-height:1.5">1. Form at eventorytt.com<br>2. WhatsApp 1-868-717-7720<br>3. Tag @eventory_tt in your post</div>
-    </div></div></div>'''])
+HERE = os.path.abspath('06-list-free')
+shot = lambda n: 'file://' + os.path.join(HERE, n)
+def phone(src, w=430, rot=0, extra=''):
+    h = int(w * 2532 / 1170)
+    return f'<div style="width:{w+28}px;height:{h+28}px;background:{INK};border-radius:64px;padding:14px;box-shadow:16px 16px 0 rgba(20,18,16,.25);transform:rotate({rot}deg);{extra}"><img src="{shot(src)}" style="width:{w}px;height:{h}px;border-radius:52px;display:block;object-fit:cover;object-position:top"></div>'
+def callout(text, color=PAPER):
+    return f'<div style="background:{color};border:4px solid {INK};border-radius:22px;padding:16px 22px;font-size:31px;font-weight:800;line-height:1.2;box-shadow:6px 6px 0 {INK}">{text}</div>'
+N = 5
+page('06-list-free', [
+  f"""<div class="s stripes" style="background-color:{TOMATO}">
+    <div style="position:absolute;left:70px;top:70px;width:540px">{logo()}
+      <div class="chip" style="margin-top:44px">For businesses</div>
+      <h1 class="d" style="font-size:112px;margin-top:34px">People are looking for a deal right now</h1>
+      <p style="font-size:40px;font-weight:800;margin-top:34px;line-height:1.25">Make sure they find yours.</p>
+      <p style="font-size:30px;font-weight:800;margin-top:30px">Swipe →</p>
+    </div>
+    <div style="position:absolute;right:30px;top:300px">{phone('phone-browse.png', 380, 6)}</div>
+    <div class="foot" style="justify-content:flex-end">{dots(0,N)}</div></div>""",
+  f"""<div class="s" style="background:{SUN}">
+    <div style="position:absolute;left:70px;right:70px;top:70px"><h2 class="d" style="font-size:104px">Your deal gets<br>its own page</h2></div>
+    <div style="position:absolute;left:70px;top:330px">{phone('phone-deal.png', 400, -3)}</div>
+    <div style="position:absolute;left:560px;right:60px;top:360px;display:flex;flex-direction:column;gap:30px">
+      {callout('📸 A big photo of your offer')}{callout('💲 Your price, front and centre')}{callout('👉 One tap to your WhatsApp, website or store')}{callout('🔗 A link you can share anywhere')}
+    </div>
+    <div class="foot" style="justify-content:flex-end">{dots(1,N)}</div></div>""",
+  f"""<div class="s" style="background:{LILAC}">
+    <div style="position:absolute;left:70px;right:70px;top:70px"><h2 class="d" style="font-size:104px">Seen in all<br>the right places</h2></div>
+    <div style="position:absolute;left:70px;right:520px;top:340px;display:flex;flex-direction:column;gap:26px">
+      {callout('🏠 Home page and its category')}{callout('🔎 Search, when people look for it')}{callout('📅 The events calendar, on the right date')}{callout('📒 The Business Directory')}{callout('⭐ Featured deals: our Instagram and WhatsApp Friday Five', SUN)}
+    </div>
+    <div style="position:absolute;right:50px;top:330px">{phone('phone-things.png', 400, 3)}</div>
+    <div class="foot" style="justify-content:flex-end">{dots(2,N)}</div></div>""",
+  f"""<div class="s stripes" style="background-color:{LIME}">
+    <div style="position:absolute;left:70px;right:70px;top:90px">
+      <h2 class="d" style="font-size:124px">Customers come<br>straight to you</h2>
+      <div style="margin-top:56px;display:flex;flex-direction:column;gap:26px">
+        {''.join(f'<div class="card" style="padding:28px 34px;display:flex;gap:24px;align-items:center;box-shadow:8px 8px 0 {INK};border-radius:30px"><span class="d" style="font-size:64px;width:64px">{n}</span><span><b style="font-size:42px;display:block;line-height:1.15">{t}</b><span style="font-size:29px;font-weight:600">{d}</span></span></div>' for n,t,d in [('1','No commission','You keep 100% of every sale.'),('2','No middleman','They buy from you, on your terms.'),('3','No old offers','Your deal comes down by itself when it ends.')])}
+      </div></div>
+    <div class="foot" style="justify-content:flex-end">{dots(3,N)}</div></div>""",
+  f"""<div class="s stripes" style="background-color:{TOMATO}">
+    <div style="position:absolute;left:70px;right:70px;top:70px">{logo()}
+      <h1 class="d" style="font-size:150px;margin-top:50px">Free to list</h1>
+      <div style="margin-top:30px;display:flex;flex-direction:column;gap:14px;font-size:44px;font-weight:800">
+        <div>✓ No follower minimum</div><div>✓ No like count</div><div>✓ Live in 2 business days</div></div>
+      <div class="card" style="margin-top:48px;padding:30px 36px;box-shadow:10px 10px 0 {INK}">
+        <div style="font-size:28px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.7">Send it any way you like</div>
+        <div style="font-size:38px;font-weight:700;margin-top:14px;line-height:1.5">→ Tag @eventory_tt in your post<br>→ WhatsApp 1-868-717-7720<br>→ eventorytt.com/how-it-works</div>
+      </div>
+      <p style="font-size:32px;font-weight:800;margin-top:36px">Want it on our home page? Featured from TT$100.</p>
+    </div>
+    <div class="foot" style="justify-content:flex-end">{dots(4,N)}</div></div>""",
+])
 print('built')
