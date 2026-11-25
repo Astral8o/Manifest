@@ -122,7 +122,7 @@ export function Footer() {
       <div className="wrap" style={{ paddingTop: 44, paddingBottom: 36, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,200px),1fr))', gap: 28 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <span style={{ fontFamily: 'var(--display)', fontSize: 40, lineHeight: 1 }}>EVENTORY<span style={{ color: TOMATO }}>TT</span></span>
-          <span style={{ fontSize: 15, lineHeight: 1.45, opacity: 0.85 }}>The best deals in Trinidad &amp; Tobago, every day. Doh pay full price.</span>
+          <span style={{ fontSize: 15, lineHeight: 1.45, opacity: 0.85 }}>The best deals in Trinidad &amp; Tobago, every day.</span>
         </div>
         {cols.map((col) => (
           <div key={col.title} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

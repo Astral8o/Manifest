@@ -60,7 +60,7 @@ function Top({ spotlight }: { spotlight: Deal[] }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
           <h1 className="display" style={{ fontSize: 'clamp(42px,7.5vw,84px)', lineHeight: 0.88, color: CREAM, flex: '1 1 300px' }}>
-            Doh pay full price.
+            Today’s best deals in T&amp;T
           </h1>
           <form
             role="search"
@@ -68,7 +68,7 @@ function Top({ spotlight }: { spotlight: Deal[] }) {
             style={{ flex: '1 1 340px', maxWidth: 560, display: 'flex', alignItems: 'center', gap: 8, background: CREAM, border: `2px solid ${INK}`, borderRadius: 999, padding: '4px 4px 4px 16px', boxShadow: `4px 4px 0 ${INK}` }}
           >
             <SearchIcon />
-            <input value={q} onChange={(e) => setQ(e.target.value)} type="search" placeholder="What yuh looking for?" aria-label="Search deals" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: 16, minHeight: 44, outline: 'none' }} />
+            <input value={q} onChange={(e) => setQ(e.target.value)} type="search" placeholder="Search deals, stores or products" aria-label="Search deals" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: 16, minHeight: 44, outline: 'none' }} />
             <button type="submit" className="pill btn-dark" style={{ minHeight: 44, padding: '0 16px', fontSize: 14, border: 'none' }}>Find it</button>
           </form>
         </div>
@@ -134,7 +134,7 @@ function AllDeals() {
   const deals = all.slice(0, shown);
   return (
     <section style={{ paddingTop: 32 }}>
-      <SectionHead title={`Every deal · ${all.length}`} sub="The whole lot, best first. Scroll till something catches yuh eye." />
+      <SectionHead title={`Every deal · ${all.length}`} sub="Everything on right now, best first." />
       <div className="wrap">
         <div className="scroll-x" role="group" aria-label="Sort" style={{ gap: 8, marginBottom: 14 }}>
           {SORTS.map(([v, l]) => (
@@ -241,9 +241,9 @@ export function Home() {
     <>
       <Top spotlight={spotlight} />
       <QuickRail />
-      <RowSection title="Coming soon" sub="Mark yuh calendar. Tap ♡ and it’ll be waiting in Saved." deals={upcoming} onAll={b({ sort: 'new' })} min={1} />
-      <RowSection title="Last call" sub="Gone soon. Doh sleep on these." deals={ending} onAll={b({ sort: 'ending', ends: '7' })} min={1} />
-      <RowSection title="Biggest savings" sub={savings.length ? `Up to ${savings[0].pct}% off. More money back in yuh pocket.` : ''} deals={savings} onAll={b({ sort: 'saving', disc: '20' })} color={TOMATO} />
+      <RowSection title="Coming soon" sub="Sales starting soon. Tap ♡ to save one for later." deals={upcoming} onAll={b({ sort: 'new' })} min={1} />
+      <RowSection title="Last call" sub="These deals end in the next few days." deals={ending} onAll={b({ sort: 'ending', ends: '7' })} min={1} />
+      <RowSection title="Biggest savings" sub={savings.length ? `Up to ${savings[0].pct}% off the original price.` : ''} deals={savings} onAll={b({ sort: 'saving', disc: '20' })} color={TOMATO} />
       <BizStrip />
       {ACTIVE_CATS.map((k) => {
         const deals = spread(byHot.filter((d) => d.cat === k));

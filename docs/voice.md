@@ -1,10 +1,10 @@
 # EventoryTT voice
 
-**Who we sound like:** your friend who always knows where the sale is. Quick, confident, a little playful, never pushy.
+**Who we sound like:** your friend who always knows where the sale is. Quick, clear, friendly, never pushy.
 
 ## Rules
 
-1. **Clear first, Trini second.** Standard English, with a local word only where it lands naturally ("Doh pay full price", "yuh", "lime"). Never full dialect, and no more than one local word per line.
+1. **Plain English.** No dialect or slang ("yuh", "doh", "lime"). It reads as forced. Warmth comes from short, friendly sentences, not local spellings.
 2. **Talk money and plans, not "offers".** Say what people save or get to do: "TT$2,000 off", "Weekend plans, sorted".
 3. **Short lines.** One idea per sentence. Headlines under six words where possible.
 4. **No hype.** No exclamation marks, no "amazing", no fake urgency. Urgency only comes from real end dates ("Last call", "Ends tomorrow").
@@ -15,19 +15,19 @@
 
 | Instead of | We say |
 |---|---|
-| Today's deals | Doh pay full price |
-| Search | What yuh looking for? / Find it |
-| Ending soon | Last call · Doh sleep on these |
-| Coming up | Coming soon · Mark yuh calendar |
-| Biggest discount | More money back in yuh pocket |
+| Today's deals | Today's best deals in T&T |
+| Search | Search deals, stores or products / Find it |
+| Ending soon | Last call · These deals end in the next few days |
+| Coming up | Coming soon · Sales starting soon |
+| Biggest discount | Biggest savings · Up to X% off the original price |
 | Shop by business | Shop by store · Your go-to spots |
 | Terms & conditions | The fine print |
 | How to claim | How to get it |
 | Submit a deal | List your deal |
-| Weekend activities | Weekend plans, sorted · Limes |
+| Weekend activities | Weekend plans, sorted |
 
 ## Taglines
 
-- Primary: **Doh pay full price.**
+- Primary: **Today's best deals in T&T.**
 - Support: The best deals in Trinidad & Tobago, every day.
 - Social: Check EventoryTT before you buy anything.
