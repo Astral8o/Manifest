@@ -48,7 +48,6 @@ const NOT_LISTED = ['Posts with no price, discount or date', 'Classifieds and se
 
 const FAQ: [string, ReactNode][] = [
   ['Is the free plan really free?', 'Yes. No card, no trial, no catch. Any business in Trinidad & Tobago can keep up to 3 deals or events live at a time, for free, for as long as they like.'],
-  ['Do I need a big following?', 'No. There’s no follower minimum and no like count. A home-based business with 50 followers gets listed the same way as a big store. If the deal is real, it goes up.'],
   ['Do I need Instagram at all?', 'No. Use the form or WhatsApp. Tagging us is just one more option if you already post your deals.'],
   [`How does tagging ${IG_HANDLE} work?`, `Tag ${IG_HANDLE} in your Instagram or Facebook post. The post needs to be public and show the price or discount. We check our tags regularly, write up the listing, and message you if anything is missing, like an end date.`],
   ['How fast does my deal go live?', 'Free listings go live within 2 business days. Featured members are reviewed the same day.'],
@@ -74,7 +73,7 @@ export function HowItWorks() {
           <span className="eyebrow">For businesses</span>
           <h1 className="display" style={{ fontSize: 'clamp(54px,10vw,124px)', lineHeight: 0.86, maxWidth: 900 }}>Your deal, in front of all of T&amp;T.</h1>
           <p style={{ margin: 0, fontSize: 19, lineHeight: 1.45, maxWidth: 620, fontWeight: 600 }}>
-            List free. No follower minimum. No like count. If it’s a real deal in Trinidad &amp; Tobago, it goes up.
+            Put your sale, special or event where people in Trinidad &amp; Tobago look for things to buy and do. Free to list.
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
             <button type="button" className="pill btn-dark btn-press" onClick={() => choose('free')} style={{ minHeight: 54, padding: '0 24px', fontSize: 16 }}>List your deal free →</button>
@@ -175,7 +174,7 @@ export function HowItWorks() {
         <section style={{ background: INK, color: CREAM, borderRadius: 28, padding: 'clamp(24px,4vw,40px)', display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h2 className="display" style={{ fontSize: 'clamp(34px,5vw,52px)', lineHeight: 0.95, color: CREAM }}>Got a deal? Send it in.</h2>
-            <p style={{ margin: '8px 0 0', fontSize: 16, opacity: 0.85 }}>Free to list. Live within 2 business days.</p>
+            <p style={{ margin: '8px 0 0', fontSize: 16, opacity: 0.85 }}>Free to list. Customers come straight to you.</p>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button type="button" className="pill btn-press" onClick={() => choose('free')} style={{ minHeight: 52, padding: '0 22px', fontSize: 16, fontWeight: 800, background: SUN }}>List your deal →</button>

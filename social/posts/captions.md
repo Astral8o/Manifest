@@ -29,7 +29,7 @@ List your sale, special or event on EventoryTT and you get:
 🔎 A spot in search, categories, the events calendar and the Business Directory
 💸 No commission. Customers buy straight from you
 
-It’s free to list. No follower minimum, no like count.
+It’s free to list.
 
 Tag @eventory_tt in your post, WhatsApp 1-868-717-7720, or go to eventorytt.com/how-it-works
 

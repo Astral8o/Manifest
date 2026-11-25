@@ -182,7 +182,7 @@ export function Submit() {
                 ))}
               </div>
               <span style={{ fontSize: 13.5, color: 'var(--muted)' }}>
-                {plan === 'free' ? 'Free to list. No follower minimum.' : 'No payment now. We’ll send you an invoice once your deal is approved.'}{' '}
+                {plan === 'free' ? 'Free. Up to 3 deals live at a time.' : 'No payment now. We’ll send you an invoice once your deal is approved.'}{' '}
                 <button type="button" className="link-btn" style={{ fontSize: 13.5, padding: 0 }} onClick={() => go('how-it-works')}>Compare plans</button>
               </span>
             </fieldset>

@@ -187,7 +187,7 @@ page('06-list-free', [
     <div style="position:absolute;left:70px;right:70px;top:70px">{logo()}
       <h1 class="d" style="font-size:150px;margin-top:50px">Free to list</h1>
       <div style="margin-top:30px;display:flex;flex-direction:column;gap:14px;font-size:44px;font-weight:800">
-        <div>✓ No follower minimum</div><div>✓ No like count</div><div>✓ Live in 2 business days</div></div>
+        <div>✓ Your own deal page</div><div>✓ In search and on the calendar</div><div>✓ Customers come straight to you</div></div>
       <div class="card" style="margin-top:48px;padding:30px 36px;box-shadow:10px 10px 0 {INK}">
         <div style="font-size:28px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.7">Send it any way you like</div>
         <div style="font-size:38px;font-weight:700;margin-top:14px;line-height:1.5">→ Tag @eventory_tt in your post<br>→ WhatsApp 1-868-717-7720<br>→ eventorytt.com/how-it-works</div>

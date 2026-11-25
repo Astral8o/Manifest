@@ -347,17 +347,28 @@ const courts = (id: string, title: string, price: number, was: number, blurb: st
   region: 'Islandwide', area: 'Courts stores islandwide · online', address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.',
   getIt: 'In store or online', format: 'Online & in-store', checked: NOV24, hot, promo: 'Black Friday',
   claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
-  terms: ['Courts Black Friday price. No end date published; Courts also runs a Cyber Monday sale (Mon 30 Nov).', 'Stock and prices set by Courts. Check before you go.'],
+  terms: ['Courts Black Friday price, while stock lasts. Courts also runs a Cyber Monday sale (Mon 30 Nov).', 'Stock and prices set by Courts. Check before you go.'],
   live: false,
 });
 const NEW_DEALS = [
+  makeDeal({
+    id: 'country-house-jta-cart-up-win', biz: 'Country House', title: 'Cart Up & Win: spend TT$50 on Country House at JTA', cat: 'food',
+    blurb: 'Spend TT$50 or more on Country House products at JTA Supermarkets and enter to win a Samsung 55" UHD TV, 2 months of Country House groceries, or one of five TT$250 JTA vouchers.',
+    priceLabel: 'WIN A 55" TV', promo: 'Contest', url: 'https://www.instagram.com/hadcodistribution/', destShort: 'instagram.com', action: 'View Offer',
+    region: 'Islandwide', area: 'JTA Supermarkets, all branches', address: 'Any JTA Supermarkets branch.', getIt: 'In store at JTA', format: 'In-store',
+    checked: new Date(2026, 10, 25), start: new Date(2026, 10, 20), end: new Date(2026, 11, 31), hot: 78, tags: ['family'],
+    image: '/deals/countryhouse/cart-up-win.webp', imageRatio: '1080 / 1322',
+    claimSteps: ['Spend TT$50 or more on Country House products at any JTA Supermarkets branch.', 'Fill in the entry form printed at the end of your bill.', 'Drop it in the entry box in store.'],
+    terms: ['1st prize: Samsung 55" Crystal UHD TV. 2nd prize: Country House groceries for 2 months. 3rd prize: one of five TT$250 JTA vouchers, one winner per branch.', 'Runs 20 November to 31 December 2026.', 'Approved by the NLCB. Full rules from Country House and JTA Supermarkets.'],
+    live: true,
+  }),
   makeDeal({
     id: 'courts-tcl-23-side-by-side-fridge', biz: 'Courts', title: 'TCL 23 Cu. Ft. Side by Side Refrigerator', cat: 'shopping', blurb: '23 cu. ft. side-by-side refrigerator. Model 312123.',
     price: 6999, was: 8499, url: COURTS_URL, destShort: 'courts.com', region: 'Islandwide', area: 'Courts stores islandwide · online',
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
     checked: NOV24, hot: 88, image: '/deals/courts/tcl-fridge.webp', imageRatio: '1000 / 935',
     claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
-    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    terms: ['Sale price from Courts, while stock lasts.', 'Stock, delivery and payment plans set by Courts.'],
     live: true,
   }),
   makeDeal({
@@ -366,7 +377,7 @@ const NEW_DEALS = [
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
     checked: NOV24, hot: 84, image: '/deals/courts/mabe-washer.webp', imageRatio: '1000 / 565',
     claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
-    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    terms: ['Sale price from Courts, while stock lasts.', 'Stock, delivery and payment plans set by Courts.'],
     live: true,
   }),
   makeDeal({
@@ -375,7 +386,7 @@ const NEW_DEALS = [
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
     checked: NOV24, hot: 83, image: '/deals/courts/mabe-stove.webp', imageRatio: '644 / 1000',
     claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
-    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    terms: ['Sale price from Courts, while stock lasts.', 'Stock, delivery and payment plans set by Courts.'],
     live: true,
   }),
   makeDeal({
@@ -384,7 +395,7 @@ const NEW_DEALS = [
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
     checked: NOV24, hot: 81, image: '/deals/courts/mastertech-microwave.webp', imageRatio: '1000 / 565',
     claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
-    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    terms: ['Sale price from Courts, while stock lasts.', 'Stock, delivery and payment plans set by Courts.'],
     live: true,
   }),
   makeDeal({
@@ -393,7 +404,7 @@ const NEW_DEALS = [
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
     checked: NOV24, hot: 84, image: '/deals/courts/arizona-hutch.webp', imageRatio: '2 / 3',
     claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
-    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    terms: ['Sale price from Courts, while stock lasts.', 'Stock, delivery and payment plans set by Courts.'],
     live: true,
   }),
   makeDeal({
@@ -402,7 +413,7 @@ const NEW_DEALS = [
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
     checked: NOV24, hot: 87, image: '/deals/courts/serta-divan.webp', imageRatio: '2 / 3',
     claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
-    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    terms: ['Sale price from Courts, while stock lasts.', 'Stock, delivery and payment plans set by Courts.'],
     live: true,
   }),
   makeDeal({
@@ -411,7 +422,7 @@ const NEW_DEALS = [
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
     checked: NOV24, hot: 81, image: '/deals/courts/yanes-recliner.webp', imageRatio: '2 / 3',
     claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
-    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    terms: ['Sale price from Courts, while stock lasts.', 'Stock, delivery and payment plans set by Courts.'],
     live: true,
   }),
   makeDeal({
@@ -420,7 +431,7 @@ const NEW_DEALS = [
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
     checked: NOV24, hot: 80, image: '/deals/courts/quattro-cookware.webp', imageRatio: '2 / 3',
     claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
-    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    terms: ['Sale price from Courts, while stock lasts.', 'Stock, delivery and payment plans set by Courts.'],
     live: true,
   }),
   makeDeal({
@@ -429,7 +440,7 @@ const NEW_DEALS = [
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
     checked: NOV24, hot: 84, image: '/deals/courts/honor-x6c.webp', imageRatio: '1000 / 424',
     claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
-    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    terms: ['Sale price from Courts, while stock lasts.', 'Stock, delivery and payment plans set by Courts.'],
     live: true,
   }),
   makeDeal({
@@ -438,7 +449,7 @@ const NEW_DEALS = [
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
     checked: NOV24, hot: 83, image: '/deals/courts/radioshack-speaker.webp', imageRatio: '1000 / 424',
     claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
-    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    terms: ['Sale price from Courts, while stock lasts.', 'Stock, delivery and payment plans set by Courts.'],
     live: true,
   }),
   makeDeal({
@@ -447,7 +458,7 @@ const NEW_DEALS = [
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
     checked: NOV24, hot: 88, image: '/deals/courts/marissa.webp', imageRatio: '1000 / 430',
     claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
-    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    terms: ['Sale price from Courts, while stock lasts.', 'Stock, delivery and payment plans set by Courts.'],
     live: true,
   }),
   makeDeal({
@@ -456,7 +467,7 @@ const NEW_DEALS = [
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
     checked: NOV24, hot: 86, image: '/deals/courts/skempton.webp', imageRatio: '1000 / 430',
     claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
-    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    terms: ['Sale price from Courts, while stock lasts.', 'Stock, delivery and payment plans set by Courts.'],
     live: true,
   }),
   makeDeal({
@@ -465,7 +476,7 @@ const NEW_DEALS = [
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
     checked: NOV24, hot: 82, image: '/deals/courts/quattro-grill.webp', imageRatio: '1000 / 424',
     claimSteps: ['Tap “Get Deal” to open Courts online, or visit any Courts store.', 'Ask about delivery and payment plans at checkout.', 'Pay Courts directly. EventoryTT never takes payment.'],
-    terms: ['Sale price from Courts. No end date published.', 'Stock, delivery and payment plans set by Courts.'],
+    terms: ['Sale price from Courts, while stock lasts.', 'Stock, delivery and payment plans set by Courts.'],
     live: true,
   }),
   makeDeal({
@@ -475,7 +486,7 @@ const NEW_DEALS = [
     address: 'Courts stores across Trinidad & Tobago, and online at courts.com/trinidadandtobago.', getIt: 'In store or online', format: 'Online & in-store',
     checked: NOV24, hot: 92, promo: 'Black Friday', image: '/deals/courts/black-friday.webp', imageRatio: '1000 / 615',
     claimSteps: ['Tap “Get Deal” to browse the sale online, or visit any Courts store.', 'Discounts are already shown on sale items.', 'Pay Courts directly. EventoryTT never takes payment.'],
-    terms: ['Up to 40% off selected items; the discount varies by item.', 'No end date published. Courts also runs a Cyber Monday sale (Mon 30 Nov).', 'Stock and prices set by Courts.'],
+    terms: ['Up to 40% off selected items; the discount varies by item.', 'Courts also runs a Cyber Monday sale (Mon 30 Nov).', 'Stock and prices set by Courts.'],
     live: true,
   }),
   courts('tcl-65-qled', 'TCL 65" 4K QLED TV', 4999, 6999, 'TCL 65-inch 4K QLED smart TV.', 89),
@@ -487,7 +498,7 @@ const NEW_DEALS = [
     region: 'Islandwide', area: 'Digicel stores islandwide', address: 'Digicel stores across Trinidad & Tobago.', getIt: 'In-store sign-up only', format: 'In-store',
     action: 'View Offer', checked: NOV24, hot: 87,
     claimSteps: ['Visit a Digicel store (in-store sign-up only).', 'Sign up for a Postpaid My Choice Plan.', 'Get the Samsung A07 for $1. Plan charges apply.'],
-    terms: ['Requires a Postpaid My Choice Plan; plan costs and contract terms set by Digicel.', 'In-store sign-up only. No end date published.'],
+    terms: ['Requires a Postpaid My Choice Plan; plan costs and contract terms set by Digicel.', 'In-store sign-up only.'],
     live: false,
   }),
   makeDeal({
@@ -496,7 +507,7 @@ const NEW_DEALS = [
     region: 'Islandwide', area: 'Where Digicel Fibre is available', address: 'Digicel Fibre service areas in Trinidad & Tobago.', getIt: 'Home internet', format: 'Online & in-store',
     action: 'View Offer', checked: NOV24, hot: 78, tags: ['family'],
     claimSteps: ['Tap “View Offer” for Digicel Fibre plans, or visit a Digicel store.', 'Check that Fibre is available at your address.', 'Sign up and ask for the families discount.'],
-    terms: ['Discount and eligibility set by Digicel. No end date published.'],
+    terms: ['Discount and eligibility set by Digicel.'],
     live: false,
   }),
   makeDeal({
@@ -643,6 +654,10 @@ export const BUSINESSES: Business[] = [
   {
     name: 'Courts', cat: 'shopping', about: 'Furniture, appliances and electronics, with payment plans. Stores across Trinidad & Tobago and online.',
     area: 'Islandwide', website: 'https://www.courts.com/trinidadandtobago', websiteLabel: 'courts.com',
+  },
+  {
+    name: 'Country House', cat: 'food', about: 'Pantry staples like corned beef, sardines, pasta, milk and margarine, distributed by HADCO.',
+    area: 'Supermarkets islandwide', website: 'https://www.instagram.com/hadcodistribution/', websiteLabel: 'Instagram',
   },
   {
     name: "Domino's", cat: 'food', about: 'Pizza, bread bites and sides. Delivery or carryout from stores across Trinidad & Tobago.',
