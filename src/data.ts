@@ -6,10 +6,14 @@ const DAY = 864e5;
 const daysSince = (d: Date) => Math.max(0, Math.round((+TODAY - +d) / DAY));
 const addedLabelFor = (n: number) => (n === 0 ? 'Added today' : n === 1 ? 'Added yesterday' : `Added ${n} days ago`);
 /** Next Friday–Sunday (or the current one, if it's already the weekend). */
-const weekendLabel = (() => {
+const WEEKEND = (() => {
   const dow = TODAY.getDay();
   const fri = new Date(TODAY); fri.setDate(TODAY.getDate() + (dow === 0 ? -2 : dow === 6 ? -1 : 5 - dow));
   const sun = new Date(fri); sun.setDate(fri.getDate() + 2);
+  return { fri, sun };
+})();
+const weekendLabel = (() => {
+  const { fri, sun } = WEEKEND;
   const m = (d: Date) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
   return fri.getMonth() === sun.getMonth() ? `Fri ${fri.getDate()} – Sun ${sun.getDate()} ${m(sun)}` : `Fri ${fri.getDate()} ${m(fri)} – Sun ${sun.getDate()} ${m(sun)}`;
 })();
@@ -60,6 +64,9 @@ export interface Deal {
   image?: string;
   /** Shape of the photo when it isn't square, e.g. '5 / 2' for wide banners. */
   imageRatio?: string;
+  /** For events and experiences: the day it happens (and the last day, if it runs longer). */
+  eventDate?: Date;
+  eventEnd?: Date;
   /** Short campaign tag taken from the business's own promo, e.g. 'Black Friday Week'. */
   promo?: string;
   /** Overrides the "Delivery or pickup" style label when a business works differently. */
@@ -291,7 +298,7 @@ interface DealInput {
   /** Price in TTD; omit for percent-off sales or events and give `priceLabel` instead. */
   price?: number; was?: number; priceLabel?: string; pct?: number;
   region: DealRegion; area: string; address: string; getIt: string; format: Format; action?: Action;
-  checked: Date; start?: Date; end?: Date; hot: number; tags?: string[]; promo?: string;
+  checked: Date; start?: Date; end?: Date; time?: string; hot: number; tags?: string[]; promo?: string;
   claimSteps: string[]; terms: string[]; hours?: string; image?: string; imageRatio?: string; featured?: boolean;
   /** Held back until a photo or the details are confirmed. */
   live: boolean;
@@ -305,22 +312,28 @@ function makeDeal(o: DealInput): Deal & { live: boolean } {
   const was = o.was ?? 0;
   const pct = o.pct ?? (hasPrice && was ? Math.round(((was - o.price!) / was) * 100) : 0);
   const fmtDay = (d: Date) => `${DOW[d.getDay()]} ${fmt(d)}`;
+  // Events show when they happen ("Sat 26 Dec · 7pm") instead of a countdown.
+  const isEvent = (o.cat === 'events' || o.cat === 'experiences') && !!o.start;
+  const eventWhen = isEvent
+    ? `${fmtDay(o.start!)}${o.end && +o.end !== +o.start! ? ` – ${fmtDay(o.end)}` : ''}${o.time ? ` · ${o.time}` : ''}`
+    : '';
   return {
     id: o.id, biz: o.biz, title: o.title, cat: o.cat, price: hasPrice ? o.price! : NaN, was, region: o.region, area: o.area, address: o.address,
     action: o.action ?? 'Get Deal', format: o.format, img: o.title.toLowerCase(), tags: [...(o.tags ?? []), ...(hasPrice && o.price! <= 100 ? ['budget'] : [])],
     hot: o.hot, featured: o.featured ?? false, blurb: o.blurb, when: o.getIt, added, daysLeft, startsIn, pct,
     catLabel: CATS[o.cat].label, color: CATS[o.cat].color,
-    priceLabel: o.priceLabel ?? (hasPrice ? money(o.price!) : ''), wasLabel: was ? money(was) : '',
+    priceLabel: o.priceLabel ?? (hasPrice ? (o.price === 0 ? 'FREE' : money(o.price!)) : ''), wasLabel: was ? money(was) : '',
     saveLabel: hasPrice && was ? `Save ${money(was - o.price!)} (${pct}%)` : '',
-    endsLabel: startsIn > 0 ? `Starts ${fmtDay(o.start!)}` : !o.end ? '' : daysLeft <= 0 ? 'Ends today' : daysLeft === 1 ? 'Ends tomorrow' : daysLeft <= 7 ? `Ends in ${daysLeft} days` : `Valid until ${fmt(o.end)}`,
+    endsLabel: isEvent ? eventWhen : startsIn > 0 ? `Starts ${fmtDay(o.start!)}` : !o.end ? '' : daysLeft <= 0 ? 'Ends today' : daysLeft === 1 ? 'Ends tomorrow' : daysLeft <= 7 ? `Ends in ${daysLeft} days` : `Valid until ${fmt(o.end)}`,
     endsShort: daysLeft <= 0 ? 'ENDS TODAY' : daysLeft === 1 ? 'ENDS TOMORROW' : `${daysLeft} DAYS LEFT`,
-    endingSoon: !!o.end && startsIn <= 0 && daysLeft <= 3, isNew: added <= 2, addedLabel: addedLabelFor(added),
-    validity: o.start && o.end ? `${fmtDay(o.start)} – ${fmtDay(o.end)} ${o.end.getFullYear()}` : o.end ? `Until ${fmtDay(o.end)} ${o.end.getFullYear()}` : '',
+    endingSoon: !isEvent && !!o.end && startsIn <= 0 && daysLeft <= 3, isNew: !isEvent && added <= 2, addedLabel: addedLabelFor(added),
+    validity: isEvent ? `${fmtDay(o.start!)} ${o.start!.getFullYear()}${o.end && +o.end !== +o.start! ? ` – ${fmtDay(o.end)}` : ''}${o.time ? ` · ${o.time}` : ''}` : o.start && o.end ? `${fmtDay(o.start)} – ${fmtDay(o.end)} ${o.end.getFullYear()}` : o.end ? `Until ${fmtDay(o.end)} ${o.end.getFullYear()}` : '',
     checked: `${fmt(o.checked)} ${o.checked.getFullYear()}`,
     destLabel: `Opens ${o.destShort}`, destShort: o.destShort,
     claimSteps: o.claimSteps, terms: o.terms, hours: o.hours ?? '', code: o.id, demo: false,
     image: o.image, imageRatio: o.imageRatio, url: o.url, promo: o.promo, getIt: o.getIt,
     priceIsPercent: !hasPrice, live: o.live,
+    eventDate: isEvent ? o.start : undefined, eventEnd: isEvent ? o.end ?? o.start : undefined,
   };
 }
 
@@ -493,20 +506,117 @@ const NEW_DEALS = [
     terms: ['Ongoing offer. What’s included in each package is set by North Shore Optical.'],
     live: false,
   }),
-  makeDeal({
-    id: 'ttma-christmas-popup', biz: 'TTMA Christmas Pop-Up Shop', title: 'Christmas Pop-Up Shop: locally made goods', cat: 'events',
-    blurb: 'Shop locally made goods from Trinidad & Tobago manufacturers, just in time for Christmas.', priceLabel: 'POP-UP SHOP', url: 'https://ttma.com', destShort: 'ttma.com',
-    region: 'East', area: 'Macoya', address: 'Macoya, Trinidad.', getIt: 'In person', format: 'In-store', action: 'View Offer',
-    checked: NOV24, start: new Date(2026, 10, 28), end: new Date(2026, 10, 29), hot: 76, tags: ['weekend', 'family', 'events'],
-    hours: 'Sat 28 & Sun 29 Nov · 10am–6pm',
-    claimSteps: ['Head to the pop-up in Macoya, Sat 28 or Sun 29 November, 10am–6pm.', 'Browse and buy directly from local makers.'],
-    terms: ['Sat 28 – Sun 29 November 2026, 10am–6pm.', 'Prices set by each vendor.'],
-    live: false,
-  }),
 ].filter((d) => d.live);
 
-/** Every live deal. Deals drop off automatically the day after they end. */
-export const DEALS: Deal[] = [...DOMINOS_DEALS, ...MARIOS_DEALS, ...KNJ_DEALS, ...SACHA_DEALS, ...NEW_DEALS].filter((d) => d.daysLeft >= 0);
+// ---------- Events (Things to Do) ----------
+
+const ISLAND = (slug: string) => `https://islandetickets.com/event/${slug}`;
+const on = (m: number, day: number, y = 2026) => new Date(y, m - 1, day);
+const EVENTS_CHECKED = new Date(2026, 10, 25);
+
+interface EventInput {
+  id: string; title: string; biz: string; blurb: string; date: Date; end?: Date; time?: string;
+  area: string; region: DealRegion; url: string; destShort?: string; action?: Action; cat?: CatKey;
+  price?: number; priceLabel?: string; tags: string[]; image?: string; terms?: string[];
+}
+
+const STEPS: Partial<Record<Action, string[]>> = {
+  'Get Tickets': ['Tap “Get Tickets” to open the official ticketing page.', 'Buy your tickets there. Prices are shown on the event page.', 'Bring your e-ticket on the day.'],
+  'Book Now': ['Tap “Book Now” to open the booking page.', 'Pick your date and pay the organiser directly.', 'Check the meeting point and time before you go.'],
+  'View Offer': ['Tap “View Offer” for the organiser’s details.', 'Check times and entry before you go.'],
+};
+
+const ev = (o: EventInput) => {
+  const action = o.action ?? 'Get Tickets';
+  return makeDeal({
+    id: o.id, biz: o.biz, title: o.title, cat: o.cat ?? 'events', blurb: o.blurb, url: o.url,
+    destShort: o.destShort ?? 'islandetickets.com', action, price: o.price, priceLabel: o.priceLabel ?? (o.price === undefined ? 'TICKETS' : undefined),
+    region: o.region, area: o.area, address: o.area, format: 'In-store',
+    getIt: o.price === 0 ? 'Free entry' : action === 'Book Now' ? 'Book online' : action === 'View Offer' ? 'More info' : 'Tickets online',
+    checked: EVENTS_CHECKED, start: o.date, end: o.end ?? o.date, time: o.time, hot: 40, tags: o.tags, image: o.image,
+    claimSteps: STEPS[action] ?? [], hours: o.time ? `${o.time}` : undefined,
+    terms: [...(o.terms ?? []), 'Times, prices and line-up are set by the organiser and can change.', 'EventoryTT doesn’t sell tickets.'],
+    live: true,
+  });
+};
+
+const EVENTS = [
+  ev({ id: 'iconography-david-rudder', title: 'Iconography: David Rudder', biz: 'Iconography', date: on(11, 25), time: 'Doors 6pm · Show 7pm',
+    blurb: 'A screening of the fourth episode of the documentary series on the life and music of calypsonian King David Rudder, with an exhibition by The Sign Man.',
+    area: 'Queen’s Hall, St. Ann’s', region: 'POS & West', url: ISLAND('ICONOGRAPHY-David-Rudder'), tags: ['date', 'events'] }),
+  ev({ id: 'ttma-christmas-popup', title: 'TTMA Christmas Pop-Up Shop', biz: 'TTMA', date: on(11, 28), end: on(11, 29), time: '10am–6pm',
+    blurb: 'Local makers selling made-in-T&T goods, just in time for Christmas.', area: 'Centre of Excellence, Macoya', region: 'East',
+    url: 'https://ttma.com/popupshop/', destShort: 'ttma.com', action: 'View Offer', priceLabel: 'POP-UP SHOP', tags: ['family', 'parang', 'events'] }),
+  ev({ id: 'parang-under-the-lanterns', title: 'Parang Under the Lanterns', biz: 'Immortelle', date: on(11, 28), time: '6pm–midnight', price: 350,
+    blurb: 'A holiday garden party with live parang from Los Angeles de San Miguel and DJ David868. A buffet of Trini holiday food is included. Bring your cooler; ice provided.',
+    area: 'Immortelle, Juniper Terrace, Santa Cruz', region: 'POS & West', url: ISLAND('ParangUnderTheLanterns'), tags: ['parang', 'date', 'food', 'events'], terms: ['18+ only.'] }),
+  ev({ id: 'taste-of-moruga-tour', title: 'A Taste of Moruga Tour', biz: 'A Taste of Moruga', cat: 'experiences', date: on(11, 29), action: 'Book Now',
+    blurb: 'Day trip from Curepe to the Moruga Museum, Digity Mud Volcano and Moruga Bay, with transport, a cocoa dancing session, cocoa rum and cocoa tea tastings, and a First Peoples’ lunch.',
+    area: 'Departs Curepe', region: 'East', url: ISLAND('A-Taste-of-Moruga-Tour'), tags: ['outdoor', 'food'] }),
+  ev({ id: 'house-parang', title: 'House Parang', biz: 'House Parang', date: on(11, 29), time: '4–11pm',
+    blurb: 'Five parang bands at the beach. Bring your own cooler.', area: 'Anchorage Beach Club, Chaguaramas', region: 'POS & West',
+    url: ISLAND('Houseparang'), tags: ['parang', 'outdoor', 'events'] }),
+  ev({ id: 'parang-pan-under-the-sunset', title: 'Parang & Pan Under the Sunset', biz: 'QRC PTA', date: on(12, 5), time: 'Boards 3pm · Sails 4pm', price: 350,
+    blurb: 'A fundraiser cruise on the Harbour Master with steelpan and parang. Coolers allowed, welcome drinks included, and giveaways including tickets to Kes the Concert.',
+    area: 'Harbour Master cruise, Port of Spain', region: 'POS & West', url: ISLAND('parangandpanunderthesunset2026'), tags: ['parang', 'outdoor', 'events'], terms: ['TT$350 early bird.'] }),
+  ev({ id: 'magdalena-tree-lighting', title: 'Christmas Tree Lighting & Craft Market', biz: 'Magdalena Grand', date: on(12, 5),
+    blurb: 'The Magdalena Grand lights its Christmas tree, with a craft market. Check the listing for times.', area: 'Magdalena Grand, Tobago', region: 'Tobago',
+    url: 'https://tobagobeyond.com/calendar-events-things-to-do-in-tobago', destShort: 'tobagobeyond.com', action: 'View Offer', priceLabel: 'CRAFT MARKET', tags: ['family', 'parang'] }),
+  ev({ id: 'paramin-paradise-tour', title: 'Paramin Paradise Tour', biz: 'Paramin Paradise Tour', cat: 'experiences', date: on(12, 6), action: 'Book Now',
+    blurb: 'Jeep tour of Paramin: the La Vigie lookout (about 2,000 ft), Colosseum Cave, and stops to buy green seasoning. Coconut bake with saltfish or choka and cocoa tea included.',
+    area: 'Paramin', region: 'POS & West', url: ISLAND('ParaminParadiseTour'), tags: ['outdoor', 'food'] }),
+  ev({ id: 'midnight-robber-live', title: 'Midnight Robber Live', biz: 'Midnight Robber', date: on(12, 6), time: '7–10pm', price: 100,
+    blurb: 'A live band concert at Alice Yard.', area: 'Alice Yard, Belmont', region: 'POS & West', url: ISLAND('Midnight-Robber-Live'), tags: ['date', 'events', 'budget'], terms: ['Advance tickets only.'] }),
+  ev({ id: 'de-pan-man-parang', title: 'De Pan Man Parang', biz: 'De Pan Man', date: on(12, 11), time: '7pm', price: 250, priceLabel: 'FROM TT$250',
+    blurb: 'Live parang bands and special guests. Food and drinks sold separately.', area: 'The Royal Hotel, San Fernando', region: 'South',
+    url: ISLAND('PanManParang'), tags: ['parang', 'events'], terms: ['TT$250 early bird, TT$300 general.'] }),
+  ev({ id: 'parang-on-d-hills', title: 'Parang on D Hills', biz: 'Parang on D Hills', date: on(12, 12), time: 'From 7pm', price: 0,
+    blurb: 'Ten parang bands up in the Paramin hills. Free to attend.', area: 'John Mader Grounds, Paramin', region: 'POS & West',
+    url: 'https://www.cnc3.co.tt/blue-waters-rescues-parang-on-d-hills/', destShort: 'cnc3.co.tt', action: 'View Offer', tags: ['parang', 'family', 'events'] }),
+  ev({ id: 'gasparee-caves-monos-tour', title: 'Gasparee Caves & Monos Island Tour', biz: 'Gasparee Caves Tour', cat: 'experiences', date: on(12, 12), action: 'Book Now',
+    blurb: 'A guided hike on Gaspar Grande, an underground tour of the caves, and a swim at Biscayne Bay. Boat, guides and entrance fees included.',
+    area: 'Departs Alcan Bay, Chaguaramas', region: 'POS & West', url: ISLAND('Gasparee-Caves-Monos-Island-Tour'), tags: ['outdoor', 'family'] }),
+  ev({ id: 'black-cake-sorrel-3', title: 'Black Cake & Sorrel III', biz: 'Trinidad All Stars', date: on(12, 18), price: 175,
+    blurb: 'A Christmas lime with pan, parang, black cake and sorrel, hosted by Trinidad All Stars at their panyard.',
+    area: 'Trinidad All Stars Panyard, 46-48 Duke Street, Port of Spain', region: 'POS & West', url: ISLAND('blackcakesorrel3'),
+    tags: ['parang', 'date', 'events'], terms: ['TT$175 general, or TT$300 for two.'] }),
+  ev({ id: 'legend-of-santa', title: 'The Legend of Santa', biz: 'D C Shell Theatre', date: on(12, 19), end: on(12, 20),
+    blurb: 'A family Christmas show from the producers of Scrooge, Nutcracker and Snow Queen. On Saturday and Sunday.', area: 'SAPA, San Fernando', region: 'South',
+    url: ISLAND('LegendofSantaSapaSat'), tags: ['family', 'parang', 'events'] }),
+  ev({ id: 'panorama-2027-small-finals', title: 'Panorama 2027: Small Conventional Band Finals', biz: 'Pan Trinbago', date: on(12, 19),
+    blurb: 'The small conventional steelband finals of Panorama 2027.', area: 'Grand Stand, Queen’s Park Savannah', region: 'POS & West',
+    url: ISLAND('smallfinals2027'), tags: ['events'] }),
+  ev({ id: 'believe-carols-candlelight', title: 'Believe: Carols & Classics by Candlelight', biz: 'John Thomas', date: on(12, 20), time: '6pm', price: 250, priceLabel: 'FROM TT$250',
+    blurb: 'Candlelit carols and holiday classics with John Thomas and Friends, several choirs and a live orchestra conducted by Carl-Anthony Hines.',
+    area: 'Church of the Assumption, Maraval', region: 'POS & West', url: ISLAND('Believe2026'), tags: ['parang', 'family', 'date', 'events'],
+    terms: ['TT$250 general admission, TT$300 special reserved.'] }),
+  ev({ id: 'rhythm-brews-christmas', title: 'Rhythm & Brews: Christmas Edition', biz: 'Bacolet Beach Club', date: on(12, 20),
+    blurb: 'Daytime music, coffee and cocktails by the beach. DJs include Chucky Rayban and Travis World.', area: 'Bacolet Beach Club, Tobago', region: 'Tobago',
+    url: ISLAND('RBChristmas'), tags: ['parang', 'outdoor', 'events'] }),
+  ev({ id: 'monday-madness-parang', title: 'Monday Madness Parang: Cantando Gloria VI', biz: 'Los Alumnos de San Juan', date: on(12, 21), time: '6:30pm–1am',
+    blurb: 'Los Alumnos de San Juan celebrate their 40th anniversary with a night of parang.', area: 'Sound Forge', region: 'Islandwide',
+    url: ISLAND('mondaymadnessparang2026'), tags: ['parang', 'events'] }),
+  ev({ id: 'boxing-day-parang-trincity', title: 'Boxing Day Parang', biz: 'Trincity Parang', date: on(12, 26), time: '7pm–2am', price: 80,
+    blurb: 'Rhythm section, live parang bands and top DJs on the Trincity grounds.', area: 'Montague Recreational Grounds, Trincity', region: 'East',
+    url: ISLAND('TrincityParang2'), image: '/events/trincity-parang.webp', tags: ['parang', 'events'], terms: ['TT$80 in advance, TT$100 at the door.'] }),
+  ev({ id: 'soca-and-sorrel', title: 'Soca & Sorrel', biz: 'Paparazzi Carnival', date: on(12, 26), time: '5pm',
+    blurb: 'A Boxing Day carnival-style party with Paparazzi Carnival, Secret J’ouvert, Team Xcite and Dynasty Events.', area: 'Calabash Garden', region: 'Islandwide',
+    url: ISLAND('socaandsorrel'), image: '/events/soca-sorrel.webp', tags: ['events'] }),
+  ev({ id: 'jamboree-oyn-met-gala', title: 'Jamboree OYN: Met Gala', biz: 'Jamboree', date: on(12, 31), time: '9pm–4am',
+    blurb: 'Old Year’s Night at the Hilton poolside, with premium drinks and cocktail bites included.', area: 'Hilton Trinidad, poolside', region: 'POS & West',
+    url: ISLAND('MetGala2027'), image: '/events/jamboree-oyn.webp', tags: ['nye', 'date', 'events'] }),
+  ev({ id: 'red-carpet-nye-gala', title: 'The Red Carpet Event: NYE Gala', biz: 'The Red Carpet Event', date: on(12, 31), time: '10pm',
+    blurb: 'A ballroom gala with live soca, reggae and R&B, plus a Caribbean breakfast and a poolside cocktail. The Platinum package adds a hotel room for two.',
+    area: 'Cascadia Hotel, St. Ann’s', region: 'POS & West', url: ISLAND('theredcarpetevent'), image: '/events/red-carpet.webp',
+    tags: ['nye', 'date', 'food', 'events'], terms: ['Dress code: elegant and chic.', 'Gold All Access and Platinum All Access packages available.'] }),
+  ev({ id: 'soca1st-new-years-day', title: 'Soca1st: New Year’s Day Boat Party', biz: 'Vibe CT105FM & La Flor', date: on(1, 1, 2027), time: 'Boards 3pm · Sails 4pm', price: 250,
+    blurb: 'Start the year on the water. Coolers allowed, but no glass.', area: 'New Year’s Day boat cruise', region: 'Islandwide',
+    url: ISLAND('SocaFirst2027'), image: '/events/soca1st.webp', tags: ['nye', 'outdoor', 'events'],
+    terms: ['TT$250. Also on sale at all Cache outlets.'] }),
+];
+
+/** Every live deal and event. They drop off automatically the day after they end. */
+export const DEALS: Deal[] = [...DOMINOS_DEALS, ...MARIOS_DEALS, ...KNJ_DEALS, ...SACHA_DEALS, ...NEW_DEALS, ...EVENTS].filter((d) => d.daysLeft >= 0);
 
 // ---------- Business directory ----------
 
@@ -538,9 +648,12 @@ export const BUSINESSES: Business[] = [
   },
 ];
 
-export type CollKey = 'weekend' | 'free' | 'date' | 'family' | 'food' | 'outdoor' | 'events' | 'budget';
+export type CollKey = 'all' | 'weekend' | 'parang' | 'nye' | 'free' | 'date' | 'family' | 'food' | 'outdoor' | 'events' | 'budget';
 export const COLLS: { k: CollKey; label: string; color: string; intro: string }[] = [
+  { k: 'all', label: 'What’s On', color: SUN, intro: 'Every event and day out coming up, in date order.' },
   { k: 'weekend', label: 'This Weekend', color: TOMATO, intro: `${weekendLabel}. The best of what’s on this weekend.` },
+  { k: 'parang', label: 'Parang & Christmas', color: TOMATO, intro: 'Parang nights, carols, pop-ups and Christmas shows.' },
+  { k: 'nye', label: 'Old Year’s & New Year', color: LILAC, intro: 'Where to ring in 2027.' },
   { k: 'free', label: 'Free Things to Do', color: LIME, intro: 'Good days out that cost nothing.' },
   { k: 'date', label: 'Date Ideas', color: PINK, intro: 'Easy plans for two.' },
   { k: 'family', label: 'Family Activities', color: SUN, intro: 'Plans that work for every age in the car.' },
@@ -550,8 +663,17 @@ export const COLLS: { k: CollKey; label: string; color: string; intro: string }[
   { k: 'budget', label: 'Under TT$100', color: LIME, intro: 'Big plans, small spend.' },
 ];
 
+const isThing = (d: Deal) => !!d.eventDate;
+/** Is this event on the coming Friday to Sunday? */
+const thisWeekend = (d: Deal) => !!d.eventDate && +d.eventDate <= +WEEKEND.sun && +(d.eventEnd ?? d.eventDate) >= +WEEKEND.fri;
 export const inColl = (k: CollKey, all: Deal[] = DEALS) =>
-  all.filter((d) => d.tags.includes(k) || (k === 'free' && d.price === 0)).sort((a, b) => b.hot - a.hot);
+  all
+    .filter((d) =>
+      k === 'all' ? isThing(d)
+      : k === 'weekend' ? (isThing(d) ? thisWeekend(d) : d.tags.includes('weekend'))
+      : d.tags.includes(k) || (k === 'free' && d.price === 0))
+    // Events by date (soonest first), everything else by popularity.
+    .sort((a, b) => (a.eventDate && b.eventDate ? +a.eventDate - +b.eventDate : a.eventDate ? -1 : b.eventDate ? 1 : b.hot - a.hot));
 
 /** Collections and categories that currently have at least one deal; empty ones are hidden. */
 export const ACTIVE_COLLS = COLLS.filter((c) => inColl(c.k).length > 0);

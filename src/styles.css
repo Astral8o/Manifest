@@ -101,6 +101,15 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 .deal-card:hover { transform: translate(-2px, -3px) rotate(-0.5deg); box-shadow: 6px 7px 0 var(--ink); }
 .deal-card:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.date-tile {
+  position: relative; width: 100%; overflow: hidden; border-bottom: 2px solid var(--ink); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px; color: var(--ink); text-align: center; padding: 8px;
+  background-image: repeating-linear-gradient(135deg, rgba(20,18,16,.06) 0 2px, transparent 2px 12px);
+}
+.date-tile-dow { font-weight: 800; font-size: clamp(12px, 3cqw, 15px); letter-spacing: .1em; text-transform: uppercase; }
+.date-tile-day { font-family: var(--display); font-size: clamp(56px, 14vw, 110px); line-height: .85; }
+.date-tile-mon { font-family: var(--display); font-size: clamp(20px, 4vw, 32px); line-height: 1; text-transform: uppercase; letter-spacing: .04em; }
+.date-tile-where { font-size: 12px; font-weight: 700; margin-top: 8px; background: var(--cream); border: 2px solid var(--ink); border-radius: 999px; padding: 3px 10px; max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .deal-media { position: relative; width: 100%; overflow: hidden; border-bottom: 2px solid var(--ink); }
 .deal-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: transform .3s ease; }
 .deal-media img.deal-media-fill { object-fit: cover; filter: blur(18px) saturate(1.2); transform: scale(1.25); opacity: .75; }
@@ -216,3 +225,4 @@ select.field { padding: 0 12px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+.clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

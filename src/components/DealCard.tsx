@@ -18,7 +18,24 @@ export function useDealActions(d: Deal) {
 }
 
 /** Big product photo, or a striped placeholder with a note when there's no photo yet. */
-export function DealImage({ d, ratio = '1 / 1', eager = false, rounded = 0 }: { d: Deal; ratio?: string; eager?: boolean; rounded?: number }) {
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/** For events without a poster: a bold calendar tile in the category colour. */
+function DateTile({ d, ratio, rounded, compact }: { d: Deal; ratio: string; rounded: number; compact?: boolean }) {
+  const t = d.eventDate!;
+  return (
+    <div className="date-tile" style={{ aspectRatio: ratio, background: d.color, borderRadius: rounded, height: compact || ratio === 'auto' ? '100%' : undefined, borderBottom: ratio === 'auto' ? 'none' : undefined }}>
+      {!compact && <span className="date-tile-dow">{DAYS[t.getDay()]}</span>}
+      <span className="date-tile-day" style={{ fontSize: compact ? 24 : undefined }}>{t.getDate()}</span>
+      <span className="date-tile-mon" style={{ fontSize: compact ? 11 : undefined }}>{MONTHS[t.getMonth()]}</span>
+      {!compact && <span className="date-tile-where">{d.area}</span>}
+    </div>
+  );
+}
+
+export function DealImage({ d, ratio = '1 / 1', eager = false, rounded = 0, compact = false }: { d: Deal; ratio?: string; eager?: boolean; rounded?: number; compact?: boolean }) {
+  if (!d.image && d.eventDate) return <DateTile d={d} ratio={ratio} rounded={rounded} compact={compact} />;
   return (
     <div className={d.image ? 'deal-media' : 'deal-media stripes'} style={{ aspectRatio: ratio, backgroundColor: d.image ? 'var(--ink)' : d.color, borderRadius: rounded }}>
       {d.image ? (

@@ -1,10 +1,14 @@
 import { useState } from 'react';
-import { DealCard, FeatureCard } from '../components/DealCard';
+import { DealCard, DealImage, FeatureCard } from '../components/DealCard';
 import { SearchIcon } from '../components/Chrome';
 import {
-  ACTIVE_CATS, ACTIVE_COLLS, BUSINESSES, CATS, CREAM, DEALS, INK, LILAC, SUN, TOMATO,
+  ACTIVE_CATS as ALL_CATS, ACTIVE_COLLS, BUSINESSES, CATS, CREAM, DEALS as EVERYTHING, INK, LILAC, SUN, TOMATO,
   filterDeals, inColl, todayLabel, DEFAULT_FILTERS, type Deal, type Filters,
 } from '../data';
+
+// The home page is for deals. Events live on Things to Do (teaser below).
+const DEALS = EVERYTHING.filter((d) => !d.eventDate);
+const ACTIVE_CATS = ALL_CATS.filter((k) => DEALS.some((d) => d.cat === k));
 import { useStore } from '../store';
 
 const count = (p: Partial<Filters>) => filterDeals(DEALS, { ...DEFAULT_FILTERS, ...p }).length;
@@ -159,12 +163,13 @@ function AllDeals() {
 function ThingsTeaser() {
   const { go, openDeal } = useStore();
   if (!ACTIVE_COLLS.length) return null;
-  const picks = inColl('weekend').slice(0, 3);
+  const weekend = inColl('weekend');
+  const picks = (weekend.length ? weekend : inColl('all')).slice(0, 3);
   return (
     <section style={{ marginTop: 40, background: LILAC, borderTop: `2px solid ${INK}`, borderBottom: `2px solid ${INK}` }}>
       <div className="wrap" style={{ paddingTop: 32, paddingBottom: 32, display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <span className="eyebrow">Things to Do · fresh every Thursday</span>
-        <h2 className="display" style={{ fontSize: 'clamp(36px,6vw,64px)', lineHeight: 0.9 }}>Weekend plans, sorted.</h2>
+        <span className="eyebrow">Things to Do</span>
+        <h2 className="display" style={{ fontSize: 'clamp(36px,6vw,64px)', lineHeight: 0.9 }}>{weekend.length ? 'Weekend plans, sorted.' : 'Coming up'}</h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {ACTIVE_COLLS.slice(0, 5).map((c) => (
             <button key={c.k} type="button" className="qchip" onClick={() => go('things', { coll: c.k })}>{c.label}</button>
@@ -174,10 +179,11 @@ function ThingsTeaser() {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {picks.map((t) => (
               <button key={t.id} type="button" onClick={() => openDeal(t.id)} style={{ display: 'flex', gap: 10, alignItems: 'center', background: CREAM, border: `2px solid ${INK}`, borderRadius: 16, padding: 8, cursor: 'pointer', textAlign: 'left', flex: '1 1 260px' }}>
-                <span style={{ width: 56, height: 56, borderRadius: 10, overflow: 'hidden', flex: 'none', background: INK, border: `2px solid ${INK}` }}>
-                  {t.image && <img src={t.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                <span style={{ width: 56, height: 56, borderRadius: 10, overflow: 'hidden', flex: 'none', border: `2px solid ${INK}` }}>
+                  <DealImage d={t} compact />
                 </span>
                 <span style={{ minWidth: 0 }}>
+                  <span className="mono" style={{ display: 'block', fontSize: 11, color: 'var(--muted-2)' }}>{t.endsLabel}</span>
                   <span style={{ display: 'block', fontWeight: 700, fontSize: 15 }}>{t.title}</span>
                   <span style={{ fontFamily: 'var(--display)', fontSize: 18 }}>{t.priceLabel}</span>
                 </span>
