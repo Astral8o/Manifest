@@ -77,7 +77,7 @@ export function Browse() {
           </div>
           <form role="search" onSubmit={(e) => { e.preventDefault(); searchRef.current?.blur(); }} style={{ display: 'flex', alignItems: 'center', gap: 10, background: CREAM, border: `2px solid ${INK}`, borderRadius: 999, padding: '4px 6px 4px 16px', boxShadow: `3px 3px 0 ${INK}`, maxWidth: 640 }}>
             <SearchIcon />
-            <input ref={searchRef} type="search" value={f.q} onChange={(e) => setFilters({ q: e.target.value })} placeholder="What yuh looking for?" aria-label="Search deals" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: 16, minHeight: 42, outline: 'none' }} />
+            <input ref={searchRef} type="search" value={f.q} onChange={(e) => setFilters({ q: e.target.value })} placeholder="Search deals, stores or products" aria-label="Search deals" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: 16, minHeight: 42, outline: 'none' }} />
             {f.q && <button type="button" className="pill btn-dark" onClick={() => setFilters({ q: '' })} style={{ padding: '0 14px', minHeight: 38, fontWeight: 700, border: 'none' }}>Clear</button>}
           </form>
           {catOpts.length > 0 && (

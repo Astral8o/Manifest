@@ -546,7 +546,7 @@ export const COLLS: { k: CollKey; label: string; color: string; intro: string }[
   { k: 'family', label: 'Family Activities', color: SUN, intro: 'Plans that work for every age in the car.' },
   { k: 'food', label: 'Food & Dining', color: ORANGE, intro: 'Where to eat this week, and what to order.' },
   { k: 'outdoor', label: 'Outdoor', color: SKY, intro: 'Beaches, trails and fresh air on both islands.' },
-  { k: 'events', label: 'Events & Entertainment', color: LILAC, intro: 'Shows, limes and live music.' },
+  { k: 'events', label: 'Events & Entertainment', color: LILAC, intro: 'Shows, nights out and live music.' },
   { k: 'budget', label: 'Under TT$100', color: LIME, intro: 'Big plans, small spend.' },
 ];
 
