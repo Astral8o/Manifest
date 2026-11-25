@@ -19,20 +19,28 @@ eventorytt.com
 Got a deal? Tag @eventory_tt. Free to list.
 #SmallBusinessTT #TrinidadBusiness #868
 
-## Deal and event carousels
+## Deal and event carousels (one category each)
 
-**04 · This weekend** (post Thu 26 or Fri 27 Nov)
-This weekend in T&T 🎄 Save it. Details in bio.
+**04 · Events: This weekend** (post Thu 26 or Fri 27 Nov)
+This weekend in T&T 🎄 Save it.
 #ThingsToDoTrinidad #Parang #868
 
-**05 · Black Friday** (post Thu 26 or Fri 27 Nov)
-Biggest Black Friday savings right now. Up to 45% off. 👇
-#BlackFridayTT #TrinidadDeals #868
+**05 · Shopping: Courts, up to 45% off** (post Thu 26 or Fri 27 Nov)
+Black Friday at Courts. Up to 45% off. 👇
+#BlackFridayTT #Courts #868
 
-**06 · Parang season** (post week of 30 Nov)
-Parang season is here 🎸 Save this for December.
+**06 · Food: under TT$100**
+Lunch sorted. Everything under TT$100. 🍕
+#FoodTT #TrinidadFood #868
+
+**07 · Beauty: Black Friday beauty**
+Black Friday beauty. Up to 25% off. 💄
+#BeautyTT #SachaCosmetics #868
+
+**08 · Events: Parang season** (post week of 30 Nov)
+Parang season 🎸 Save this for December.
 #Parang #TrinidadChristmas #868
 
-**07 · Old Year's** (post mid-December)
+**09 · Events: Old Year's** (post mid-December)
 Where to ring in 2027 ✨ Tag your crew.
 #OldYearsNight #TrinidadEvents #868
