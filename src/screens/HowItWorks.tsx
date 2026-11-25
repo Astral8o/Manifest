@@ -5,7 +5,8 @@ import { setNextPlan, type Plan } from './Submit';
 import { track } from '../analytics';
 
 /** Public handles and numbers businesses can reach us on. */
-export const IG_HANDLE = '@eventorytt';
+export const IG_HANDLE = '@eventory_tt';
+export const IG_URL = 'https://www.instagram.com/eventory_tt/';
 const WHATSAPP = `https://wa.me/18687177720?text=${encodeURIComponent('Hi EventoryTT, I’d like to list a deal.')}`;
 
 const WAYS = [
