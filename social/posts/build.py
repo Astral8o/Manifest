@@ -83,18 +83,6 @@ def page(name, slides):
     os.makedirs(name, exist_ok=True)
     open(f'{name}/slides.html', 'w').write(f'<!doctype html><html><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@500;700;800;900&display=swap" rel="stylesheet"><style>{CSS}</style></head><body>{"".join(slides)}</body></html>')
 
-# ---------- 1. Welcome ----------
-page('01-welcome', [
-    cover(CREAM, 'New in T&T', ['Today’s best', 'deals in T&T'], 'Sales, deals and things to do across Trinidad & Tobago. All in one place.',
-          ['/deals/courts/mabe-stove.webp', '/events/believe.webp', '/deals/dominos/DOM-001.webp', '/deals/sacha/black-friday.webp', '/events/house-parang.webp', '/deals/marios/MAR-001.webp']),
-    f'''<div class="s" style="background:{SUN}"><div style="position:absolute;left:70px;right:70px;top:90px">
-      <h2 class="d" style="font-size:120px">What you’ll<br>find</h2>
-      <div style="margin-top:50px;display:flex;flex-direction:column;gap:26px">
-      {''.join(f'<div class="card" style="padding:26px 34px;display:flex;align-items:center;gap:26px;background:{c};box-shadow:8px 8px 0 {INK};border-radius:30px"><span style="font-size:60px">{ic}</span><span><b style="font-size:42px;display:block">{t}</b><span style="font-size:30px;font-weight:600">{s}</span></span></div>' for ic, t, s, c in [('🍕','Food & drink','Pizza, burgers, combos and family meals',PAPER),('🛋️','Shopping','Appliances, furniture, phones and more',PAPER),('💄','Beauty','Makeup, skincare, hair and wigs',PAPER),('🎶','Things to do','Parang, concerts, parties, tours',LILAC)])}
-      </div></div><div class="foot" style="justify-content:flex-end">{dots(1,3)}</div></div>''',
-    end(LIME, 'How it<br>works', ['Find a deal or event', 'Tap Get Deal or Get Tickets', 'Buy straight from the business', 'Save your favourites with ♡'], 'Link in bio · eventorytt.com'),
-])
-
 # ---------- 2. This weekend (27–29 Nov) ----------
 WK = [
   dict(img='/events/ttma-popup.webp', dow='SAT–SUN', day='28', mon='Nov', time='SAT 28 – SUN 29 NOV · 10AM–6PM', title='TTMA Christmas Pop-Up & Parang', where='Centre of Excellence, Macoya', price='Pop-up shop'),
@@ -102,7 +90,7 @@ WK = [
   dict(img='/events/house-parang.webp', dow='SUNDAY', day='29', mon='Nov', time='SUN 29 NOV · 4–11PM', title='House Parang', where='Anchorage Beach Club, Chaguaramas', price='Coolers welcome'),
   dict(img='/events/taste-of-moruga.webp', dow='SUNDAY', day='29', mon='Nov', time='SUN 29 NOV · DAY TRIP', title='A Taste of Moruga Tour', where='Departs Curepe', price='Book now'),
 ]
-page('02-this-weekend', [cover(LILAC, 'Fri 27 – Sun 29 Nov', ['This weekend', 'in T&T'], 'Parang, a Christmas pop-up and a day trip down south.', [w['img'] for w in WK] + ['/events/parang-pan-sunset.webp', '/events/de-pan-man.webp'])]
+page('04-this-weekend', [cover(LILAC, 'Fri 27 – Sun 29 Nov', ['This weekend', 'in T&T'], 'Parang, a Christmas pop-up and a day trip down south.', [w['img'] for w in WK] + ['/events/parang-pan-sunset.webp', '/events/de-pan-man.webp'])]
      + [event(i+1, len(WK)+2, w, [PAPER, SUN, PINK, LIME][i]) for i, w in enumerate(WK)]
      + [end(LILAC, 'Full events<br>calendar', ['Every event, in date order', 'Tap a day to see what’s on', 'Add events to your calendar'], 'eventorytt.com/things')])
 
@@ -117,7 +105,7 @@ PAR = [
   dict(img='/events/trincity-parang.webp', dow='SATURDAY', day='26', mon='Dec', time='SAT 26 DEC · 7PM–2AM', title='Boxing Day Parang', where='Montague Grounds, Trincity', price='TT$80'),
 ]
 cols = [SUN, PINK, LIME, PAPER, SKY, SUN, PINK]
-page('03-parang-season', [cover(TOMATO, 'December 2026', ['Parang season', 'is here'], '7 parang nights and Christmas shows worth your December.', [p['img'] for p in PAR[:6]])]
+page('06-parang-season', [cover(TOMATO, 'December 2026', ['Parang season', 'is here'], '7 parang nights and Christmas shows worth your December.', [p['img'] for p in PAR[:6]])]
      + [event(i+1, len(PAR)+2, p, cols[i]) for i, p in enumerate(PAR)]
      + [end(TOMATO, 'Never miss<br>a parang', ['All dates on our calendar', 'Free events marked FREE', 'Add to your calendar in one tap'], 'eventorytt.com/things')])
 
@@ -127,7 +115,7 @@ NYE = [
   dict(img='/events/jamboree-oyn.webp', dow='THURSDAY', day='31', mon='Dec', time='THU 31 DEC · 9PM–4AM', title='Jamboree OYN: Met Gala', where='Hilton Trinidad, poolside', price='Drinks included'),
   dict(img='/events/soca1st.webp', dow='FRIDAY', day='1', mon='Jan', time='FRI 1 JAN · BOARDS 3PM', title='Soca1st Boat Party', where='New Year’s Day cruise', price='TT$250'),
 ]
-page('04-old-years', [cover('#1E1A16', 'Old Year’s Night', ['Where to ring', 'in 2027'], 'Two galas and a New Year’s Day boat ride.', [n['img'] for n in NYE], fg=CREAM)]
+page('07-old-years', [cover('#1E1A16', 'Old Year’s Night', ['Where to ring', 'in 2027'], 'Two galas and a New Year’s Day boat ride.', [n['img'] for n in NYE], fg=CREAM)]
      + [event(i+1, len(NYE)+2, n, [SUN, PINK, SKY][i]) for i, n in enumerate(NYE)]
      + [end(SUN, 'Plan your<br>holidays', ['Every Christmas and New Year event', 'Prices, times and ticket links', 'Free to use'], 'eventorytt.com/things')])
 
@@ -143,57 +131,31 @@ page('05-black-friday', [cover(SUN, 'Black Friday', ['Biggest', 'savings', 'righ
      + [deal(i+1, len(BF)+2, b, [PAPER, PINK, LIME, PAPER, SKY][i]) for i, b in enumerate(BF)]
      + [end(SUN, 'More Black<br>Friday deals', ['Courts, Sacha, Beauté by KNJ and more', 'Sorted by biggest savings', 'Tap through to buy direct'], 'Link in bio')])
 
-# ---------- 6. For businesses ----------
-HERE = os.path.abspath('06-list-free')
-shot = lambda n: 'file://' + os.path.join(HERE, n)
-def phone(src, w=430, rot=0, extra=''):
-    h = int(w * 2532 / 1170)
-    return f'<div style="width:{w+28}px;height:{h+28}px;background:{INK};border-radius:64px;padding:14px;box-shadow:16px 16px 0 rgba(20,18,16,.25);transform:rotate({rot}deg);{extra}"><img src="{shot(src)}" style="width:{w}px;height:{h}px;border-radius:52px;display:block;object-fit:cover;object-position:top"></div>'
-def callout(text, color=PAPER):
-    return f'<div style="background:{color};border:4px solid {INK};border-radius:22px;padding:16px 22px;font-size:31px;font-weight:800;line-height:1.2;box-shadow:6px 6px 0 {INK}">{text}</div>'
-N = 5
-page('06-list-free', [
-  f"""<div class="s stripes" style="background-color:{TOMATO}">
-    <div style="position:absolute;left:70px;top:70px;width:540px">{logo()}
-      <div class="chip" style="margin-top:44px">For businesses</div>
-      <h1 class="d" style="font-size:112px;margin-top:34px">People are looking for a deal right now</h1>
-      <p style="font-size:40px;font-weight:800;margin-top:34px;line-height:1.25">Make sure they find yours.</p>
-      <p style="font-size:30px;font-weight:800;margin-top:30px">Swipe →</p>
-    </div>
-    <div style="position:absolute;right:30px;top:300px">{phone('phone-browse.png', 380, 6)}</div>
-    <div class="foot" style="justify-content:flex-end">{dots(0,N)}</div></div>""",
-  f"""<div class="s" style="background:{SUN}">
-    <div style="position:absolute;left:70px;right:70px;top:70px"><h2 class="d" style="font-size:104px">Your deal gets<br>its own page</h2></div>
-    <div style="position:absolute;left:70px;top:330px">{phone('phone-deal.png', 400, -3)}</div>
-    <div style="position:absolute;left:560px;right:60px;top:360px;display:flex;flex-direction:column;gap:30px">
-      {callout('📸 A big photo of your offer')}{callout('💲 Your price, front and centre')}{callout('👉 One tap to your WhatsApp, website or store')}{callout('🔗 A link you can share anywhere')}
-    </div>
-    <div class="foot" style="justify-content:flex-end">{dots(1,N)}</div></div>""",
-  f"""<div class="s" style="background:{LILAC}">
-    <div style="position:absolute;left:70px;right:70px;top:70px"><h2 class="d" style="font-size:104px">Seen in all<br>the right places</h2></div>
-    <div style="position:absolute;left:70px;right:520px;top:340px;display:flex;flex-direction:column;gap:26px">
-      {callout('🏠 Home page and its category')}{callout('🔎 Search, when people look for it')}{callout('📅 The events calendar, on the right date')}{callout('📒 The Business Directory')}{callout('⭐ Featured deals: our Instagram and WhatsApp Friday Five', SUN)}
-    </div>
-    <div style="position:absolute;right:50px;top:330px">{phone('phone-things.png', 400, 3)}</div>
-    <div class="foot" style="justify-content:flex-end">{dots(2,N)}</div></div>""",
-  f"""<div class="s stripes" style="background-color:{LIME}">
-    <div style="position:absolute;left:70px;right:70px;top:90px">
-      <h2 class="d" style="font-size:124px">Customers come<br>straight to you</h2>
-      <div style="margin-top:56px;display:flex;flex-direction:column;gap:26px">
-        {''.join(f'<div class="card" style="padding:28px 34px;display:flex;gap:24px;align-items:center;box-shadow:8px 8px 0 {INK};border-radius:30px"><span class="d" style="font-size:64px;width:64px">{n}</span><span><b style="font-size:42px;display:block;line-height:1.15">{t}</b><span style="font-size:29px;font-weight:600">{d}</span></span></div>' for n,t,d in [('1','No commission','You keep 100% of every sale.'),('2','No middleman','They buy from you, on your terms.'),('3','No old offers','Your deal comes down by itself when it ends.')])}
-      </div></div>
-    <div class="foot" style="justify-content:flex-end">{dots(3,N)}</div></div>""",
-  f"""<div class="s stripes" style="background-color:{TOMATO}">
-    <div style="position:absolute;left:70px;right:70px;top:70px">{logo()}
-      <h1 class="d" style="font-size:150px;margin-top:50px">Free to list</h1>
-      <div style="margin-top:30px;display:flex;flex-direction:column;gap:14px;font-size:44px;font-weight:800">
-        <div>✓ Your own deal page</div><div>✓ In search and on the calendar</div><div>✓ Customers come straight to you</div></div>
-      <div class="card" style="margin-top:48px;padding:30px 36px;box-shadow:10px 10px 0 {INK}">
-        <div style="font-size:28px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.7">Send it any way you like</div>
-        <div style="font-size:38px;font-weight:700;margin-top:14px;line-height:1.5">→ Tag @eventory_tt in your post<br>→ WhatsApp 1-868-717-7720<br>→ eventorytt.com/how-it-works</div>
-      </div>
-      <p style="font-size:32px;font-weight:800;margin-top:36px">Want it on our home page? Featured from TT$100.</p>
-    </div>
-    <div class="foot" style="justify-content:flex-end">{dots(4,N)}</div></div>""",
-])
+# ---------- Intro posts: one image each, one line per point ----------
+def single(bg, inner, fg=INK):
+    return f'<div class="s stripes" style="background-color:{bg};color:{fg}">{inner}</div>'
+
+page('01-who-we-are', [single(TOMATO, f"""
+  <div style="position:absolute;left:70px;right:70px;top:80px;transform:scale(1.5);transform-origin:left top">{logo()}</div>
+  <h1 class="d" style="position:absolute;left:70px;right:70px;top:250px;font-size:170px">Every deal<br>in T&amp;T.<br>One place.</h1>
+  <p style="position:absolute;left:70px;right:70px;top:820px;font-size:42px;font-weight:800">Food, shopping, beauty and things to do.</p>
+  <div style="position:absolute;left:-20px;right:-20px;bottom:40px;display:flex;gap:28px;justify-content:center;transform:rotate(-5deg)">
+    {''.join(f'<div class="card" style="width:260px;height:260px;flex:none;border-radius:28px;box-shadow:8px 8px 0 {INK}"><img src="{img(p)}" style="width:100%;height:100%;object-fit:cover"></div>' for p in ['/deals/courts/mabe-stove.webp','/deals/marios/MAR-001.webp','/events/believe.webp','/deals/dominos/DOM-001.webp'])}
+  </div>""")])
+
+page('02-how-it-works', [single(SUN, f"""
+  <div style="position:absolute;left:70px;top:70px">{logo()}</div>
+  <h1 class="d" style="position:absolute;left:70px;top:210px;font-size:150px">How it works</h1>
+  <div style="position:absolute;left:70px;right:70px;top:450px;display:flex;flex-direction:column;gap:34px">
+    {''.join(f'<div class="card" style="display:flex;align-items:center;gap:34px;padding:30px 40px;border-radius:36px;background:{c}"><span class="d" style="font-size:120px;width:80px">{n}</span><span style="font-size:58px;font-weight:900">{t}</span></div>' for n,t,c in [('1','Find a deal',PAPER),('2','Tap Get Deal',PAPER),('3','Buy from the store',PAPER)])}
+  </div>
+  <div class="chip" style="position:absolute;left:70px;bottom:70px;font-size:40px;background:{INK};color:{CREAM};padding:16px 34px">eventorytt.com</div>""")])
+
+page('03-list-your-deal', [single(LIME, f"""
+  <div style="position:absolute;left:70px;top:70px">{logo()}</div>
+  <h1 class="d" style="position:absolute;left:70px;right:70px;top:230px;font-size:190px">Got a deal?<br>Tag us.</h1>
+  <div class="card" style="position:absolute;left:70px;top:720px;padding:26px 46px;border-radius:999px;background:{INK};color:{CREAM};font-family:Anton;font-size:110px;box-shadow:12px 12px 0 {TOMATO}">@eventory_tt</div>
+  <p style="position:absolute;left:70px;right:70px;top:960px;font-size:56px;font-weight:900">Free to list. We’ll put it up.</p>
+  <p style="position:absolute;left:70px;right:70px;bottom:80px;font-size:36px;font-weight:800">Or WhatsApp 1-868-717-7720</p>""")])
+
 print('built')
