@@ -1,105 +1,38 @@
-# @eventory_tt: first posts
+# @eventory_tt: posts and captions
 
-Post them in this order, one or two a day. Each folder has the images numbered in carousel order (01 is the cover).
-To rebuild after changing anything: `python3 build.py && NODE_PATH=$(npm root -g) node render.cjs`
+Keep captions short. One line, then the link.
+Rebuild images: `python3 build.py && NODE_PATH=$(npm root -g) node render.cjs`
 
----
+## Intro posts (single images). Post these first, in order, then pin all 3.
 
-## 1. Welcome (01-welcome, 3 slides). Post first, then pin it.
+**01 · Who we are**
+Every deal in T&T. One place. 🇹🇹
+Link in bio.
+#Trinidad #Tobago #TrinidadDeals #868
 
-Today’s best deals in Trinidad & Tobago, all in one place.
+**02 · How it works**
+Find a deal. Tap Get Deal. Buy from the store.
+eventorytt.com
+#TrinidadDeals #DealsTT #868
 
-Food, shopping, beauty, and things to do, from Black Friday savings to parang nights. Find a deal, tap through, and buy straight from the business.
+**03 · List your deal**
+Got a deal? Tag @eventory_tt. Free to list.
+#SmallBusinessTT #TrinidadBusiness #868
 
-New deals and events every week. Follow so you don’t miss them.
+## Deal and event carousels
 
-🔗 eventorytt.com (link in bio)
+**04 · This weekend** (post Thu 26 or Fri 27 Nov)
+This weekend in T&T 🎄 Save it. Details in bio.
+#ThingsToDoTrinidad #Parang #868
 
-#Trinidad #Tobago #TrinidadAndTobago #TT #TrinidadDeals #DealsTT #ThingsToDoTrinidad #868
+**05 · Black Friday** (post Thu 26 or Fri 27 Nov)
+Biggest Black Friday savings right now. Up to 45% off. 👇
+#BlackFridayTT #TrinidadDeals #868
 
----
+**06 · Parang season** (post week of 30 Nov)
+Parang season is here 🎸 Save this for December.
+#Parang #TrinidadChristmas #868
 
-## 2. For businesses (06-list-free, 5 slides). Post second, then pin it.
-
-People in T&T are looking for a deal right now. Make sure they find yours.
-
-List your sale, special or event on EventoryTT and you get:
-📸 Your own deal page, with your photo and price
-👉 One tap from customers to your WhatsApp, website or store
-🔎 A spot in search, categories, the events calendar and the Business Directory
-💸 No commission. Customers buy straight from you
-
-It’s free to list.
-
-Tag @eventory_tt in your post, WhatsApp 1-868-717-7720, or go to eventorytt.com/how-it-works
-
-Want it on our home page, Instagram and the WhatsApp Friday Five? Featured from TT$100.
-
-#SmallBusinessTT #TrinidadBusiness #SupportLocalTT #Trinidad #Tobago #868
-
----
-
-## 3. This weekend (02-this-weekend, 6 slides). Post Thursday 26 or Friday 27 Nov.
-
-This weekend in T&T 🎄
-
-🛍️ TTMA Christmas Pop-Up & Parang · Sat 28 – Sun 29 Nov · Macoya
-🎶 Parang Under the Lanterns · Sat 28 Nov · Santa Cruz · TT$350, food included
-🧊 House Parang · Sun 29 Nov · Chaguaramas · coolers welcome
-🍫 A Taste of Moruga Tour · Sun 29 Nov · departs Curepe
-
-Tickets, times and links on our events calendar. Link in bio.
-
-Save this for the weekend and send it to whoever you’re going with.
-
-#ThingsToDoTrinidad #TrinidadEvents #Parang #ParangSeason #TrinidadWeekend #868
-
----
-
-## 4. Black Friday (05-black-friday, 7 slides). Post Thursday 26 or Friday 27 Nov.
-
-The biggest Black Friday savings in T&T right now 👇
-
-🛏️ Serta Pillow Top Divan · TT$2,199 (was TT$3,999) · Courts
-🍿 Mastertech Microwave · TT$499 (was TT$799) · Courts
-🔊 RadioShack 15" Speaker · TT$1,599 (was TT$2,199) · Courts
-💄 Sacha Cream-to-Powder Foundation · TT$75 (was TT$100)
-🔥 Mabe 6 Burner Stove · TT$2,499 (was TT$3,299) · Courts
-
-More from Courts, Sacha and Beauté by KNJ on eventorytt.com. Prices are set by each store and can change, so check before you buy.
-
-#BlackFridayTT #BlackFridayTrinidad #TrinidadDeals #DealsTT #Courts #SachaCosmetics #868
-
----
-
-## 5. Parang season (03-parang-season, 9 slides). Post early in the week of 30 Nov.
-
-Parang season is here 🎸🎄
-
-🚢 Sat 5 Dec · Parang & Pan Under the Sunset · Harbour Master · TT$350
-🎶 Fri 11 Dec · De Pan Man Parang · San Fernando · from TT$250
-⛰️ Sat 12 Dec · Parang on D Hills · Paramin · FREE
-🍰 Fri 18 Dec · Black Cake & Sorrel III · All Stars Panyard, POS · TT$175
-🕯️ Sun 20 Dec · Believe: Carols by Candlelight · Maraval · from TT$250
-🎉 Mon 21 Dec · Monday Madness Parang · Los Alumnos de San Juan, 40th
-🥁 Sat 26 Dec · Boxing Day Parang · Trincity · TT$80
-
-Save this so you have your December sorted. Full calendar, with add-to-calendar, at eventorytt.com/things.
-
-#Parang #ParangSeason #TrinidadChristmas #ThingsToDoTrinidad #TrinidadEvents #868
-
----
-
-## 6. Old Year’s (04-old-years, 5 slides). Post mid-December.
-
-Where to ring in 2027 ✨
-
-🥂 The Red Carpet Event: NYE Gala · Thu 31 Dec · Cascadia Hotel · breakfast included
-🌴 Jamboree OYN: Met Gala · Thu 31 Dec · Hilton poolside · drinks included
-🚤 Soca1st Boat Party · Fri 1 Jan · boards 3pm · TT$250
-
-Tickets and details at eventorytt.com/things.
-
-Tag who you’re spending Old Year’s with.
-
-#OldYearsNight #NYETrinidad #TrinidadEvents #ThingsToDoTrinidad #Soca #868
+**07 · Old Year's** (post mid-December)
+Where to ring in 2027 ✨ Tag your crew.
+#OldYearsNight #TrinidadEvents #868
