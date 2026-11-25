@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { Footer, Header, PassModal, TabBar, Toast } from './components/Chrome';
 import { Browse } from './screens/Browse';
 import { DealPage } from './screens/DealPage';
-import { DesignSystem } from './screens/DesignSystem';
 import { Directory } from './screens/Directory';
 import { Home } from './screens/Home';
 import { Saved } from './screens/Saved';
@@ -34,7 +33,6 @@ export function App() {
         {screen === 'directory' && <Directory />}
         {screen === 'saved' && <Saved />}
         {screen === 'submit' && <Submit />}
-        {screen === 'system' && <DesignSystem />}
       </main>
       {showFooter && <Footer />}
       {showTabBar && <TabBar />}
