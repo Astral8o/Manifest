@@ -82,7 +82,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [filters, setFiltersState] = useState<Filters>(DEFAULT_FILTERS);
   const [saved, setSaved] = useState<string[]>(readSaved);
   const [homeRegion, setHomeRegion] = useState<Exclude<Region, 'Online'>>('POS & West');
-  const [coll, setColl] = useState<CollKey>('weekend');
+  const [coll, setColl] = useState<CollKey>('all');
   const [passId, setPassId] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const [focusSearch, setFocusSearch] = useState(false);

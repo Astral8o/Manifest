@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { DealCard, dealFacts, useDealActions } from '../components/DealCard';
+import { DealCard, DealImage, dealFacts, useDealActions } from '../components/DealCard';
 import { Starburst } from '../components/Starburst';
 import { CREAM, DEALS, KINDS, INK, LIME, PAPER, PINK, SUN, TOMATO, dealUrl, whatsappShareUrl } from '../data';
 import { useStore } from '../store';
@@ -43,7 +43,7 @@ export function DealPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', gap: isMobile ? 20 : 36, marginTop: isMobile ? 12 : 18, alignItems: 'start' }}>
           <div
-            className={deal.image ? undefined : 'stripes-lg'}
+            className={deal.image || deal.eventDate ? undefined : 'stripes-lg'}
             style={isMobile
               ? { position: 'relative', aspectRatio: deal.imageRatio ?? '1 / 1', maxHeight: '72vh', width: 'calc(100% + 40px)', margin: '0 -20px', borderTop: `2px solid ${INK}`, borderBottom: `2px solid ${INK}`, backgroundColor: deal.image ? INK : deal.color, overflow: 'hidden' }
               : { position: 'sticky', top: 84, aspectRatio: deal.imageRatio ?? '1 / 1', maxHeight: 'calc(100vh - 110px)', border: `2px solid ${INK}`, borderRadius: 28, boxShadow: `8px 8px 0 ${INK}`, backgroundColor: deal.image ? INK : deal.color, overflow: 'hidden' }}
@@ -55,13 +55,14 @@ export function DealPage() {
               {deal.endingSoon && <span className="badge-ends" style={{ padding: '4px 12px', fontSize: 16, letterSpacing: 0 }}>{deal.endsShort}</span>}
             </div>
             {deal.pct > 0 && !deal.priceIsPercent && <Starburst size={118} fontSize={30} style={{ position: 'absolute', bottom: 12, right: 12 }}>-{deal.pct}%</Starburst>}
-            {!deal.image && <span className="photo-note" style={{ left: 16, bottom: 16, fontSize: 12, letterSpacing: '.05em', padding: '5px 10px', borderRadius: 8, background: 'rgba(255,246,229,.9)' }}>photo · {deal.img}</span>}
+            {!deal.image && deal.eventDate && <div style={{ position: 'absolute', inset: 0 }}><DealImage d={deal} ratio="auto" eager /></div>}
+            {!deal.image && !deal.eventDate && <span className="photo-note" style={{ left: 16, bottom: 16, fontSize: 12, letterSpacing: '.05em', padding: '5px 10px', borderRadius: 8, background: 'rgba(255,246,229,.9)' }}>photo · {deal.img}</span>}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ background: deal.color, border: `2px solid ${INK}`, borderRadius: 999, padding: '4px 12px', fontWeight: 800, fontSize: 13 }}>{deal.catLabel}</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)' }}>{deal.addedLabel}</span>
+              {!deal.eventDate && <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)' }}>{deal.addedLabel}</span>}
               {showDemo && deal.demo && <span className="demo-tag" style={{ fontSize: 11, border: `1.5px dashed ${INK}`, borderRadius: 999, padding: '3px 10px' }}>Demo offer · fictional</span>}
             </div>
             <div>
@@ -79,7 +80,7 @@ export function DealPage() {
                 {deal.saveLabel && <span style={{ background: PINK, border: `2px solid ${INK}`, borderRadius: 999, padding: '3px 12px', fontWeight: 800, fontSize: 14 }}>{deal.saveLabel}</span>}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, borderTop: `2px solid ${INK}`, paddingTop: 14 }}>
-                {deal.validity && <Meta label="Valid" value={deal.validity} sub={deal.endsLabel} />}
+                {deal.validity && (deal.eventDate ? <Meta label="When" value={deal.validity} /> : <Meta label="Valid" value={deal.validity} sub={deal.endsLabel} />)}
                 <Meta label="Where" value={deal.area} sub={deal.region === 'Islandwide' ? undefined : deal.region} />
                 <Meta label="Get it by" value={dealFacts(deal).slice(-1)[0]} />
               </div>
@@ -94,7 +95,7 @@ export function DealPage() {
               <button type="button" className="pill" onClick={copyLink} style={{ flex: '0 1 auto', minHeight: 48, padding: '0 18px', fontWeight: 800, fontSize: 15 }}>Copy link</button>
             </div>
             <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--muted)' }}>
-              Added {deal.checked}. You buy direct from {deal.biz}, and they set the price and stock, so give it a quick check before you pay.
+              {deal.eventDate ? <>Added {deal.checked}. Tickets are sold by the organiser, who sets the price, time and line-up, so check their page before you go.</> : <>Added {deal.checked}. You buy direct from {deal.biz}, and they set the price and stock, so give it a quick check before you pay.</>}
             </p>
           </div>
         </div>
