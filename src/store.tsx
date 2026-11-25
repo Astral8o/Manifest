@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { DEALS, DEFAULT_FILTERS, type CollKey, type Deal, type Filters, type Region } from './data';
 
-export type Screen = 'home' | 'browse' | 'deal' | 'things' | 'directory' | 'saved' | 'submit' | 'system';
-const SCREENS: Screen[] = ['home', 'browse', 'deal', 'things', 'directory', 'saved', 'submit', 'system'];
+export type Screen = 'home' | 'browse' | 'deal' | 'things' | 'directory' | 'saved' | 'submit';
+const SCREENS: Screen[] = ['home', 'browse', 'deal', 'things', 'directory', 'saved', 'submit'];
 
 interface Route { screen: Screen; dealId: string }
 
