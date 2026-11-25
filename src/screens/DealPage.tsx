@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { DealCard, DealImage, dealFacts, useDealActions } from '../components/DealCard';
 import { Starburst } from '../components/Starburst';
-import { CREAM, DEALS, KINDS, INK, LIME, PAPER, PINK, SUN, TOMATO, dealUrl, whatsappShareUrl } from '../data';
+import { CREAM, DEALS, KINDS, INK, LIME, PAPER, PINK, SUN, TOMATO, dealUrl, googleCalUrl, icsFile, whatsappShareUrl } from '../data';
 import { useStore } from '../store';
 
 const panel: CSSProperties = { border: `2px solid ${INK}`, borderRadius: 22, padding: 22, background: PAPER };
@@ -68,7 +68,7 @@ export function DealPage() {
             <div>
               <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted-2)' }}>{deal.biz}</div>
               <h1 className="display" style={{ margin: '6px 0 0', fontSize: 'clamp(34px,5.5vw,60px)', lineHeight: 0.95, textWrap: 'balance' } as CSSProperties}>{deal.title}</h1>
-              <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.45 }}><strong>What you get:</strong> {deal.blurb}</p>
+              <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.45 }}><strong>{deal.eventDate ? 'What’s on:' : 'What you get:'}</strong> {deal.blurb}</p>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
                 {[deal.kind && KINDS[deal.kind], ...dealFacts(deal)].filter(Boolean).map((t) => <span key={t} className="fact" style={{ fontSize: 13, padding: '3px 10px' }}>{t}</span>)}
               </div>
@@ -94,6 +94,13 @@ export function DealPage() {
               <button type="button" className="pill" aria-pressed={a.isSaved} onClick={a.toggleSave} style={{ flex: '0 1 auto', minHeight: 48, background: a.saveBg, padding: '0 18px', fontWeight: 800, fontSize: 15 }}>{a.heart} {a.saveText}</button>
               <button type="button" className="pill" onClick={copyLink} style={{ flex: '0 1 auto', minHeight: 48, padding: '0 18px', fontWeight: 800, fontSize: 15 }}>Copy link</button>
             </div>
+            {deal.eventDate && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontWeight: 800, fontSize: 14 }}>Add to calendar:</span>
+                <a className="pill" href={googleCalUrl(deal)} target="_blank" rel="noopener noreferrer" style={calBtn}>Google</a>
+                <a className="pill" href={`data:text/calendar;charset=utf-8,${encodeURIComponent(icsFile(deal))}`} download={`${deal.id}.ics`} style={calBtn}>Apple / Outlook</a>
+              </div>
+            )}
             <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--muted)' }}>
               {deal.eventDate ? <>Added {deal.checked}. Tickets are sold by the organiser, who sets the price, time and line-up, so check their page before you go.</> : <>Added {deal.checked}. You buy direct from {deal.biz}, and they set the price and stock, so give it a quick check before you pay.</>}
             </p>
@@ -156,3 +163,5 @@ export function DealPage() {
     </>
   );
 }
+
+const calBtn: CSSProperties = { minHeight: 40, padding: '0 14px', display: 'inline-flex', alignItems: 'center', fontWeight: 700, fontSize: 14, textDecoration: 'none', color: 'var(--ink)' };

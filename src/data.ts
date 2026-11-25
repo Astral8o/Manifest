@@ -67,6 +67,8 @@ export interface Deal {
   /** For events and experiences: the day it happens (and the last day, if it runs longer). */
   eventDate?: Date;
   eventEnd?: Date;
+  /** Free-text time, e.g. '7pm' or 'Boards 3pm · Sails 4pm'. */
+  eventTime?: string;
   /** Short campaign tag taken from the business's own promo, e.g. 'Black Friday Week'. */
   promo?: string;
   /** Overrides the "Delivery or pickup" style label when a business works differently. */
@@ -333,7 +335,7 @@ function makeDeal(o: DealInput): Deal & { live: boolean } {
     claimSteps: o.claimSteps, terms: o.terms, hours: o.hours ?? '', code: o.id, demo: false,
     image: o.image, imageRatio: o.imageRatio, url: o.url, promo: o.promo, getIt: o.getIt,
     priceIsPercent: !hasPrice, live: o.live,
-    eventDate: isEvent ? o.start : undefined, eventEnd: isEvent ? o.end ?? o.start : undefined,
+    eventDate: isEvent ? o.start : undefined, eventEnd: isEvent ? o.end ?? o.start : undefined, eventTime: isEvent ? o.time : undefined,
   };
 }
 
@@ -557,8 +559,8 @@ const EVENTS = [
     blurb: 'Five parang bands at the beach. Bring your own cooler.', area: 'Anchorage Beach Club, Chaguaramas', region: 'POS & West',
     url: ISLAND('Houseparang'), tags: ['parang', 'outdoor', 'events'] }),
   ev({ id: 'parang-pan-under-the-sunset', image: '/events/parang-pan-sunset.webp', title: 'Parang & Pan Under the Sunset', biz: 'QRC PTA', date: on(12, 5), time: 'Boards 3pm · Sails 4pm', price: 350,
-    blurb: 'A fundraiser cruise on the Harbour Master with steelpan and parang. Coolers allowed, welcome drinks included, and giveaways including tickets to Kes the Concert.',
-    area: 'Harbour Master cruise, Port of Spain', region: 'POS & West', url: ISLAND('parangandpanunderthesunset2026'), tags: ['parang', 'outdoor', 'events'], terms: ['TT$350 early bird.'] }),
+    blurb: 'Bring your coolers and sail into Christmas aboard the Harbour Master. Enjoy steelpan, parang, festive vibes and giveaways, including tickets to Fete Royal 2027, Iron Park and Kes the Concert. Celebrate for a cause and support our Royalians. Welcome drinks on entry and special gifts on exit.',
+    area: 'Harbour Master cruise, Port of Spain', region: 'POS & West', url: ISLAND('parangandpanunderthesunset2026'), tags: ['parang', 'outdoor', 'events'], terms: ['TT$350 early bird.', 'Physical tickets also available. WhatsApp 868-778-1260.'] }),
   ev({ id: 'magdalena-tree-lighting', title: 'Christmas Tree Lighting & Craft Market', biz: 'Magdalena Grand', date: on(12, 5),
     blurb: 'The Magdalena Grand lights its Christmas tree, with a craft market. Check the listing for times.', area: 'Magdalena Grand, Tobago', region: 'Tobago',
     url: 'https://tobagobeyond.com/calendar-events-things-to-do-in-tobago', destShort: 'tobagobeyond.com', action: 'View Offer', priceLabel: 'CRAFT MARKET', tags: ['family', 'parang'] }),
@@ -753,3 +755,30 @@ export function filterDeals(all: Deal[], f: Filters, skip?: FilterKey): Deal[] {
 export const dealUrl = (id: string) => `https://eventorytt.com/deal/${id}`;
 export const whatsappShareUrl = (d: Deal) =>
   'https://wa.me/?text=' + encodeURIComponent(`${d.title} at ${d.biz}, ${d.priceLabel}. Found it on EventoryTT: ${dealUrl(d.id)}`);
+
+// ---------- Add to calendar ----------
+
+const ymd = (d: Date) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+const dayAfter = (d: Date) => { const n = new Date(d); n.setDate(d.getDate() + 1); return n; };
+const calDetails = (d: Deal) => [d.eventTime, d.blurb, `Tickets and details: ${d.url}`, `Found on EventoryTT: ${dealUrl(d.id)}`].filter(Boolean).join('\n\n');
+
+/** Google Calendar "add event" link. All-day, since organisers give times as free text. */
+export const googleCalUrl = (d: Deal) => {
+  const p = new URLSearchParams({
+    action: 'TEMPLATE', text: d.title, dates: `${ymd(d.eventDate!)}/${ymd(dayAfter(d.eventEnd ?? d.eventDate!))}`,
+    details: calDetails(d), location: d.area,
+  });
+  return `https://calendar.google.com/calendar/render?${p}`;
+};
+
+/** An .ics file for Apple Calendar, Outlook and others. */
+export const icsFile = (d: Deal) => {
+  const esc = (t: string) => t.replace(/[\\;,]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
+  return [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//EventoryTT//Things to Do//EN', 'BEGIN:VEVENT',
+    `UID:${d.id}@eventorytt.com`, `DTSTAMP:${ymd(TODAY)}T000000Z`,
+    `DTSTART;VALUE=DATE:${ymd(d.eventDate!)}`, `DTEND;VALUE=DATE:${ymd(dayAfter(d.eventEnd ?? d.eventDate!))}`,
+    `SUMMARY:${esc(d.title)}`, `LOCATION:${esc(d.area)}`, `DESCRIPTION:${esc(calDetails(d))}`, `URL:${dealUrl(d.id)}`,
+    'END:VEVENT', 'END:VCALENDAR',
+  ].join('\r\n');
+};
