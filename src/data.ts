@@ -354,6 +354,17 @@ const courts = (id: string, title: string, price: number, was: number, blurb: st
 });
 const NEW_DEALS = [
   makeDeal({
+    id: 'pricesmart-smart-week', biz: 'PriceSmart', title: 'Smart Week: member savings on tech, home and seasonal', cat: 'shopping',
+    blurb: 'A week of limited-time member prices on tech, home and seasonal items, in club and online.',
+    priceLabel: 'SMART WEEK', promo: 'Members only', url: 'https://www.pricesmart.com/en-tt/smart-week', destShort: 'pricesmart.com',
+    region: 'Islandwide', area: 'PriceSmart clubs · online', address: 'PriceSmart clubs in Trinidad, and online at pricesmart.com.', getIt: 'In club or online', format: 'Online & in-store',
+    checked: new Date(2026, 10, 26), start: new Date(2026, 10, 23), end: new Date(2026, 10, 29), hot: 82, tags: ['weekend'],
+    image: '/deals/pricesmart/smart-week.webp',
+    claimSteps: ['Tap “Get Deal” to see this week’s Smart Week prices.', 'Shop in club or online with your PriceSmart membership.', 'Pay PriceSmart directly.'],
+    terms: ['Runs 23 to 29 November 2026.', 'PriceSmart members only. Items and stock set by PriceSmart.'],
+    live: true,
+  }),
+  makeDeal({
     id: 'kelvin-ghany-warehouse-sale', biz: 'Kelvin Ghany Enterprises', title: 'Four-day warehouse sale: building materials and tools', cat: 'shopping',
     blurb: 'Warehouse sale on building materials, tools and other products. Four days only, Friday 27 to Monday 30 November.',
     priceLabel: 'WAREHOUSE SALE', promo: 'Warehouse sale', url: 'https://www.google.com/maps/search/?api=1&query=Kelvin+Ghany+Enterprises+Ltd+Trinidad',
@@ -667,6 +678,10 @@ export const BUSINESSES: Business[] = [
   {
     name: 'Courts', cat: 'shopping', about: 'Furniture, appliances and electronics, with payment plans. Stores across Trinidad & Tobago and online.',
     area: 'Islandwide', website: 'https://www.courts.com/trinidadandtobago', websiteLabel: 'courts.com',
+  },
+  {
+    name: 'PriceSmart', cat: 'shopping', about: 'Membership warehouse club for groceries, electronics, home goods and more, in club and online.',
+    area: 'Trinidad', website: 'https://www.pricesmart.com/en-tt', websiteLabel: 'pricesmart.com',
   },
   {
     name: 'Kelvin Ghany Enterprises', cat: 'shopping', about: 'Building materials, tools and hardware, with a warehouse and retail showroom.',
