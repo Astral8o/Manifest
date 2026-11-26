@@ -73,6 +73,8 @@ function readSaved(): string[] {
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const initial = parsePath() ?? { screen: 'home' as Screen, dealId: '' };
+  // A shared link to a deal or event that has since ended.
+  const endedLink = typeof window !== 'undefined' && /^\/deal\/[^/]+/.test(window.location.pathname) && initial.screen !== 'deal';
   // Replace an old /#/… address or an unknown path with the clean one.
   if (typeof window !== 'undefined') {
     const clean = pathFor({ screen: initial.screen, dealId: initial.dealId });
@@ -120,6 +122,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setToast(msg);
     toastTimer.current = window.setTimeout(() => setToast(''), 2600);
   }, []);
+
+  useEffect(() => {
+    if (endedLink) showToast('That deal has ended. Here’s what’s on now.');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const go: Store['go'] = useCallback((screen, opts = {}) => {
     setRoute((cur) => {
