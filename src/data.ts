@@ -352,6 +352,17 @@ const courts = (id: string, title: string, price: number, was: number, blurb: st
 });
 const NEW_DEALS = [
   makeDeal({
+    id: 'kelvin-ghany-warehouse-sale', biz: 'Kelvin Ghany Enterprises', title: 'Four-day warehouse sale: building materials and tools', cat: 'shopping',
+    blurb: 'Warehouse sale on building materials, tools and other products. Four days only, Friday 27 to Monday 30 November.',
+    priceLabel: 'WAREHOUSE SALE', promo: 'Warehouse sale', url: 'https://www.google.com/maps/search/?api=1&query=Kelvin+Ghany+Enterprises+Ltd+Trinidad',
+    destShort: 'Google Maps', action: 'View Offer', region: 'Islandwide', area: 'Kelvin Ghany Enterprises warehouse', address: 'Kelvin Ghany Enterprises Ltd warehouse, Trinidad.',
+    getIt: 'In store', format: 'In-store', checked: new Date(2026, 10, 26), start: new Date(2026, 10, 27), end: new Date(2026, 10, 30), hot: 76, tags: ['weekend'],
+    image: '/deals/kelvinghany/warehouse-sale.webp', imageRatio: '2000 / 651',
+    claimSteps: ['Tap “View Offer” to find the warehouse on Google Maps.', 'Visit between Friday 27 and Monday 30 November.', 'Pay Kelvin Ghany Enterprises directly.'],
+    terms: ['Four days only: 27 to 30 November 2026.', 'Products, prices and stock set by Kelvin Ghany Enterprises.'],
+    live: true,
+  }),
+  makeDeal({
     id: 'country-house-jta-cart-up-win', biz: 'Country House', title: 'Cart Up & Win: spend TT$50 on Country House at JTA', cat: 'food',
     blurb: 'Spend TT$50 or more on Country House products at JTA Supermarkets and enter to win a Samsung 55" UHD TV, 2 months of Country House groceries, or one of five TT$250 JTA vouchers.',
     priceLabel: 'WIN A 55" TV', promo: 'Contest', url: 'https://www.instagram.com/hadcodistribution/', destShort: 'instagram.com', action: 'View Offer',
@@ -654,6 +665,10 @@ export const BUSINESSES: Business[] = [
   {
     name: 'Courts', cat: 'shopping', about: 'Furniture, appliances and electronics, with payment plans. Stores across Trinidad & Tobago and online.',
     area: 'Islandwide', website: 'https://www.courts.com/trinidadandtobago', websiteLabel: 'courts.com',
+  },
+  {
+    name: 'Kelvin Ghany Enterprises', cat: 'shopping', about: 'Building materials, tools and hardware, with a warehouse and retail showroom.',
+    area: 'Trinidad', website: 'https://www.google.com/maps/search/?api=1&query=Kelvin+Ghany+Enterprises+Ltd+Trinidad', websiteLabel: 'Google Maps',
   },
   {
     name: 'Country House', cat: 'food', about: 'Pantry staples like corned beef, sardines, pasta, milk and margarine, distributed by HADCO.',
