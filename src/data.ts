@@ -69,6 +69,8 @@ export interface Deal {
   eventEnd?: Date;
   /** Free-text time, e.g. '7pm' or 'Boards 3pm · Sails 4pm'. */
   eventTime?: string;
+  /** Who performs, for search engines (comma-separated). */
+  performer?: string;
   /** Short campaign tag taken from the business's own promo, e.g. 'Black Friday Week'. */
   promo?: string;
   /** Overrides the "Delivery or pickup" style label when a business works differently. */
@@ -300,7 +302,7 @@ interface DealInput {
   /** Price in TTD; omit for percent-off sales or events and give `priceLabel` instead. */
   price?: number; was?: number; priceLabel?: string; pct?: number;
   region: DealRegion; area: string; address: string; getIt: string; format: Format; action?: Action;
-  checked: Date; start?: Date; end?: Date; time?: string; hot: number; tags?: string[]; promo?: string;
+  checked: Date; start?: Date; end?: Date; time?: string; performer?: string; hot: number; tags?: string[]; promo?: string;
   claimSteps: string[]; terms: string[]; hours?: string; image?: string; imageRatio?: string; featured?: boolean;
   /** Held back until a photo or the details are confirmed. */
   live: boolean;
@@ -335,7 +337,7 @@ function makeDeal(o: DealInput): Deal & { live: boolean } {
     claimSteps: o.claimSteps, terms: o.terms, hours: o.hours ?? '', code: o.id, demo: false,
     image: o.image, imageRatio: o.imageRatio, url: o.url, promo: o.promo, getIt: o.getIt,
     priceIsPercent: !hasPrice, live: o.live,
-    eventDate: isEvent ? o.start : undefined, eventEnd: isEvent ? o.end ?? o.start : undefined, eventTime: isEvent ? o.time : undefined,
+    eventDate: isEvent ? o.start : undefined, eventEnd: isEvent ? o.end ?? o.start : undefined, eventTime: isEvent ? o.time : undefined, performer: o.performer,
   };
 }
 
@@ -541,7 +543,7 @@ const EVENTS_CHECKED = new Date(2026, 10, 25);
 interface EventInput {
   id: string; title: string; biz: string; blurb: string; date: Date; end?: Date; time?: string;
   area: string; region: DealRegion; url: string; destShort?: string; action?: Action; cat?: CatKey;
-  price?: number; priceLabel?: string; tags: string[]; image?: string; imageRatio?: string; terms?: string[];
+  price?: number; priceLabel?: string; tags: string[]; image?: string; imageRatio?: string; terms?: string[]; performer?: string;
 }
 
 const STEPS: Partial<Record<Action, string[]>> = {
@@ -557,7 +559,7 @@ const ev = (o: EventInput) => {
     destShort: o.destShort ?? 'islandetickets.com', action, price: o.price, priceLabel: o.priceLabel ?? (o.price === undefined ? 'TICKETS' : undefined),
     region: o.region, area: o.area, address: o.area, format: 'In-store',
     getIt: o.price === 0 ? 'Free entry' : action === 'Book Now' ? 'Book online' : action === 'View Offer' ? 'More info' : 'Tickets online',
-    checked: EVENTS_CHECKED, start: o.date, end: o.end ?? o.date, time: o.time, hot: 40, tags: o.tags, image: o.image, imageRatio: o.imageRatio,
+    checked: EVENTS_CHECKED, start: o.date, end: o.end ?? o.date, time: o.time, hot: 40, tags: o.tags, image: o.image, imageRatio: o.imageRatio, performer: o.performer,
     claimSteps: STEPS[action] ?? [], hours: o.time ? `${o.time}` : undefined,
     terms: [...(o.terms ?? []), 'Times, prices and line-up are set by the organiser and can change.', 'EventoryTT doesn’t sell tickets.'],
     live: true,
@@ -565,13 +567,13 @@ const ev = (o: EventInput) => {
 };
 
 const EVENTS = [
-  ev({ id: 'iconography-david-rudder', image: '/events/david-rudder.webp', title: 'Iconography: David Rudder', biz: 'Iconography', date: on(11, 25), time: 'Doors 6pm · Show 7pm',
+  ev({ id: 'iconography-david-rudder', performer: 'David Rudder', image: '/events/david-rudder.webp', title: 'Iconography: David Rudder', biz: 'Iconography', date: on(11, 25), time: 'Doors 6pm · Show 7pm',
     blurb: 'A screening of the fourth episode of the documentary series on the life and music of calypsonian King David Rudder, with an exhibition by The Sign Man.',
     area: 'Queen’s Hall, St. Ann’s', region: 'POS & West', url: ISLAND('ICONOGRAPHY-David-Rudder'), tags: ['date', 'events'] }),
   ev({ id: 'ttma-christmas-popup', image: '/events/ttma-popup.webp', imageRatio: '16 / 9', title: 'TTMA Christmas Pop-Up & Parang', biz: 'TTMA', date: on(11, 28), end: on(11, 29), time: '10am–6pm',
     blurb: 'Local makers selling made-in-T&T goods, with parang, just in time for Christmas.', area: 'Centre of Excellence, Macoya', region: 'East',
     url: 'https://ttma.com/popupshop/', destShort: 'ttma.com', action: 'View Offer', priceLabel: 'POP-UP SHOP', tags: ['family', 'parang', 'events'] }),
-  ev({ id: 'parang-under-the-lanterns', image: '/events/parang-lanterns.webp', title: 'Parang Under the Lanterns', biz: 'Immortelle', date: on(11, 28), time: '6pm–midnight', price: 350,
+  ev({ id: 'parang-under-the-lanterns', performer: 'Los Angeles de San Miguel, DJ David868', image: '/events/parang-lanterns.webp', title: 'Parang Under the Lanterns', biz: 'Immortelle', date: on(11, 28), time: '6pm–midnight', price: 350,
     blurb: 'A holiday garden party with live parang from Los Angeles de San Miguel and DJ David868. A buffet of Trini holiday food is included. Bring your cooler; ice provided.',
     area: 'Immortelle, Juniper Terrace, Santa Cruz', region: 'POS & West', url: ISLAND('ParangUnderTheLanterns'), tags: ['parang', 'date', 'food', 'events'], terms: ['18+ only.'] }),
   ev({ id: 'taste-of-moruga-tour', image: '/events/taste-of-moruga.webp', title: 'A Taste of Moruga Tour', biz: 'A Taste of Moruga', cat: 'experiences', date: on(11, 29), action: 'Book Now',
@@ -589,7 +591,7 @@ const EVENTS = [
   ev({ id: 'paramin-paradise-tour', image: '/events/paramin-tour.webp', title: 'Paramin Paradise Tour', biz: 'Paramin Paradise Tour', cat: 'experiences', date: on(12, 6), action: 'Book Now',
     blurb: 'Jeep tour of Paramin: the La Vigie lookout (about 2,000 ft), Colosseum Cave, and stops to buy green seasoning. Coconut bake with saltfish or choka and cocoa tea included.',
     area: 'Paramin', region: 'POS & West', url: ISLAND('ParaminParadiseTour'), tags: ['outdoor', 'food'] }),
-  ev({ id: 'midnight-robber-live', image: '/events/midnight-robber.webp', title: 'Midnight Robber Live', biz: 'Midnight Robber', date: on(12, 6), time: '7–10pm', price: 100,
+  ev({ id: 'midnight-robber-live', performer: 'Midnight Robber', image: '/events/midnight-robber.webp', title: 'Midnight Robber Live', biz: 'Midnight Robber', date: on(12, 6), time: '7–10pm', price: 100,
     blurb: 'A live band concert at Alice Yard.', area: 'Alice Yard, Belmont', region: 'POS & West', url: ISLAND('Midnight-Robber-Live'), tags: ['date', 'events', 'budget'], terms: ['Advance tickets only.'] }),
   ev({ id: 'de-pan-man-parang', image: '/events/de-pan-man.webp', title: 'De Pan Man Parang', biz: 'De Pan Man', date: on(12, 11), time: '7pm', price: 250, priceLabel: 'FROM TT$250',
     blurb: 'Live parang bands and special guests. Food and drinks sold separately.', area: 'The Royal Hotel, San Fernando', region: 'South',
@@ -600,7 +602,7 @@ const EVENTS = [
   ev({ id: 'gasparee-caves-monos-tour', image: '/events/gasparee-caves.webp', title: 'Gasparee Caves & Monos Island Tour', biz: 'Gasparee Caves Tour', cat: 'experiences', date: on(12, 12), action: 'Book Now',
     blurb: 'A guided hike on Gaspar Grande, an underground tour of the caves, and a swim at Biscayne Bay. Boat, guides and entrance fees included.',
     area: 'Departs Alcan Bay, Chaguaramas', region: 'POS & West', url: ISLAND('Gasparee-Caves-Monos-Island-Tour'), tags: ['outdoor', 'family'] }),
-  ev({ id: 'black-cake-sorrel-3', image: '/events/black-cake-sorrel.webp', title: 'Black Cake & Sorrel III', biz: 'TASSO', date: on(12, 18), price: 175,
+  ev({ id: 'black-cake-sorrel-3', performer: 'Trinidad All Stars', image: '/events/black-cake-sorrel.webp', title: 'Black Cake & Sorrel III', biz: 'TASSO', date: on(12, 18), price: 175,
     blurb: 'A Christmas night of pan, parang, black cake and sorrel, presented by TASSO at the Trinidad All Stars panyard.',
     area: 'Trinidad All Stars Panyard, Neville Jules Junction, 46-48 Duke Street, Port of Spain', region: 'POS & West', url: ISLAND('blackcakesorrel3'),
     tags: ['parang', 'date', 'events'], terms: ['TT$175 general, or TT$300 for two.'] }),
@@ -610,14 +612,14 @@ const EVENTS = [
   ev({ id: 'panorama-2027-small-finals', image: '/events/panorama-2027.webp', title: 'Panorama 2027: Small Conventional Band Finals', biz: 'Pan Trinbago', date: on(12, 19),
     blurb: 'The small conventional steelband finals of Panorama 2027.', area: 'Grand Stand, Queen’s Park Savannah', region: 'POS & West',
     url: ISLAND('smallfinals2027'), tags: ['events'] }),
-  ev({ id: 'believe-carols-candlelight', image: '/events/believe.webp', title: 'Believe: Carols & Classics by Candlelight', biz: 'John Thomas', date: on(12, 20), time: '6pm', price: 250, priceLabel: 'FROM TT$250',
+  ev({ id: 'believe-carols-candlelight', performer: 'John Thomas', image: '/events/believe.webp', title: 'Believe: Carols & Classics by Candlelight', biz: 'John Thomas', date: on(12, 20), time: '6pm', price: 250, priceLabel: 'FROM TT$250',
     blurb: 'Candlelit carols and holiday classics with John Thomas and Friends, several choirs and a live orchestra conducted by Carl-Anthony Hines.',
     area: 'Church of the Assumption, Maraval', region: 'POS & West', url: ISLAND('Believe2026'), tags: ['parang', 'family', 'date', 'events'],
     terms: ['TT$250 general admission, TT$300 special reserved.'] }),
-  ev({ id: 'rhythm-brews-christmas', image: '/events/rhythm-brews.webp', title: 'Rhythm & Brews: Christmas Edition', biz: 'Bacolet Beach Club', date: on(12, 20),
+  ev({ id: 'rhythm-brews-christmas', performer: 'Travis World, Chucky Rayban, Assassin Singh, Channel 13, DJam, DJ SAS, Deejay Matty, Sound Assassin', image: '/events/rhythm-brews.webp', title: 'Rhythm & Brews: Christmas Edition', biz: 'Bacolet Beach Club', date: on(12, 20),
     blurb: 'Daytime music, coffee and cocktails by the beach. A Latte Life event with DJs Travis World, Chucky Rayban, Assassin Singh, Channel 13, DJam, DJ SAS, Deejay Matty and Sound Assassin.', area: 'Bacolet Beach Club, Tobago', region: 'Tobago',
     url: ISLAND('RBChristmas'), tags: ['parang', 'outdoor', 'events'] }),
-  ev({ id: 'monday-madness-parang', image: '/events/monday-madness.webp', title: 'Monday Madness Parang: Cantando Gloria VI', biz: 'Los Alumnos de San Juan', date: on(12, 21), time: '6:30pm–1am',
+  ev({ id: 'monday-madness-parang', performer: 'Los Alumnos de San Juan', image: '/events/monday-madness.webp', title: 'Monday Madness Parang: Cantando Gloria VI', biz: 'Los Alumnos de San Juan', date: on(12, 21), time: '6:30pm–1am',
     blurb: 'Los Alumnos de San Juan celebrate their 40th anniversary with a night of parang.', area: 'Sound Forge', region: 'Islandwide',
     url: ISLAND('mondaymadnessparang2026'), tags: ['parang', 'events'] }),
   ev({ id: 'boxing-day-parang-trincity', title: 'Boxing Day Parang', biz: 'Trincity Parang', date: on(12, 26), time: '7pm–2am', price: 80,

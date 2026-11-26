@@ -6,7 +6,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { DEALS, type Deal } from '../src/data';
+import { BUSINESSES, DEALS, type Deal } from '../src/data';
 
 export const SITE = 'https://www.eventorytt.com';
 const OG = `${SITE}/og-image.jpg`;
@@ -28,13 +28,23 @@ const WEBSITE = { '@context': 'https://schema.org', '@type': 'WebSite', name: 'E
 
 function eventLd(d: Deal) {
   const hasPrice = Number.isFinite(d.price);
+  // When the listing went up: offers are valid from then.
+  const listed = new Date(); listed.setHours(0, 0, 0, 0); listed.setDate(listed.getDate() - d.added);
+  const biz = BUSINESSES.find((b) => b.name === d.biz);
+  const orgUrl = biz?.website ?? d.url ?? `${SITE}/deal/${d.id}`;
+  const performers = (d.performer ?? d.biz).split(/,\s*/).map((name) => ({ '@type': 'PerformingGroup', name }));
   return {
     '@context': 'https://schema.org', '@type': 'Event', name: d.title, description: d.blurb,
     startDate: iso(d.eventDate!), endDate: iso(d.eventEnd ?? d.eventDate!),
     eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     location: { '@type': 'Place', name: d.area, address: { '@type': 'PostalAddress', streetAddress: d.address || d.area, addressCountry: 'TT' } },
-    image: [abs(d.image)], organizer: { '@type': 'Organization', name: d.biz },
-    offers: { '@type': 'Offer', url: d.url, ...(hasPrice ? { price: String(d.price), priceCurrency: 'TTD' } : {}), availability: 'https://schema.org/InStock' },
+    image: [abs(d.image)],
+    organizer: { '@type': 'Organization', name: d.biz, url: orgUrl },
+    performer: performers.length === 1 ? performers[0] : performers,
+    offers: {
+      '@type': 'Offer', url: d.url ?? `${SITE}/deal/${d.id}`, priceCurrency: 'TTD', ...(hasPrice ? { price: String(d.price) } : {}),
+      availability: 'https://schema.org/InStock', validFrom: iso(listed),
+    },
   };
 }
 
