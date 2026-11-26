@@ -20,6 +20,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800&family=DM+Mono:wght@500&display=swap" rel="stylesheet" />
+    <style>
+      /* Shown only for the split second before the app loads. The summary text stays readable for search engines but is hidden from view. */
+      html, body { background: #FFF6E5; margin: 0; }
+      .boot { position: fixed; inset: 0; display: grid; place-items: center; background: #FFF6E5; }
+      .boot-logo { font: 400 44px Anton, 'Arial Narrow', sans-serif; letter-spacing: .02em; color: #141210; }
+      .boot-logo b { font-weight: 400; color: #F0412F; }
+      .boot-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+    </style>
   </head>
   <body>
     <div id="root"></div>

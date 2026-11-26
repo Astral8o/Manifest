@@ -90,7 +90,7 @@ export function writeSeo(outDir: string) {
     ].filter(Boolean).join('\n    ');
     const html = template
       .replace(/<title>[\s\S]*?<\/title>\s*<meta name="description"[^>]*>/, head)
-      .replace('<div id="root"></div>', `<div id="root"><main style="padding:20px;font-family:sans-serif">${p.body}</main></div>`);
+      .replace('<div id="root"></div>', `<div id="root"><div class="boot" aria-hidden="true"><span class="boot-logo">EVENTORY<b>TT</b></span></div><main class="boot-text">${p.body}</main></div>`);
     // /deal/x is served from deal/x.html (Vercel cleanUrls).
     const file = p.path === '/' ? path.join(outDir, 'index.html') : path.join(outDir, `${p.path}.html`);
     fs.mkdirSync(path.dirname(file), { recursive: true });
