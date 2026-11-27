@@ -1,7 +1,6 @@
 import { useState, type MouseEvent } from 'react';
 import { CREAM, KINDS, PINK, SIZES, type Deal } from '../data';
 import { useStore } from '../store';
-import { Starburst } from './Starburst';
 
 export function useDealActions(d: Deal) {
   const { saved, toggleSave, claim, openDeal } = useStore();
@@ -84,6 +83,12 @@ export function dealFacts(d: Deal): string[] {
 export function DealCard({ d, eager = false }: { d: Deal; eager?: boolean }) {
   const { showDemo } = useStore();
   const a = useDealActions(d);
+  const inTitle = (t?: string) => !!t && d.title.toLowerCase().includes(t.toLowerCase());
+  // Nothing sits on the photo except the heart. Status goes in one line under it.
+  const urgent = d.endingSoon ? d.endsShort : '';
+  const eyebrow = [d.promo && !inTitle(d.promo) ? d.promo : '', d.isNew ? 'New' : ''].filter(Boolean);
+  // Labels like "SMART WEEK" repeat the title; only show the big line when it adds something.
+  const showPrice = !(d.priceIsPercent && inTitle(d.priceLabel));
 
   return (
     <article
@@ -95,19 +100,24 @@ export function DealCard({ d, eager = false }: { d: Deal; eager?: boolean }) {
     >
       <div style={{ position: 'relative' }}>
         <DealImage d={d} eager={eager} />
-        <div style={{ position: 'absolute', top: 8, left: 8, display: 'flex', gap: 5, flexWrap: 'wrap', maxWidth: 'calc(100% - 60px)' }}>
-          {d.promo && <span className="badge-ends" style={{ padding: '2px 8px', fontSize: 12, background: 'var(--ink)', color: 'var(--sun)', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{d.promo}</span>}
-          {d.isNew && <span className="badge-new pulse" style={{ padding: '1px 8px', fontSize: 12 }}>NEW</span>}
-          {d.endingSoon && <span className="badge-ends" style={{ padding: '2px 8px', fontSize: 12 }}>{d.endsShort}</span>}
-        </div>
         <div style={{ position: 'absolute', top: 8, right: 8 }}><SaveButton d={d} size={38} /></div>
-        {d.pct > 0 && !d.priceIsPercent && <Starburst size={58} fontSize={16} style={{ position: 'absolute', bottom: 6, right: 6 }}>-{d.pct}%</Starburst>}
       </div>
       <div className="deal-body">
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-          <span className="deal-price" style={d.priceIsPercent ? { fontSize: 22 } : undefined}>{d.priceLabel}</span>
-          {d.wasLabel && <s style={{ fontSize: 13, color: 'var(--muted-3)' }}>{d.wasLabel}</s>}
-        </div>
+        {/* Everything else sits under the photo as one quiet line. */}
+        {(urgent || eyebrow.length > 0) && (
+          <div className="deal-eyebrow">
+            {urgent && <span className="deal-urgent">{urgent}</span>}
+            {urgent && eyebrow.length > 0 && ' · '}
+            {eyebrow.join(' · ')}
+          </div>
+        )}
+        {showPrice && (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+            <span className="deal-price" style={d.priceIsPercent ? { fontSize: 22 } : undefined}>{d.priceLabel}</span>
+            {d.wasLabel && <s style={{ fontSize: 13, color: 'var(--muted-3)' }}>{d.wasLabel}</s>}
+            {d.pct > 0 && !d.priceIsPercent && <span className="deal-pct">-{d.pct}%</span>}
+          </div>
+        )}
         <h3 className="deal-title">{d.title}</h3>
         <div className="deal-meta">{d.biz}{d.kind ? ` · ${KINDS[d.kind]}` : ''}</div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 'auto', paddingTop: 6 }}>

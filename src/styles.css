@@ -329,3 +329,13 @@ select.field { padding: 0 12px; }
 .scroller:has(> .chip-scroll) { --sa-bg: var(--lilac); --sa-inset: -10px; }
 .scroller:has(> .rail) { --sa-inset: max(6px, calc((100% - 1200px) / 2 - 18px)); }
 .scroller:has(> .rail)::before, .scroller:has(> .rail)::after { background: none; }
+
+/* One small badge on a card photo */
+.card-badge { position: absolute; top: 8px; left: 8px; max-width: calc(100% - 64px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--display); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; border: 2px solid var(--ink); }
+.card-badge-urgent { background: var(--tomato); color: var(--cream); }
+.card-badge-promo { background: var(--ink); color: var(--sun); }
+.card-badge-new { background: var(--lime); color: var(--ink); }
+.deal-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-2); }
+.deal-urgent { color: var(--tomato); }
+.deal-pct { background: var(--sun); border: 2px solid var(--ink); border-radius: 999px; font-family: var(--display); font-size: 13px; padding: 1px 7px; align-self: center; }
