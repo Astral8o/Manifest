@@ -354,6 +354,20 @@ const courts = (id: string, title: string, price: number, was: number, blurb: st
 });
 const NEW_DEALS = [
   makeDeal({
+    id: 'bm-electronics-black-friday-laundry', biz: 'BM Electronics', title: 'Black Friday washers and dryers from TT$3,499', cat: 'shopping',
+    blurb: '12 kg washer TT$3,499, 17 kg washer TT$3,999, and 20 kg dryers TT$4,599.',
+    price: 3499, priceLabel: 'FROM TT$3,499', promo: 'Black Friday',
+    url: `https://wa.me/18682809737?text=${encodeURIComponent('Hi BM Electronics, I saw your Black Friday washer and dryer deals on EventoryTT.')}`,
+    destShort: 'WhatsApp', action: 'WhatsApp Business', region: 'East', area: 'Trincity Business Park',
+    address: 'Lot 1 & 2, Trincity Boulevard, Trincity Business Park, Trincity.', getIt: 'In store', format: 'In-store',
+    checked: new Date(2026, 10, 28), start: new Date(2026, 10, 27), end: new Date(2026, 10, 29), hot: 80, tags: ['weekend'],
+    image: '/deals/bmelectronics/black-friday-laundry.webp', imageRatio: '1080 / 1346',
+    hours: 'Open Sundays 29 Nov – 20 Dec, 10am–4pm',
+    claimSteps: ['Tap to WhatsApp BM Electronics, or call (868) 797-9010.', 'Visit the store at Trincity Business Park.', 'Pay BM Electronics directly.'],
+    terms: ['Black Friday prices from 27 to 29 November 2026.', '12 kg washer TT$3,499 · 17 kg washer TT$3,999 · 20 kg dryer TT$4,599.', 'Stock and prices set by BM Electronics.'],
+    live: true,
+  }),
+  makeDeal({
     id: 'pricesmart-smart-week', biz: 'PriceSmart', title: 'Smart Week: member savings on tech, home and seasonal', cat: 'shopping',
     blurb: 'A week of limited-time member prices on tech, home and seasonal items, in club and online.',
     priceLabel: 'SMART WEEK', promo: 'Members only', url: 'https://www.pricesmart.com/en-tt/smart-week', destShort: 'pricesmart.com',
@@ -678,6 +692,10 @@ export const BUSINESSES: Business[] = [
   {
     name: 'Courts', cat: 'shopping', about: 'Furniture, appliances and electronics, with payment plans. Stores across Trinidad & Tobago and online.',
     area: 'Islandwide', website: 'https://www.courts.com/trinidadandtobago', websiteLabel: 'courts.com',
+  },
+  {
+    name: 'BM Electronics', cat: 'shopping', about: 'Appliances and electronics, including Maxsonic, Samsung and LG. Open Sundays 29 Nov to 20 Dec, 10am–4pm.',
+    area: 'Trincity', website: 'https://www.instagram.com/bmelectronicslimited/', websiteLabel: 'Instagram',
   },
   {
     name: 'PriceSmart', cat: 'shopping', about: 'Membership warehouse club for groceries, electronics, home goods and more, in club and online.',
